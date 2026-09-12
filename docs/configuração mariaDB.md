@@ -54,7 +54,7 @@ Ainda como administrador:
 
 ```sql
 CREATE USER IF NOT EXISTS 'patrimonio'@'localhost'
-IDENTIFIED BY 'p@tr1m0n10';
+IDENTIFIED BY 'Patrimonio2026';
 ```
 
 **Use a mesma senha que você colocou no `DATABASE_URL`.**
@@ -132,6 +132,8 @@ E:
 SELECT VERSION();
 ```
 
+10.6.23-MariaDB-0ubuntu0.22.04.1 
+
 Isso confirma que o usuário da aplicação consegue acessar o banco.
 
 Saia:
@@ -149,11 +151,12 @@ No terminal do projeto:
 ```bash
 cd ~/IA/sistema_patrimonio_mysql
 ```
+Crie um .env
 
-Configure:
+Cole nele:
 
 ```bash
-export DATABASE_URL="mariadb+pymysql://patrimonio:SUA_SENHA@localhost:3306/sispatrimoniopro"
+DATABASE_URL="mariadb+pymysql://patrimonio:Patrimonio2026@localhost:3306/sispatrimoniopro"
 ```
 
 Substitua `SUA_SENHA` pela senha real.
@@ -190,7 +193,7 @@ Deve aparecer algo semelhante a:
 
 ```text
 mariadb+pymysql://patrimonio:********@localhost:3306/sispatrimoniopro
-```
+```4b52ZPSi9amm
 
 **Não publique sua senha aqui.**
 
@@ -462,7 +465,7 @@ python3 -m pip install python-dotenv
 
 *** Alterar a senha do usuario do banco
 ALTER USER 'patrimonio'@'localhost'
-IDENTIFIED BY 'p@tr1m0n10';
+IDENTIFIED BY 'Patrimonio2026';
 
 Depois:
 
