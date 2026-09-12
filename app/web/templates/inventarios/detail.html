@@ -15,6 +15,24 @@
         </p>
     </div>
     <div class="d-flex gap-2">
+        {% if can('relatorios.exportar') %}
+        <div class="dropdown">
+            <button class="btn btn-ghost" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-download me-1"></i> Exportar <i class="bi bi-chevron-down ms-1"></i>
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/api/v1/reports/inventarios/{{ inv.id }}/csv">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> CSV
+                </a></li>
+                <li><a class="dropdown-item" href="/api/v1/reports/inventarios/{{ inv.id }}/excel">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Excel (.xlsx)
+                </a></li>
+                <li><a class="dropdown-item" href="/api/v1/reports/inventarios/{{ inv.id }}/pdf">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                </a></li>
+            </ul>
+        </div>
+        {% endif %}
         {% if inv.status.value != 'ENCERRADO' and can_encerrar %}
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEncerrar">
             <i class="bi bi-lock me-1"></i> Encerrar Inventário

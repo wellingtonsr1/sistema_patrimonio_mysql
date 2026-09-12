@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, Query
+from fastapi import APIRouter, Depends, HTTPException, Response, Query
 from datetime import datetime
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -6,6 +6,7 @@ from app.database import get_db
 from app.api.deps import require_permission
 from app.services.dashboard_service import DashboardService
 from app.services.report_service import ReportService
+from app.services.inventario_service import InventarioService
 
 router = APIRouter(prefix="/reports", tags=["Relatórios e Dashboard"])
 
@@ -156,6 +157,51 @@ def export_inventory_pdf(
         content=pdf_content,
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@router.get("/inventarios/{inventario_id}/csv", dependencies=[Depends(require_permission("inventario.visualizar")), Depends(require_permission("relatorios.exportar"))])
+def export_inventario_csv(inventario_id: int, db: Session = Depends(get_db)):
+    """Exporta a ata comprobatória de um inventário em CSV"""
+    inv = InventarioService.get_by_id(db, inventario_id)
+    if not inv:
+        raise HTTPException(status_code=404, detail="Inventário não encontrado")
+
+    csv_content = ReportService.generate_inventario_csv(db, inv)
+    return Response(
+        content=csv_content,
+        media_type="text/csv; charset=utf-8-sig",
+        headers={"Content-Disposition": f"attachment; filename=ata_{inv.code}.csv"}
+    )
+
+
+@router.get("/inventarios/{inventario_id}/pdf", dependencies=[Depends(require_permission("inventario.visualizar")), Depends(require_permission("relatorios.exportar"))])
+def export_inventario_pdf(inventario_id: int, db: Session = Depends(get_db)):
+    """Exporta a ata comprobatória de um inventário em PDF"""
+    inv = InventarioService.get_by_id(db, inventario_id)
+    if not inv:
+        raise HTTPException(status_code=404, detail="Inventário não encontrado")
+
+    pdf_content = ReportService.generate_inventario_pdf(db, inv)
+    return Response(
+        content=pdf_content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=ata_{inv.code}.pdf"}
+    )
+
+
+@router.get("/inventarios/{inventario_id}/excel", dependencies=[Depends(require_permission("inventario.visualizar")), Depends(require_permission("relatorios.exportar"))])
+def export_inventario_excel(inventario_id: int, db: Session = Depends(get_db)):
+    """Exporta a ata comprobatória de um inventário em Excel (.xlsx)"""
+    inv = InventarioService.get_by_id(db, inventario_id)
+    if not inv:
+        raise HTTPException(status_code=404, detail="Inventário não encontrado")
+
+    excel_content = ReportService.generate_inventario_excel(db, inv)
+    return Response(
+        content=excel_content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=ata_{inv.code}.xlsx"}
     )
 
 

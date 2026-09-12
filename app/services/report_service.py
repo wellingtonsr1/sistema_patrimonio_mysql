@@ -8,7 +8,9 @@ from app.models.movement import Movement
 from app.models.custodian import Custodian
 from app.services.asset_service import AssetService
 from app.services.custodian_service import CustodianService
-from app.models.enums import AssetStatus, AssetCategory
+from app.services.inventario_service import InventarioService
+from app.models.enums import AssetStatus, AssetCategory, InventarioStatus, InventarioItemStatus
+from app.models.inventario import Inventario, InventarioItem
 
 
 class ReportService:
@@ -482,4 +484,330 @@ class ReportService:
                 m.term_code or "-"
             ])
 
+        return output.getvalue()
+
+    # ==================================================================
+    # INVENTÁRIO PATRIMONIAL — ATA COMPROBATÓRIA (CSV / PDF)
+    # ==================================================================
+
+    @staticmethod
+    def _inventario_rows(db: Session, inventario: Inventario) -> List[dict]:
+        """Monta as linhas da ata de conferência (comuns ao CSV e ao PDF)."""
+        inv = InventarioService.get_by_id(db, inventario.id) or inventario
+        rows = []
+        for item in inv.itens:
+            asset = item.asset
+            rows.append({
+                "nao_previsto": bool(item.nao_previsto),
+                "tag": asset.tag if asset else str(item.asset_id),
+                "nome": asset.name if asset else "",
+                "categoria": asset.category.label if asset and asset.category else "",
+                "local_esperado": item.expected_location_name or "Estoque Central",
+                "responsavel_esperado": item.expected_custodian_name or "Estoque / Livre",
+                "resultado": item.status.label,
+                "local_encontrado": item.found_location_name or "-",
+                "conferido_em": item.checked_at.strftime("%d/%m/%Y %H:%M") if item.checked_at else "-",
+                "conferido_por": item.checked_by_name or "-",
+                "observacao": item.observation or "",
+            })
+        return rows
+
+    @staticmethod
+    def generate_inventario_csv(db: Session, inventario: Inventario) -> str:
+        """Gera a ata comprobatória do inventário em CSV (delimitador ';', BOM handled by endpoint)."""
+        rows = ReportService._inventario_rows(db, inventario)
+
+        output = io.StringIO()
+        writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+
+        # Bloco de comprovação (cabeçalho formal)
+        writer.writerow(["ATA DE INVENTÁRIO PATRIMONIAL"])
+        writer.writerow(["Código", inventario.code])
+        writer.writerow(["Nome", inventario.name])
+        writer.writerow(["Escopo", inventario.scope_filters or "Todo o acervo"])
+        writer.writerow(["Status", inventario.status.label])
+        writer.writerow(["Criado por", inventario.created_by_name or "-"])
+        writer.writerow(["Criado em", inventario.created_at.strftime("%d/%m/%Y %H:%M") if inventario.created_at else "-"])
+        if inventario.started_at:
+            writer.writerow(["Conferência iniciada em", inventario.started_at.strftime("%d/%m/%Y %H:%M")])
+        if inventario.closed_at:
+            writer.writerow(["Encerrado em", inventario.closed_at.strftime("%d/%m/%Y %H:%M")])
+            writer.writerow(["Encerrado por", inventario.closed_by_name or "-"])
+        if inventario.closure_notes:
+            writer.writerow(["Notas do encerramento", inventario.closure_notes])
+        writer.writerow([])
+
+        writer.writerow([
+            "Tipo",
+            "Tombamento",
+            "Descrição",
+            "Categoria",
+            "Local Esperado",
+            "Responsável Esperado",
+            "Resultado",
+            "Local Encontrado",
+            "Conferido em",
+            "Conferido por",
+            "Observação",
+        ])
+
+        for r in rows:
+            writer.writerow([
+                "Bem não previsto" if r["nao_previsto"] else "Esperado",
+                r["tag"],
+                r["nome"],
+                r["categoria"],
+                r["local_esperado"],
+                r["responsavel_esperado"],
+                r["resultado"],
+                r["local_encontrado"],
+                r["conferido_em"],
+                r["conferido_por"],
+                r["observacao"],
+            ])
+
+        return output.getvalue()
+
+    @staticmethod
+    def generate_inventario_pdf(db: Session, inventario: Inventario) -> bytes:
+        """Gera a ata comprobatória do inventário em PDF (paisagem A4, padrão dos relatórios existentes)."""
+        from reportlab.lib.pagesizes import A4, landscape
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import mm
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.enums import TA_CENTER
+
+        rows = ReportService._inventario_rows(db, inventario)
+        summary = InventarioService.summary(db, inventario.id)
+
+        output = io.BytesIO()
+        page_size = landscape(A4)
+        left_margin = 12 * mm
+        right_margin = 12 * mm
+        top_margin = 18 * mm
+        bottom_margin = 15 * mm
+        available_width = page_size[0] - left_margin - right_margin
+
+        doc = SimpleDocTemplate(output, pagesize=page_size,
+                                leftMargin=left_margin, rightMargin=right_margin,
+                                topMargin=top_margin, bottomMargin=bottom_margin)
+
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('InvTitle', parent=styles['Heading1'], fontSize=14, alignment=TA_CENTER, spaceAfter=4)
+        subtitle_style = ParagraphStyle('InvSubtitle', parent=styles['Normal'], fontSize=10, alignment=TA_CENTER, textColor=colors.grey, spaceAfter=10)
+        meta_style = ParagraphStyle('InvMeta', parent=styles['Normal'], fontSize=9, spaceAfter=2)
+        cell_style = ParagraphStyle('InvCell', parent=styles['Normal'], fontSize=7, leading=9)
+
+        elements = [
+            Paragraph("Ata de Inventário Patrimonial", title_style),
+            Paragraph(f"{inventario.code} — {inventario.name}", subtitle_style),
+            Paragraph(f"<b>Escopo:</b> {inventario.scope_filters or 'Todo o acervo'}", meta_style),
+            Paragraph(f"<b>Status:</b> {inventario.status.label}", meta_style),
+            Paragraph(
+                f"<b>Criado por</b> {inventario.created_by_name or '-'} "
+                f"em {inventario.created_at.strftime('%d/%m/%Y %H:%M') if inventario.created_at else '-'}",
+                meta_style,
+            ),
+        ]
+        if inventario.started_at:
+            elements.append(Paragraph(f"<b>Conferência iniciada em</b> {inventario.started_at.strftime('%d/%m/%Y %H:%M')}", meta_style))
+        if inventario.closed_at:
+            elements.append(Paragraph(
+                f"<b>Encerrado por</b> {inventario.closed_by_name or '-'} "
+                f"em {inventario.closed_at.strftime('%d/%m/%Y %H:%M')}",
+                meta_style,
+            ))
+        if inventario.closure_notes:
+            elements.append(Paragraph(f"<b>Notas do encerramento:</b> {inventario.closure_notes}", meta_style))
+        elements.append(Paragraph(
+            f"<b>Consolidação:</b> {summary['expected']} esperados | "
+            f"{summary['found']} encontrados | {summary['wrong_location']} em local diferente | "
+            f"{summary['not_found']} não encontrados | {summary['unidentified']} sem identificação | "
+            f"{summary['unlisted']} não previstos",
+            ParagraphStyle('InvSummary', parent=styles['Normal'], fontSize=9, spaceBefore=4, spaceAfter=10),
+        ))
+
+        headers = [
+            "Tipo", "Tombamento", "Descrição", "Categoria", "Local Esperado",
+            "Responsável Esperado", "Resultado", "Local Encontrado",
+            "Conferido em", "Conferido por", "Observação",
+        ]
+        table_data = [[Paragraph(h, cell_style) for h in headers]]
+        for r in rows:
+            table_data.append([
+                Paragraph("Não previsto" if r["nao_previsto"] else "Esperado", cell_style),
+                Paragraph(r["tag"], cell_style),
+                Paragraph(r["nome"], cell_style),
+                Paragraph(r["categoria"], cell_style),
+                Paragraph(r["local_esperado"], cell_style),
+                Paragraph(r["responsavel_esperado"], cell_style),
+                Paragraph(r["resultado"], cell_style),
+                Paragraph(r["local_encontrado"], cell_style),
+                Paragraph(r["conferido_em"], cell_style),
+                Paragraph(r["conferido_por"], cell_style),
+                Paragraph(r["observacao"], cell_style),
+            ])
+
+        if len(table_data) > 1:
+            column_weights = [4, 5, 7, 4, 6, 6, 5, 6, 4, 4, 8]
+            total_weight = sum(column_weights)
+            col_widths = [(available_width * w) / total_weight for w in column_weights]
+            table = Table(table_data, colWidths=col_widths, repeatRows=1)
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 7),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('FONTSIZE', (0, 1), (-1, -1), 7),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.whitesmoke, colors.HexColor('#f0f0f0')]),
+            ]))
+            elements.append(table)
+        else:
+            elements.append(Paragraph(
+                "Nenhum bem registrado neste inventário.",
+                ParagraphStyle('InvEmpty', parent=styles['Normal'], fontSize=11, textColor=colors.grey, spaceAfter=12),
+            ))
+
+        elements.append(Spacer(1, 10 * mm))
+        elements.append(Paragraph(
+            f"<b>Total de registros:</b> {len(rows)} | Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+            ParagraphStyle('InvFooter', parent=styles['Normal'], fontSize=9, alignment=TA_CENTER, textColor=colors.grey),
+        ))
+
+        doc.build(elements)
+        output.seek(0)
+        return output.getvalue()
+
+    @staticmethod
+    def generate_inventario_excel(db: Session, inventario: Inventario) -> bytes:
+        """Gera a ata comprobatória do inventário em Excel (.xlsx)."""
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+        from openpyxl.utils import get_column_letter
+
+        rows = ReportService._inventario_rows(db, inventario)
+        summary = InventarioService.summary(db, inventario.id)
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"Ata {inventario.code}"[:31]
+
+        # Estilos (mesmo padrão do inventário geral)
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        title_font = Font(bold=True, size=14)
+        meta_label_font = Font(bold=True)
+
+        # Bloco de comprovação (cabeçalho formal)
+        ws.cell(row=1, column=1, value="ATA DE INVENTÁRIO PATRIMONIAL").font = title_font
+        meta = [
+            ("Código", inventario.code),
+            ("Nome", inventario.name),
+            ("Escopo", inventario.scope_filters or "Todo o acervo"),
+            ("Status", inventario.status.label),
+            ("Criado por", inventario.created_by_name or "-"),
+            ("Criado em", inventario.created_at.strftime("%d/%m/%Y %H:%M") if inventario.created_at else "-"),
+        ]
+        if inventario.started_at:
+            meta.append(("Conferência iniciada em", inventario.started_at.strftime("%d/%m/%Y %H:%M")))
+        if inventario.closed_at:
+            meta.append(("Encerrado em", inventario.closed_at.strftime("%d/%m/%Y %H:%M")))
+            meta.append(("Encerrado por", inventario.closed_by_name or "-"))
+        if inventario.closure_notes:
+            meta.append(("Notas do encerramento", inventario.closure_notes))
+        meta.append((
+            "Consolidação",
+            f"{summary['expected']} esperados | {summary['found']} encontrados | "
+            f"{summary['wrong_location']} em local diferente | {summary['not_found']} não encontrados | "
+            f"{summary['unidentified']} sem identificação | {summary['unlisted']} não previstos",
+        ))
+
+        current_row = 2
+        for label, value in meta:
+            ws.cell(row=current_row, column=1, value=label).font = meta_label_font
+            ws.cell(row=current_row, column=2, value=value)
+            current_row += 1
+        current_row += 1  # linha em branco antes da tabela
+
+        headers = [
+            "Tipo",
+            "Tombamento",
+            "Descrição",
+            "Categoria",
+            "Local Esperado",
+            "Responsável Esperado",
+            "Resultado",
+            "Local Encontrado",
+            "Conferido em",
+            "Conferido por",
+            "Observação",
+        ]
+        header_row = current_row
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=header_row, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = thin_border
+
+        data_start = header_row + 1
+        for i, r in enumerate(rows):
+            r_idx = data_start + i
+            values = [
+                "Bem não previsto" if r["nao_previsto"] else "Esperado",
+                r["tag"],
+                r["nome"],
+                r["categoria"],
+                r["local_esperado"],
+                r["responsavel_esperado"],
+                r["resultado"],
+                r["local_encontrado"],
+                r["conferido_em"],
+                r["conferido_por"],
+                r["observacao"],
+            ]
+            for col, value in enumerate(values, 1):
+                cell = ws.cell(row=r_idx, column=col, value=value)
+                cell.border = thin_border
+
+        if not rows:
+            note = ws.cell(row=data_start, column=1, value="Nenhum bem registrado neste inventário.")
+            note.font = Font(italic=True, color="808080")
+
+        # Ajustar largura das colunas (mesma estratégia do inventário geral)
+        for col in range(1, len(headers) + 1):
+            max_length = len(str(ws.cell(row=header_row, column=col).value))
+            for r_idx in range(data_start, data_start + max(len(rows), 1)):
+                cell_value = ws.cell(row=r_idx, column=col).value
+                if cell_value is not None:
+                    max_length = max(max_length, len(str(cell_value)))
+            ws.column_dimensions[get_column_letter(col)].width = min(max_length + 2, 50)
+
+        # Rodapé com total
+        footer_row = data_start + max(len(rows), 1) + 1
+        footer = ws.cell(
+            row=footer_row, column=1,
+            value=f"Total de registros: {len(rows)} | Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        )
+        footer.font = Font(bold=True, size=9, color="808080")
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
         return output.getvalue()
