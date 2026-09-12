@@ -605,13 +605,13 @@ ARTICLES: List[Dict] = [
         "module": "Relatórios & Exportações",
         "icon": "bi-file-earmark-text",
         "audience": "user",
-        "summary": "Inventário geral, trilha de auditoria e relação de colaboradores.",
+        "summary": "Relatório Contábil-Físico, trilha de auditoria e relação de colaboradores.",
         "keywords": ["relatórios", "inventário", "trilha", "auditoria", "colaboradores", "imprimir"],
         "sections": [
             {
                 "heading": "Quais relatórios existem",
                 "steps": [
-                    "Inventário Geral — listagem analítica de todos os bens com depreciação e valor contábil.",
+                    "Relatório Contábil-Físico — listagem analítica de todos os bens com depreciação e valor contábil.",
                     "Trilha de Auditoria — todas as movimentações do acervo, com origem, destino e operador.",
                     "Relação de Colaboradores — colaboradores e a quantidade de bens sob custódia de cada um.",
                 ],
@@ -644,7 +644,7 @@ ARTICLES: List[Dict] = [
             {
                 "heading": "Onde exportar",
                 "body": (
-                    "Os relatórios Inventário Geral, Trilha de Auditoria e Relação de Colaboradores "
+                    "Os relatórios Relatório Contábil-Físico, Trilha de Auditoria e Relação de Colaboradores "
                     "possuem o botão Baixar CSV. Os arquivos são compatíveis com planilhas eletrônicas."
                 ),
             },
@@ -828,7 +828,7 @@ FAQ: List[Dict] = [
     {
         "question": "Como gerar um relatório?",
         "answer": (
-            "No menu Relatórios escolha Inventário Geral, Trilha de Auditoria ou Relação de "
+            "No menu Relatórios escolha Relatório Contábil-Físico, Trilha de Auditoria ou Relação de "
             "Colaboradores. Todos podem ser impressos pelo botão Imprimir."
         ),
     },
