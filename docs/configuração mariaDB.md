@@ -159,8 +159,6 @@ Cole nele:
 DATABASE_URL="mariadb+pymysql://patrimonio:Patrimonio2026@localhost:3306/sispatrimoniopro"
 ```
 
-Substitua `SUA_SENHA` pela senha real.
-
 ### Importante
 
 Se a senha tiver caracteres como:
@@ -177,25 +175,35 @@ Se a senha tiver caracteres como:
 
 ela pode precisar ser codificada na URL.
 
-Para o primeiro teste, uma senha simples facilita bastante.
+Ex: Para codificar sua senha no Linux
 
----
+Sem precisar instalar nada:
 
-# 7. Confirmar a variável
+python3 -c "from urllib.parse import quote; print(quote('SUA_SENHA', safe=''))"
 
-Execute:
+Por exemplo:
 
-```bash
-echo "$DATABASE_URL"
-```
+python3 -c "from urllib.parse import quote; print(quote('Minha@Senha#2026!', safe=''))"
 
-Deve aparecer algo semelhante a:
+Depois coloque o resultado no .env:
 
-```text
-mariadb+pymysql://patrimonio:********@localhost:3306/sispatrimoniopro
-```4b52ZPSi9amm
+DATABASE_URL=mysql+pymysql://usuario:SENHA_CODIFICADA@localhost:3306/sispatrimoniopro
 
-**Não publique sua senha aqui.**
+** Restringir o acesso ao arquivo
+
+No Linux:
+
+chmod 600 .env
+
+E confira:
+
+ls -l .env
+
+Idealmente:
+
+-rw------- 1 wellington wellington ... .env
+
+** Para o primeiro teste, uma senha simples facilita bastante.
 
 ---
 
