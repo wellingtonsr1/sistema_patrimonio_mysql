@@ -1,6 +1,9 @@
 import os
 from pathlib import Path
 
+# Imports de terceiros
+from dotenv import load_dotenv
+
 # Diretórios base
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
@@ -18,8 +21,6 @@ DATA_DIR.mkdir(exist_ok=True)
 #
 # Não há fallback para SQLite. Se DATABASE_URL não estiver configurada,
 # a aplicação não será iniciada.
-
-from dotenv import load_dotenv
 
 load_dotenv()
 
