@@ -1444,25 +1444,26 @@ main { animation: fadeInUp .3s var(--ease); }
 
 
 /* ==========================================================================
-   ETIQUETAS DE PATRIMÔNIO (lote) — folha A4, grade 2×5 (10 etiquetas/página)
+   ETIQUETAS DE PATRIMÔNIO (lote) — folha A4, grade 3 colunas (~21 etiquetas/página)
+   Área útil: A4 210×297mm com margens de 8mm → 194×281mm.
    ========================================================================== */
 .labels-sheet {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: .25in;
-  max-width: 5.5in; /* etiquetas mais estreitas: ~66mm cada (antes ~87mm) */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3mm;
+  max-width: 194mm; /* A4 (210mm) − 2×8mm de margem: mesma largura da área imprimível */
   margin: 0 auto;
 }
 
 .label-card {
   display: flex;
   align-items: center;
-  gap: .12in;
-  padding: .1in;
+  gap: 2mm;
+  padding: 2mm;
   border: 1px solid var(--c-border);
   border-radius: var(--r-sm);
   background: var(--c-surface);
-  min-height: 1.32in;
+  min-height: 35mm; /* faixa 35–38mm: mantém QR de 92px (~24mm) e legibilidade */
   box-sizing: border-box;
   min-width: 0;
 }
@@ -1517,13 +1518,20 @@ html[data-theme="light"] #select-all-page:not(:checked) {
   border-color: var(--color-text-muted);
 }
 
-/* Impressão: apenas a área de etiquetas é impressa */
+/* Impressão: apenas a área de etiquetas é impressa.
+   Página A4 com margens de 8mm — a folha usa a largura útil integral (194mm).
+   break-inside/page-break-inside evitam que uma etiqueta seja dividida
+   entre páginas: a quebra ocorre sempre ENTRE etiquetas. */
 @media print {
+  @page { size: A4; margin: 8mm; }
   body > *:not(main),
   main > *:not(#labels-print-area),
   #labels-print-area ~ * { display: none !important; }
   main { padding: 0 !important; max-width: 100% !important; }
-  .labels-sheet { max-width: 5.5in; /* mesma largura da pré-visualização */ }
+  /* Remove o espaçamento do navbar fixo (só existe na tela): sem esse reset,
+     a 1ª página perde ~24mm úteis no topo. */
+  body { padding-top: 0 !important; }
+  .labels-sheet { max-width: 194mm; /* A4 − 2×8mm: sem desperdício horizontal */ }
   .label-card {
     break-inside: avoid;
     page-break-inside: avoid;
