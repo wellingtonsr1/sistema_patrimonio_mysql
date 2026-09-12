@@ -153,16 +153,8 @@
     <div class="label-card">
         <div class="label-qr" data-label-qr="{{ a.id }}"></div>
         <div class="label-info">
+            <img class="label-logo" src="/static/img/Logo_IPMjp_1.png" alt="IPMJP">
             <div class="label-tag">{{ a.tag }}</div>
-            <div class="label-desc" title="{{ a.name }}">{{ a.name }}</div>
-            <div class="label-line">
-                <span class="label-k">Setor:</span>
-                {% if a.location and a.location.department %}<span class="label-v">{{ a.location.department }}</span>{% else %}<span class="label-v label-empty">—</span>{% endif %}
-            </div>
-            <div class="label-line">
-                <span class="label-k">Local:</span>
-                {% if a.location %}<span class="label-v" title="{{ a.location.name }}">{{ a.location.name }}</span>{% else %}<span class="label-v label-empty">—</span>{% endif %}
-            </div>
         </div>
     </div>
     {% endfor %}
@@ -215,30 +207,15 @@
             qr.setAttribute('data-label-qr', a.id);
             var info = document.createElement('div');
             info.className = 'label-info';
+            var logo = document.createElement('img');
+            logo.className = 'label-logo';
+            logo.src = '/static/img/Logo_IPMjp.png';
+            logo.alt = 'IPMJP';
             var tag = document.createElement('div');
             tag.className = 'label-tag';
             tag.textContent = a.tag;
-            var desc = document.createElement('div');
-            desc.className = 'label-desc';
-            desc.textContent = a.name;
-            var l1 = document.createElement('div');
-            l1.className = 'label-line';
-            l1.innerHTML = '<span class="label-k">Setor:</span> ';
-            var v1 = document.createElement('span');
-            v1.className = 'label-v' + (a.department ? '' : ' label-empty');
-            v1.textContent = a.department || '—';
-            l1.appendChild(v1);
-            var l2 = document.createElement('div');
-            l2.className = 'label-line';
-            l2.innerHTML = '<span class="label-k">Local:</span> ';
-            var v2 = document.createElement('span');
-            v2.className = 'label-v' + (a.location_name ? '' : ' label-empty');
-            v2.textContent = a.location_name || '—';
-            l2.appendChild(v2);
+            info.appendChild(logo);
             info.appendChild(tag);
-            info.appendChild(desc);
-            info.appendChild(l1);
-            info.appendChild(l2);
             card.appendChild(qr);
             card.appendChild(info);
             return card;

@@ -1483,7 +1483,18 @@ main { animation: fadeInUp .3s var(--ease); }
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+}
+
+.label-logo {
+  max-width: 100%;
+  max-height: .42in;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
 }
 
 .label-tag {
@@ -1494,27 +1505,8 @@ main { animation: fadeInUp .3s var(--ease); }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
-
-.label-desc {
-  font-weight: 600;
-  font-size: 9pt;
-  color: var(--c-text);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.label-line {
-  font-size: 8.5pt;
-  color: var(--c-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.label-k { font-weight: 700; color: var(--c-text); }
-.label-empty { color: var(--c-text-muted); }
 
 /* Contraste dos checkboxes da página de Etiquetas no tema claro:
    a borda padrão Bootstrap (#dee2e6) fica invisível sobre o cartão branco.
