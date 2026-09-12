@@ -40,9 +40,9 @@ APP_HOST = os.getenv("APP_HOST", "127.0.0.1")
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
 
 # Organização padrão para emissão de termos
-COMPANY_NAME = "Empresa de Tecnologia & Soluções S.A."
-COMPANY_CNPJ = "12.345.678/0001-90"
-COMPANY_ADDRESS = "Av. Paulista, 1000 - 10º Andar - São Paulo/SP"
+COMPANY_NAME = "© Instituto de Previdência do Municipio de João Pessoa."
+COMPANY_CNPJ = "40.955.403/0001-09"
+COMPANY_ADDRESS = "Rua Engenheiro Clodoaldo Gouveia, 166, Centro, João Pessoa/PB"
 
 # ============================================================================
 # AUTENTICAÇÃO
