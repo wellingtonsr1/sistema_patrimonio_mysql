@@ -5,3 +5,7 @@
 2026-09-12 13:55:02 | WARNING | sispatrimonio.web                   | Falha de login AD para 'wellingtonrdorigues': ADAuthenticationError
 2026-09-12 13:55:39 | WARNING | sispatrimonio.web                   | Falha de login AD para 'wellingtonrdorigues': ADAuthenticationError
 2026-09-12 13:56:17 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: error receiving data: [Errno 104] Connection reset by peer
+2026-09-12 17:24:06 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: socket connection error while opening: timed out
+2026-09-12 17:24:10 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: socket connection error while opening: timed out
+2026-09-12 17:24:27 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: socket connection error while opening: timed out
+2026-09-12 17:28:36 | WARNING | sispatrimonio.web                   | Falha de login AD para 'wellingtonrodrigues': ADNoProfileError
