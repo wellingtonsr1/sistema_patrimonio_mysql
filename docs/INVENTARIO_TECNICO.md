@@ -15,7 +15,7 @@
 | `seed_demo.py` | Demo: `Base.metadata.drop_all` + `init_db` + carga de 4 locais, 4 colaboradores, 7 bens, movimentações e 1 manutenção |
 | `data/logs/` | Logs técnicos (`app.log`, `app.error.log`) criados por `app/logging_config.py` |
 | `README.md` | Documentação geral do projeto (execução, auth, AD, RBAC, CLI, testes) |
-| `data/patrimonio.db` | Banco SQLite da aplicação |
+| MariaDB/MySQL | Banco da aplicação (configurado via DATABASE_URL) |
 
 ---
 

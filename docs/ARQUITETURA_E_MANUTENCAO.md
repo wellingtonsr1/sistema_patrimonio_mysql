@@ -61,7 +61,7 @@ define apenas mínimos):
 | Framework web | FastAPI | `>=0.110.0` | 0.141.1 |
 | Servidor ASGI | Uvicorn (`uvicorn[standard]`) | `>=0.28.0` | 0.30.6 |
 | ORM | SQLAlchemy | `>=2.0.0` | 2.0.52 |
-| Banco de dados | SQLite (arquivo local) | — | — |
+| Banco de dados | MariaDB/MySQL | — | — |
 | Validação | Pydantic v2 | `>=2.6.0` | 2.13.5 |
 | Templates | Jinja2 | `>=3.1.3` | 3.1.6 |
 | Multipart (upload) | python-multipart | `>=0.0.9` | instalada |
@@ -216,8 +216,8 @@ Observações factuais sobre a arquitetura:
 
 | Item | Valor |
 |---|---|
-| Banco | SQLite em arquivo: `data/patrimonio.db` (default de `DATABASE_URL` em `app/config.py`) |
-| Acesso | SQLAlchemy 2 (`create_engine` + `sessionmaker`); `check_same_thread=False` para SQLite |
+| Banco | MariaDB/MySQL (configurável via `DATABASE_URL` em `app/config.py`) |
+| Acesso | SQLAlchemy 2 (`create_engine` + `sessionmaker`); pool QueuePool para concorrência |
 | Sessão por request | `app.database.get_db` (dependency FastAPI) |
 | Migrações | `Base.metadata.create_all` + `_ensure_schema_migrations()` (ALTER TABLE condicional; sem Alembic) |
 | Inicialização | Automática no start (`run.py` e lifespan de `main.py`) |
@@ -917,7 +917,7 @@ Constantes não-env: `APP_NAME`, `APP_VERSION`, `APP_DESCRIPTION`, `COMPANY_NAME
 8. **`seed_demo.py` executa `drop_all`** — apaga todas as tabelas/dados antes de recriar; usar
    apenas em banco de teste/demo.
 9. Sem `LICENSE` no repositório.
-10. `data/patrimonio.db` é versionado no repositório atual (arquivo binário alterado a cada
+10. O banco de dados é externalizado (MariaDB/MySQL) e não versionado no repositório.
     execução local) — o README recomenda não versionar dados reais.
 11. **`movement_service.py` (`get_timeline_for_asset`) — RESOLVIDO.** O módulo referenciava
     as constantes `ACTION_MOVEMENT`/`ACTION_MAINTENANCE` sem importá-las (`NameError` quando a

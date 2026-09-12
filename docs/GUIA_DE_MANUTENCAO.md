@@ -97,7 +97,7 @@ mapeado para perfil existente; sem mapeamento → nada é criado no banco, apena
 
 ## Onde está o banco?
 
-- **Arquivo** → `data/patrimonio.db` (SQLite; ajustável via `DATABASE_URL` em `app/config.py`).
+- **Banco** → MariaDB/MySQL (configurável via `DATABASE_URL` em `app/config.py`).
 - **Engine/sessões** → `app/database.py` (`engine`, `SessionLocal`, `get_db`).
 - **Criação/migração leve** → `init_db()` e `_ensure_schema_migrations()` no mesmo arquivo.
 - **Dados de demo** → `python seed_demo.py` (⚠️ executa `drop_all` — apaga os dados).

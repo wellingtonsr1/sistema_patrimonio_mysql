@@ -46,10 +46,10 @@ Aplicação pronta → servidor ouvindo
 
 ## 3. Criação do Banco de Dados
 
-- **Banco:** SQLite, arquivo `data/patrimonio.db` (padrão em `app/config.py`).
+- **Banco:** MariaDB/MySQL (configurado via `DATABASE_URL` em `app/config.py`).
 - **Como é criado:** `Base.metadata.create_all(bind=engine)` dentro de `init_db()` (`app/database.py`).
 - **Quando:** na primeira execução do servidor (`run.py`) e novamente no `lifespan` do FastAPI.
-- **Migrações:** Não existe Alembic. Existe apenas `_ensure_schema_migrations()` que adiciona colunas condicionalmente em tabelas existentes (somente SQLite).
+- **Migrações:** Não existe Alembic. Existe apenas `_ensure_schema_migrations()` que adiciona colunas condicionalmente em tabelas existentes (compatível com MariaDB 10.5+).
 
 **Evidência:** `app/database.py`.
 
@@ -268,7 +268,7 @@ dashboard.html
 |---|---|---|---|
 | `app/main.py` | FastAPI app, lifespan | `lifespan`, `app` | Chama `init_db()`, `ensure_admin_user()`, `ensure_default_roles()` na inicialização |
 | `app/config.py` | Configuração central (env) | Variáveis `AUTH_ADMIN_*`, `AUTH_PBKDF2_ITERATIONS`, `AD_*` | Define padrões e leitura das variáveis de ambiente para admin inicial e AD |
-| `app/database.py` | Banco de dados, inicialização | `init_db()`, `Base.metadata`, `SessionLocal` | Cria as tabelas no primeiro start |
+| `app/database.py` | Banco de dados, inicialização | `init_db()`, `Base.metadata`, `SessionLocal` | Cria as tabelas e conecta ao MariaDB/MySQL no primeiro start |
 | `app/services/auth_service.py` | Autenticação local, criação de usuário | `ensure_admin_user()`, `authenticate()`, `create_user()`, `hash_password()`, `verify_password()` | Cria o admin inicial se `AUTH_ADMIN_PASSWORD` definida; autentica localmente |
 | `app/services/permission_service.py` | RBAC, seed de perfis | `ensure_default_roles()`, `PERMISSION_CATALOG`, `DEFAULT_ROLES`, `get_user_permission_names()` | Cria o catálogo de permissões e 7 perfis padrão (idempotente, toda inicialização) |
 | `app/services/auth_provider.py` | Camada de provedores | `resolve_authentication()`, `LocalAuthProvider`, `ADAuthProvider` | Decide se o login é local ou AD; usado pela rota de login |
@@ -284,7 +284,7 @@ dashboard.html
 | `app/models/ad_settings.py`, `app/models/ad_group_role.py` | Modelos AD | `ADSettings`, `ADGroupRole` | Configuração AD e mapeamento grupo→perfil |
 | `app/web/templates/login.html` | Template de login | — | Tela de login (sem botão de primeiro acesso, sem setup) |
 | `app/web/templates/admin/ad/settings.html` | Tela de configuração AD | — | Interface para habilitar AD, mapeamento de grupos |
-| `app/database.py::_ensure_schema_migrations` | Migrações leves | — | Adiciona colunas em tabelas existentes (idempotente, somente SQLite) |
+| `app/database.py::_ensure_schema_migrations` | Migrações leves | — | Adiciona colunas em tabelas existentes (idempotente, MariaDB 10.5+) |
 
 ---
 
@@ -381,13 +381,11 @@ Login AD → resolve_authentication → ADAuthProvider
 
 ## 13. Pontos de Atenção (apenas relatório — sem correção)
 
-1. **`AUTH_PROVIDER` não governa o fluxo:** a variável existe e é lida em `get_auth_provider()`, mas os pontos de login não usam essa função — usam `resolve_authentication()` que decide internamente.
+1. **AD opcional:** o sistema funciona totalmente sem AD. Até o primeiro login pode ser feito com o admin local sem qualquer configuração de AD.
 
-2. **AD opcional:** o sistema funciona totalmente sem AD. Até o primeiro login pode ser feito com o admin local sem qualquer configuração de AD.
+2. **Configuração do AD via interface exige login prévio:** para configurar o AD pela interface (`/admin/ad`), é necessário já existir um usuário local administrador — o AD não resolve o problema do primeiro acesso.
 
-3. **Configuração do AD via interface exige login prévio:** para configurar o AD pela interface (`/admin/ad`), é necessário já existir um usuário local administrador — o AD não resolve o problema do primeiro acesso.
-
-> **Nota:** Os pontos 1-3 do relatório anterior (impasse de acesso, sem tela de primeiro acesso, CLI como única saída) foram **resolvidos** com a implementação da interface web de Primeiro Acesso (`/setup`). Agora existe uma terceira forma de criar o primeiro administrador sem variável de ambiente nem CLI.
+> **Nota:** O ponto 1 do relatório anterior (impasse de acesso, sem tela de primeiro acesso, CLI como única saída) foi **resolvido** com a implementação da interface web de Primeiro Acesso (`/setup`). Agora existe uma terceira forma de criar o primeiro administrador sem variável de ambiente nem CLI.
 
 ---
 

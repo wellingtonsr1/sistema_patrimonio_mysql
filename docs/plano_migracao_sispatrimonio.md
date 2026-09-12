@@ -8,7 +8,7 @@
 ## 1. RESUMO EXECUTIVO
 
 **Sistema analisado:** SisPatrimônio Pro v1.0.0  
-**Banco atual:** SQLite (arquivo `data/patrimonio.db`, 1.47 MB)  
+**Banco atual:** MariaDB/MySQL  
 **ORM:** SQLAlchemy 2.0.52  
 **Framework:** FastAPI + Uvicorn  
 **Linguagem:** Python 3.10+

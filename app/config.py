@@ -7,7 +7,29 @@ DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
 # Configurações do Banco de Dados
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR / 'patrimonio.db'}")
+# O sistema utiliza exclusivamente MariaDB/MySQL.
+# A URL de conexão deve ser fornecida via variável de ambiente DATABASE_URL.
+#
+# Formato esperado:
+#   mariadb+pymysql://USUARIO:SENHA@HOST:3306/BANCO
+#
+# Exemplo:
+#   export DATABASE_URL="mariadb+pymysql://sispatrimonio:senha@localhost:3306/sispatrimonio_pro"
+#
+# Não há fallback para SQLite. Se DATABASE_URL não estiver configurada,
+# a aplicação não será iniciada.
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL não configurada. "
+        "Configure a variável no arquivo .env."
+    )
 
 # Configurações da Aplicação
 APP_NAME = "SisPatrimônio Pro"

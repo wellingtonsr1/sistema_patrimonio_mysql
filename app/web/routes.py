@@ -1562,7 +1562,7 @@ def _claim_first_access(db: Session) -> bool:
     garantia de exclusividade, pois apenas uma requisição consegue inserir a
     linha. Quem chega primeiro segue para a criação do administrador no mesmo
     commit; as concorrentes caem em violação de unicidade (`IntegrityError`) ou
-    em bloqueio de escrita do SQLite (`OperationalError`) e recebem False.
+    em bloqueio de escrita (`OperationalError`) e recebem False.
 
     A reivindicação não é confirmada enquanto `db.commit()` não acontece: se a
     criação do administrador falhar, o `db.rollback()` libera o registro e o

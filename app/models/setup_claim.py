@@ -12,8 +12,8 @@ class SetupClaim(Base):
     A chave primária é a garantia de exclusividade: apenas UMA requisição
     consegue inserir esta linha. Quem reivindica cria o primeiro
     administrador no mesmo commit; as requisições concorrentes recebem
-    violação de unicidade (ou bloqueio de escrita do SQLite) e são
-    redirecionadas ao login, sem criar um segundo administrador.
+    violação de unicidade e são redirecionadas ao login, sem criar um
+    segundo administrador.
 
     A linha existe apenas para serializar o bootstrap: depois que o primeiro
     administrador é criado, o fluxo de primeiro acesso já fica desabilitado

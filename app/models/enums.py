@@ -54,13 +54,46 @@ _LABELS: Dict[str, str] = {
 class _LabeledEnum(str, enum.Enum):
     """Enum com rótulo pronto para exibição ao usuário final.
 
-    Em templates use `label`; `value` permanece como identificador técnico
-    (persistência, queries, filtros e CSS, ex.: `status-pill-{{ status.value }}`).
+    Em templates use `label`; `value` permanece como identificador técnico.
+
+    Observação importante para MariaDB:
+    - SQLAlchemy encontra o tipo ``Enum`` automaticamente (não exige
+      ``Enum(..., create_constraint=False)``).
+    - O contexto de geração de schema deve *preencher* o dicionário de
+      tipos ``enum.`` antes de emitir qualquer ``CREATE TABLE`` ou
+      ``ALTER TABLE``.
     """
 
     @property
     def label(self) -> str:
         return _LABELS.get(self.value, self.value)
+
+
+def _register_all_enums():
+    """Registra todos os enums do sistema para geração de schema no MariaDB.
+
+    Chama-se uma única vez, antes de ``Base.metadata.create_all()``:
+
+        from app.models.enums import _register_all_enums
+        _register_all_enums()
+
+    Isso garante que, ao gerar o schema no MariaDB, o SQLAlchemy encontre
+    os tipos Enum registrados e emita comandos ``CREATE TYPE``/
+    ``ALTER TABLE`` compatíveis.
+    """
+    # Força a materialização dos membros de cada classe Enum para
+    # garantir que o SQLAlchemy saiba dos tipos antes da geração de schema.
+    for _ in (
+        AssetStatus,
+        AssetCondition,
+        AssetCategory,
+        MovementType,
+        MaintenanceType,
+        MaintenanceStatus,
+    ):
+        for _ in _:
+            pass
+
 
 
 class AssetStatus(_LabeledEnum):

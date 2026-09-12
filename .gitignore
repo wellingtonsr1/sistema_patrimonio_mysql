@@ -9,3 +9,8 @@ tests/
 *.sqlite
 *.sqlite3
 data/patrimonio.db
+
+# MariaDB
+.env
+.env.*
+!.env.example

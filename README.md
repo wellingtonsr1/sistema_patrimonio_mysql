@@ -60,7 +60,7 @@
 | Linguagem | Python 3.10+ |
 | Framework web | FastAPI |
 | Servidor ASGI | Uvicorn |
-| ORM / Banco | SQLAlchemy 2 + SQLite (arquivo local, sem serviço externo) |
+| ORM / Banco | SQLAlchemy 2 + MariaDB/MySQL |
 | Validação | Pydantic v2 |
 | Templates | Jinja2 + Bootstrap 5 + Bootstrap Icons |
 | Frontend | Chart.js, QRCode.js, tema claro/escuro |
@@ -598,9 +598,10 @@ para usuários com permissão administrativa.
 
 ## 🗄️ Banco de Dados e Backup
 
-- **Tecnologia**: SQLite em arquivo local (`data/patrimonio.db` por padrão; ajustável via `DATABASE_URL`), acessado pelo SQLAlchemy — **nenhum serviço de banco externo é necessário**.
+- **Tecnologia**: MariaDB/MySQL acessado via SQLAlchemy — **serviço de banco externo necessário**.
 - **Criação**: automática no primeiro start (`init_db`), incluindo a migração leve e idempotente de colunas novas (seção RBAC acima).
-- **Backup**: por ser um arquivo único, basta copiar `data/patrimonio.db` com a aplicação parada (ou usar a API de backup do SQLite). O diretório `data/` **não deve ser versionado** com dados reais.
+- **Configuração**: via variável de ambiente `DATABASE_URL` (ex: `mariadb+pymysql://usuario:senha@host:3306/banco`).
+- **Backup**: utilize as ferramentas nativas do MariaDB (`mysqldump`, `mysqlpump`) ou soluções de backup do sistema operacional.
 
 ---
 
@@ -648,7 +649,7 @@ sistema_patrimonio/
 │   ├── config.py             # Configurações gerais (app, auth, AD via env)
 │   ├── database.py           # Conexão, sessão SQLAlchemy e migração leve
 │   └── main.py               # Aplicação principal FastAPI (lifespan, handlers 403/404)
-├── data/                     # Banco SQLite (data/patrimonio.db) — não versionar dados reais
+├── data/                     # Diretório de dados (logs, uploads) — não versionar dados sensíveis
 ├── tests/                    # Suite pytest (auth, rbac, ad, api, assets, movements, imports, help)
 ├── seed_demo.py              # Carga de dados de teste realistas (recria as tabelas)
 ├── run.py                    # Script de inicialização do servidor
