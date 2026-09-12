@@ -1,0 +1,7 @@
+2026-09-12 13:54:16 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: socket connection error while opening: timed out
+2026-09-12 13:54:23 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: ("('socket ssl wrapping error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: EE certificate key too weak (_ssl.c:1007)',)",)
+2026-09-12 13:54:26 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: ("('socket ssl wrapping error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: EE certificate key too weak (_ssl.c:1007)',)",)
+2026-09-12 13:54:31 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: ("('socket ssl wrapping error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: EE certificate key too weak (_ssl.c:1007)',)",)
+2026-09-12 13:55:02 | WARNING | sispatrimonio.web                   | Falha de login AD para 'wellingtonrdorigues': ADAuthenticationError
+2026-09-12 13:55:39 | WARNING | sispatrimonio.web                   | Falha de login AD para 'wellingtonrdorigues': ADAuthenticationError
+2026-09-12 13:56:17 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: error receiving data: [Errno 104] Connection reset by peer

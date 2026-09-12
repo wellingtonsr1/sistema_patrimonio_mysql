@@ -48,6 +48,16 @@ _LABELS: Dict[str, str] = {
     "EM_ANDAMENTO": "Em Andamento",
     "CONCLUIDA": "Concluída",
     "CANCELADA": "Cancelada",
+    # InventarioStatus
+    "PLANEJADO": "Planejado",
+    # "EM_ANDAMENTO": "Em Andamento" (compartilhado com MaintenanceStatus)
+    "ENCERRADO": "Encerrado",
+    # InventarioItemStatus
+    "PENDENTE": "Pendente",
+    "ENCONTRADO": "Encontrado",
+    "LOCAL_DIFERENTE": "Local Diferente",
+    "NAO_ENCONTRADO": "Não Encontrado",
+    "SEM_IDENTIFICACAO": "Sem Identificação",
 }
 
 
@@ -90,6 +100,8 @@ def _register_all_enums():
         MovementType,
         MaintenanceType,
         MaintenanceStatus,
+        InventarioStatus,
+        InventarioItemStatus,
     ):
         for _ in _:
             pass
@@ -149,3 +161,17 @@ class MaintenanceStatus(_LabeledEnum):
     IN_PROGRESS = "EM_ANDAMENTO"
     COMPLETED = "CONCLUIDA"
     CANCELLED = "CANCELADA"
+
+
+class InventarioStatus(_LabeledEnum):
+    PLANNED = "PLANEJADO"          # Criado, escopo definido, conferência ainda não iniciada
+    IN_PROGRESS = "EM_ANDAMENTO"   # Conferência em campo em andamento
+    CLOSED = "ENCERRADO"           # Encerrado: resultados consolidados, itens travados
+
+
+class InventarioItemStatus(_LabeledEnum):
+    PENDING = "PENDENTE"                    # Aguardando conferência física
+    FOUND = "ENCONTRADO"                    # 🟢 Localizado e conferido
+    FOUND_WRONG_LOCATION = "LOCAL_DIFERENTE"  # 🟡 Existe, mas em local diverso do cadastro
+    NOT_FOUND = "NAO_ENCONTRADO"            # 🔴 Não localizado durante a conferência
+    UNIDENTIFIED = "SEM_IDENTIFICACAO"      # ⚠️ Bem presente, mas sem tombo/etiqueta legível

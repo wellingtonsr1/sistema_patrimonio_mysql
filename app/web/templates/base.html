@@ -61,6 +61,11 @@
                 <i class="bi bi-arrow-left-right"></i> Fluxo & Movimentação
             </a>
             {% endif %}
+            {% if can('inventario.visualizar') %}
+            <a class="sidebar-nav-item {% if active_tab == 'inventarios' %}active{% endif %}" href="/inventarios">
+                <i class="bi bi-clipboard-check"></i> Inventários
+            </a>
+            {% endif %}
             {% if can('colaboradores.visualizar') %}
             <a class="sidebar-nav-item {% if active_tab == 'custodians' %}active{% endif %}" href="/custodians">
                 <i class="bi bi-people"></i> Colaboradores
@@ -170,6 +175,13 @@
                     <li class="nav-item">
                         <a class="nav-link {% if active_tab == 'movements' %}active{% endif %}" href="/movements">
                             <i class="bi bi-arrow-left-right me-1"></i> Fluxo & Movimentação
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if can('inventario.visualizar') %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'inventarios' %}active{% endif %}" href="/inventarios">
+                            <i class="bi bi-clipboard-check me-1"></i> Inventários
                         </a>
                     </li>
                     {% endif %}

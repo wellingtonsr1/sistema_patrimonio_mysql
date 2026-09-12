@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Inventário | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="page-header">
+            <div>
+                <h3 class="page-header-title">Novo Inventário Patrimonial</h3>
+                <p class="page-header-subtitle">Defina o escopo; a lista de bens esperados será gerada como registro comprobatório.</p>
+            </div>
+            <a href="/inventarios" class="btn btn-ghost">
+                <i class="bi bi-arrow-left me-1"></i> Voltar
+            </a>
+        </div>
+
+        {% if request.query_params.get('error') %}
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>{{ request.query_params.get('error') }}</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/inventarios/new" class="card p-4">
+            <div class="form-section"><i class="bi bi-clipboard-check"></i> Identificação</div>
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Nome do inventário <span class="text-danger">*</span></label>
+                <input type="text" name="name" class="form-control" required maxlength="150"
+                       placeholder="Ex.: Inventário Anual 2026 — Sede">
+                <div class="form-text">O código (INV-AAAA-NNNN) é gerado automaticamente.</div>
+            </div>
+
+            <div class="form-section"><i class="bi bi-funnel"></i> Escopo da conferência</div>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Local</label>
+                    <select name="location_id" class="form-select">
+                        <option value="">Todos os locais</option>
+                        {% for loc in locations %}
+                        <option value="{{ loc.id }}">{{ loc.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Limita a conferência aos bens do local selecionado.</div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Setor / Departamento</label>
+                    <select name="department" class="form-select">
+                        <option value="">Todos os setores</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept }}">{{ dept }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Observações</label>
+                    <textarea name="notes" class="form-control" rows="2"
+                              placeholder="Instruções da conferência, comissão responsável, etc. (opcional)"></textarea>
+                </div>
+            </div>
+
+            <div class="alert alert-info small d-flex align-items-start gap-2">
+                <i class="bi bi-info-circle mt-1"></i>
+                <div>
+                    A lista de bens esperados é gerada agora como <strong>snapshot</strong> (tombamento, local e
+                    colaborador cadastrados neste momento). O inventário <strong>nunca altera o cadastro dos
+                    bens</strong>: divergências ficam registradas para tratamento pelos fluxos próprios
+                    (movimentação, edição de cadastro).
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+                <a href="/inventarios" class="btn btn-ghost">Cancelar</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i> Criar e gerar lista
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

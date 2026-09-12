@@ -38,6 +38,7 @@ ACTION_ROLE_DELETE = "EXCLUSAO_PERFIL"
 ACTION_MOVEMENT = "MOVIMENTACAO"
 ACTION_MAINTENANCE = "MANUTENCAO"
 ACTION_IMPORT = "IMPORTACAO"
+ACTION_INVENTARIO = "INVENTARIO"
 ACTION_ACCESS_DENIED = "ACESSO_NEGADO"
 
 # Integração Active Directory (ações detalhadas vivem em ad_service)
@@ -77,6 +78,7 @@ ACTION_LABELS: Dict[str, str] = {
     ACTION_MOVEMENT: "Movimentação",
     ACTION_MAINTENANCE: "Manutenção",
     ACTION_IMPORT: "Importação",
+    ACTION_INVENTARIO: "Inventário",
     ACTION_ACCESS_DENIED: "Acesso Negado",
     # Integração Active Directory
     ACTION_AD_LOGIN: "Login (AD)",

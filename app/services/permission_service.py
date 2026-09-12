@@ -72,6 +72,12 @@ PERMISSION_CATALOG: List[dict] = [
     {"name": "relatorios.visualizar", "module": "Relatórios", "label": "Visualizar relatórios", "description": "Acessar dashboard, inventário e relatórios."},
     {"name": "relatorios.exportar", "module": "Relatórios", "label": "Exportar relatórios", "description": "Exportar inventário, movimentações e colaboradores (CSV/Excel)."},
 
+    # --- Inventário patrimonial ---
+    {"name": "inventario.visualizar", "module": "Inventário", "label": "Visualizar inventários", "description": "Consultar inventários, listas de bens esperados, conferências e consolidação."},
+    {"name": "inventario.criar", "module": "Inventário", "label": "Criar inventário", "description": "Criar inventários, definir escopo e gerar a lista de bens esperados."},
+    {"name": "inventario.conferir", "module": "Inventário", "label": "Conferir bens", "description": "Registrar resultado de conferência física (encontrado, divergência, não encontrado)."},
+    {"name": "inventario.encerrar", "module": "Inventário", "label": "Encerrar inventário", "description": "Encerrar o inventário e consolidar resultados (trava as conferências)."},
+
     # --- Auditoria ---
     {"name": "auditoria.visualizar", "module": "Auditoria", "label": "Visualizar auditoria", "description": "Consultar a trilha de auditoria do sistema."},
 ]
@@ -115,6 +121,7 @@ DEFAULT_ROLES: List[dict] = [
         "permissions": [
             "patrimonio.visualizar", "patrimonio.criar", "patrimonio.editar",
             "movimentacao.visualizar", "movimentacao.criar",
+            "inventario.visualizar", "inventario.criar", "inventario.conferir", "inventario.encerrar",
             "colaboradores.visualizar", "colaboradores.criar", "colaboradores.editar",
             "locais.visualizar",
             "relatorios.visualizar", "relatorios.exportar",
@@ -139,6 +146,7 @@ DEFAULT_ROLES: List[dict] = [
             "patrimonio.visualizar",
             "movimentacao.visualizar",
             "manutencao.visualizar",
+            "inventario.visualizar",
             "colaboradores.visualizar", "locais.visualizar",
             "relatorios.visualizar", "relatorios.exportar",
             "auditoria.visualizar",

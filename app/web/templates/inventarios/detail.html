@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}{{ inv.code }} — {{ inv.name }} | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">
+            <span class="tag-badge me-2">{{ inv.code }}</span>{{ inv.name }}
+        </h3>
+        <p class="page-header-subtitle">
+            {{ inv.scope_filters }} &bull;
+            {% if inv.status.value == 'PLANEJADO' %}conferência ainda não iniciada{% elif inv.status.value == 'EM_ANDAMENTO' %}conferência em andamento{% else %}encerrado em {{ inv.closed_at.strftime('%d/%m/%Y %H:%M') if inv.closed_at }}{% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if inv.status.value != 'ENCERRADO' and can_encerrar %}
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEncerrar">
+            <i class="bi bi-lock me-1"></i> Encerrar Inventário
+        </button>
+        {% endif %}
+        <a href="/inventarios" class="btn btn-ghost"><i class="bi bi-arrow-left me-1"></i> Voltar</a>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ error }}</span>
+</div>
+{% endif %}
+
+<!-- Consolidação -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card p-3 text-center">
+            <div class="fs-3 fw-bold" style="color:var(--c-text);">{{ summary.expected }}</div>
+            <div class="text-muted small">Bens esperados</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card p-3 text-center">
+            <div class="fs-3 fw-bold text-success">{{ summary.found }}</div>
+            <div class="text-muted small">🟢 Encontrados</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card p-3 text-center">
+            <div class="fs-3 fw-bold" style="color:var(--amber);">{{ summary.wrong_location }}</div>
+            <div class="text-muted small">🟡 Local diferente</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card p-3 text-center">
+            <div class="fs-3 fw-bold text-danger">{{ summary.not_found }}</div>
+            <div class="text-muted small">🔴 Não encontrados</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card p-3 text-center">
+            <div class="fs-3 fw-bold" style="color:var(--info);">{{ summary.unidentified }}</div>
+            <div class="text-muted small">⚠️ Sem identificação</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+        <div class="card p-3 text-center">
+            <div class="fs-3 fw-bold" style="color:var(--c-text);">{{ summary.unlisted }}</div>
+            <div class="text-muted small">+ Não previstos</div>
+        </div>
+    </div>
+</div>
+
+{% if inv.notes %}
+<div class="alert alert-info small">{{ inv.notes }}</div>
+{% endif %}
+
+<!-- Cards -->
+<div class="row g-4">
+    <!-- Conferência -->
+    <div class="col-12 col-lg-8">
+        <div class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-upc-scan"></i> Registrar Conferência (QR / Tombamento)</div>
+            {% if inv.status.value == 'ENCERRADO' %}
+            <div class="alert alert-secondary small mb-0">
+                <i class="bi bi-lock me-1"></i> Inventário encerrado — as conferências estão travadas e o resultado está consolidado.
+            </div>
+            {% else %}
+            {% if can_conferir %}
+            <form method="post" action="/inventarios/{{ inv.id }}/buscar" id="formBuscar" class="row g-2 align-items-end mb-2">
+                <div class="col-12 col-md">
+                    <label class="form-label fw-semibold">Tombamento / QR do bem</label>
+                    <input type="text" name="tag" class="form-control" placeholder="Escaneie ou digite o tombamento (ex.: TMB-2026-1141)" required autofocus>
+                </div>
+                <div class="col-12 col-md-auto">
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i> Localizar</button>
+                </div>
+            </form>
+            <div class="form-text mb-3">
+                Aponte a câmera para a etiqueta QR do bem (leva à ficha dele, onde há atalho de conferência) ou digite o tombamento.
+            </div>
+            {% endif %}
+            {% if can_conferir and inv.status.value == 'PLANEJADO' %}
+            <form method="post" action="/inventarios/{{ inv.id }}/iniciar" class="d-flex gap-2 align-items-center border rounded p-2">
+                <i class="bi bi-play-circle" style="font-size:1.2rem;color:var(--green);"></i>
+                <div class="small flex-grow-1">Iniciar formalmente a conferência (sem registrar resultado ainda).</div>
+                <button type="submit" class="btn btn-ghost btn-sm">Iniciar</button>
+            </form>
+            {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- Lista de bens esperados -->
+        <div class="card">
+            <div class="card-header-clean d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                <span class="text-muted small">Bens esperados: <strong>{{ expected_itens|length }}</strong></span>
+                <form method="get" action="/inventarios/{{ inv.id }}" class="d-flex gap-2">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Filtrar lista..." value="{{ search }}">
+                    <select name="status_filter" class="form-select form-select-sm">
+                        <option value="">Todos os resultados</option>
+                        {% for st in item_statuses %}
+                        <option value="{{ st.value }}" {% if selected_status == st.value %}selected{% endif %}>{{ st.label }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-ghost btn-sm"><i class="bi bi-funnel"></i></button>
+                </form>
+            </div>
+            {% if expected_itens %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Tombamento</th>
+                            <th>Bem</th>
+                            <th>Local esperado</th>
+                            <th>Resultado</th>
+                            <th class="text-end">Conferir</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in expected_itens %}
+                        <tr>
+                            <td>
+                                <a href="/assets/{{ item.asset.id }}" class="text-decoration-none">
+                                    <span class="tag-badge">{{ item.asset.tag }}</span>
+                                </a>
+                            </td>
+                            <td class="small">
+                                <span class="fw-semibold" style="color:var(--c-text);">{{ item.asset.name }}</span>
+                                {% if item.expected_custodian_name %}
+                                <div class="text-muted" style="font-size:.72rem;"><i class="bi bi-person me-1"></i>{{ item.expected_custodian_name }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">
+                                {{ item.expected_location_name or 'Estoque Central' }}
+                            </td>
+                            <td>
+                                {% if item.status.value == 'PENDENTE' %}
+                                <span class="badge badge-soft-gray">Pendente</span>
+                                {% elif item.status.value == 'ENCONTRADO' %}
+                                <span class="badge badge-soft-green">✓ Encontrado</span>
+                                {% elif item.status.value == 'LOCAL_DIFERENTE' %}
+                                <span class="badge badge-soft-amber">⚠ Local diferente{% if item.found_location_name %}: {{ item.found_location_name }}{% endif %}</span>
+                                {% elif item.status.value == 'NAO_ENCONTRADO' %}
+                                <span class="badge badge-soft-red">✕ Não encontrado</span>
+                                {% else %}
+                                <span class="badge badge-soft-amber">⚠ Sem identificação</span>
+                                {% endif %}
+                                {% if item.observation %}
+                                <div class="text-muted" style="font-size:.72rem;"><em>{{ item.observation }}</em></div>
+                                {% endif %}
+                                {% if item.checked_by_name %}
+                                <div class="text-muted" style="font-size:.68rem;">
+                                    {{ item.checked_at.strftime('%d/%m/%Y %H:%M') if item.checked_at }} • {{ item.checked_by_name }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if inv.status.value != 'ENCERRADO' and can_conferir %}
+                                <button type="button" class="btn btn-ghost btn-icon" title="Registrar conferência"
+                                        data-bs-toggle="modal" data-bs-target="#modalConferir{{ item.id }}">
+                                    <i class="bi bi-check2-square"></i>
+                                </button>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-inbox empty-state-icon"></i>
+                <div class="empty-state-title">Nenhum bem no escopo</div>
+                <div class="empty-state-text">O escopo selecionado não contém bens ativos.</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Lateral: não previstos + comprovação -->
+    <div class="col-12 col-lg-4">
+        <div class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-exclamation-triangle"></i> Bens não previstos ({{ unlisted_itens|length }})</div>
+            {% if unlisted_itens %}
+            <ul class="list-unstyled mb-0">
+                {% for item in unlisted_itens %}
+                <li class="border-bottom pb-2 mb-2">
+                    <a href="/assets/{{ item.asset.id }}" class="text-decoration-none fw-semibold" style="color:var(--c-text);">
+                        <span class="tag-badge">{{ item.asset.tag }}</span> {{ item.asset.name }}
+                    </a>
+                    {% if item.found_location_name %}
+                    <div class="text-muted small"><i class="bi bi-geo-alt me-1"></i>{{ item.found_location_name }}</div>
+                    {% endif %}
+                    {% if item.observation %}
+                    <div class="text-muted small"><em>{{ item.observation }}</em></div>
+                    {% endif %}
+                    <div class="text-muted" style="font-size:.68rem;">
+                        {{ item.checked_at.strftime('%d/%m/%Y %H:%M') if item.checked_at }} • {{ item.checked_by_name }}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="text-muted small">Nenhum bem fora da lista foi encontrado até o momento.</div>
+            {% endif %}
+            {% if inv.status.value != 'ENCERRADO' and can_conferir %}
+            <hr>
+            <form method="post" action="/inventarios/{{ inv.id }}/nao-previsto" class="row g-2">
+                <div class="col-12">
+                    <label class="form-label fw-semibold small">Registrar bem não previsto</label>
+                    <input type="text" name="tag" class="form-control form-control-sm" placeholder="Tombamento do bem encontrado" required>
+                </div>
+                <div class="col-12">
+                    <select name="found_location_id" class="form-select form-select-sm">
+                        <option value="">Local onde foi encontrado (opcional)</option>
+                        {% for loc in all_locations %}
+                        <option value="{{ loc.id }}">{{ loc.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <input type="text" name="observation" class="form-control form-control-sm" placeholder="Observação (opcional)">
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-ghost btn-sm w-100"><i class="bi bi-plus-lg me-1"></i> Registrar ocorrência</button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+
+        <div class="card p-4">
+            <div class="section-divider mb-3"><i class="bi bi-journal-check"></i> Comprovação</div>
+            <ul class="list-unstyled small text-muted mb-0">
+                <li class="mb-2"><i class="bi bi-person me-2"></i>Criado por <strong style="color:var(--c-text);">{{ inv.created_by_name or '—' }}</strong> em {{ inv.created_at.strftime('%d/%m/%Y %H:%M') }}</li>
+                {% if inv.started_at %}
+                <li class="mb-2"><i class="bi bi-play-circle me-2"></i>Conferência iniciada em {{ inv.started_at.strftime('%d/%m/%Y %H:%M') }}</li>
+                {% endif %}
+                {% if inv.closed_at %}
+                <li class="mb-2"><i class="bi bi-lock me-2"></i>Encerrado por <strong style="color:var(--c-text);">{{ inv.closed_by_name or '—' }}</strong> em {{ inv.closed_at.strftime('%d/%m/%Y %H:%M') }}</li>
+                {% endif %}
+                {% if inv.closure_notes %}
+                <li class="mb-2"><i class="bi bi-card-text me-2"></i>{{ inv.closure_notes }}</li>
+                {% endif %}
+                <li><i class="bi bi-shield-check me-2"></i>Cada conferência registra conferente, data/hora e resultado na trilha de auditoria.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Conferir -->
+{% for item in expected_itens %}
+{% if inv.status.value != 'ENCERRADO' and can_conferir %}
+<div class="modal fade" id="modalConferir{{ item.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="/inventarios/{{ inv.id }}/conferir/{{ item.id }}">
+                <div class="modal-header">
+                    <h5 class="modal-title"><span class="tag-badge me-2">{{ item.asset.tag }}</span> {{ item.asset.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-muted small mb-3">
+                        <i class="bi bi-geo-alt me-1"></i> Local cadastrado: {{ item.expected_location_name or 'Estoque Central' }}
+                        {% if item.expected_custodian_name %} &bull; <i class="bi bi-person me-1"></i>{{ item.expected_custodian_name }}{% endif %}
+                    </div>
+                    <label class="form-label fw-semibold">Resultado da conferência <span class="text-danger">*</span></label>
+                    <div class="d-grid gap-2 mb-3">
+                        <label class="d-block border rounded p-2" style="cursor:pointer;">
+                            <input class="form-check-input" type="radio" name="result" value="ENCONTRADO" required>
+                            <span class="fw-semibold ms-2" style="color:var(--c-text);">🟢 Encontrado</span>
+                        </label>
+                        <label class="d-block border rounded p-2" style="cursor:pointer;">
+                            <input class="form-check-input" type="radio" name="result" value="LOCAL_DIFERENTE">
+                            <span class="fw-semibold ms-2" style="color:var(--c-text);">🟡 Encontrado em local diferente</span>
+                        </label>
+                        <label class="d-block border rounded p-2" style="cursor:pointer;">
+                            <input class="form-check-input" type="radio" name="result" value="NAO_ENCONTRADO">
+                            <span class="fw-semibold ms-2" style="color:var(--c-text);">🔴 Não encontrado</span>
+                        </label>
+                        <label class="d-block border rounded p-2" style="cursor:pointer;">
+                            <input class="form-check-input" type="radio" name="result" value="SEM_IDENTIFICACAO">
+                            <span class="fw-semibold ms-2" style="color:var(--c-text);">⚠️ Sem identificação</span>
+                        </label>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold small">Local onde foi encontrado (para local diferente)</label>
+                        <select name="found_location_id" class="form-select form-select-sm">
+                            <option value="">—</option>
+                            {% for loc in all_locations %}
+                            <option value="{{ loc.id }}">{{ loc.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold small">Observação</label>
+                        <textarea name="observation" class="form-control form-control-sm" rows="2" placeholder="Detalhes da conferência (opcional)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Registrar resultado</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<!-- Modal Encerrar -->
+{% if inv.status.value != 'ENCERRADO' and can_encerrar %}
+<div class="modal fade" id="modalEncerrar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="/inventarios/{{ inv.id }}/encerrar">
+                <div class="modal-header">
+                    <h5 class="modal-title">Encerrar {{ inv.code }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">
+                        O inventário será encerrado e as conferências travadas. É necessário que todos os
+                        <strong>{{ summary.expected }}</strong> bens esperados estejam conferidos
+                        (pendentes agora: <strong>{{ summary.pending }}</strong>).
+                    </p>
+                    <label class="form-label fw-semibold small">Notas do encerramento</label>
+                    <textarea name="closure_notes" class="form-control form-control-sm" rows="3"
+                              placeholder="Parecer final, pendências acordadas, encaminhamentos..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-lock me-1"></i> Encerrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

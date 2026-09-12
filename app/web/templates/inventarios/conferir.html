@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Conferir {{ asset.tag }} — {{ inv.code }} | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-7">
+        <div class="page-header">
+            <div>
+                <h3 class="page-header-title">Conferência de Inventário</h3>
+                <p class="page-header-subtitle">
+                    <span class="tag-badge me-2">{{ inv.code }}</span>{{ inv.name }}
+                </p>
+            </div>
+            <a href="/inventarios/{{ inv.id }}" class="btn btn-ghost"><i class="bi bi-arrow-left me-1"></i> Inventário</a>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        {% if inv.status.value == 'ENCERRADO' %}
+        <div class="alert alert-secondary small">
+            <i class="bi bi-lock me-1"></i> Inventário encerrado — as conferências estão travadas.
+        </div>
+        {% endif %}
+
+        <!-- Bem -->
+        <div class="card p-4 mb-4">
+            <div class="d-flex align-items-center gap-3">
+                <span class="tag-badge" style="font-size:1rem;padding:.35rem .75rem;">{{ asset.tag }}</span>
+                <div>
+                    <div class="fw-bold" style="color:var(--c-text);">{{ asset.name }}</div>
+                    <div class="text-muted small">
+                        <i class="bi bi-geo-alt me-1"></i>{{ asset.location.name if asset.location else 'Estoque Central' }}
+                        {% if asset.custodian %} &bull; <i class="bi bi-person me-1"></i>{{ asset.custodian.name }}{% endif %}
+                        &bull; <span class="status-pill status-pill-{{ asset.status.value }}">{{ asset.status.label }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-4">
+            {% if item %}
+            {% if item.status.value == 'PENDENTE' %}
+            <div class="small mb-3">
+                <span class="badge badge-soft-gray">Pendente de conferência</span>
+                {% if item.expected_location_name %}
+                <span class="text-muted ms-2">Local esperado: <strong style="color:var(--c-text);">{{ item.expected_location_name }}</strong></span>
+                {% endif %}
+                {% if item.expected_custodian_name %}
+                <span class="text-muted ms-2">Colaborador esperado: {{ item.expected_custodian_name }}</span>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="alert alert-info small">
+                Resultado já registrado:
+                <strong>{{ item.status.label }}</strong>
+                {% if item.found_location_name %} ({{ item.found_location_name }}){% endif %}
+                — pode ser atualizado abaixo enquanto o inventário estiver aberto.
+            </div>
+            {% endif %}
+
+            {% if inv.status.value != 'ENCERRADO' %}
+            <form method="post" action="/inventarios/{{ inv.id }}/conferir/{{ item.id }}">
+                <label class="form-label fw-semibold">Resultado da conferência <span class="text-danger">*</span></label>
+                <div class="d-grid gap-2 mb-3">
+                    <label class="d-block border rounded p-2" style="cursor:pointer;">
+                        <input class="form-check-input" type="radio" name="result" value="ENCONTRADO" required>
+                        <span class="fw-semibold ms-2" style="color:var(--c-text);">🟢 Encontrado</span>
+                    </label>
+                    <label class="d-block border rounded p-2" style="cursor:pointer;">
+                        <input class="form-check-input" type="radio" name="result" value="LOCAL_DIFERENTE">
+                        <span class="fw-semibold ms-2" style="color:var(--c-text);">🟡 Encontrado em local diferente</span>
+                    </label>
+                    <label class="d-block border rounded p-2" style="cursor:pointer;">
+                        <input class="form-check-input" type="radio" name="result" value="NAO_ENCONTRADO">
+                        <span class="fw-semibold ms-2" style="color:var(--c-text);">🔴 Não encontrado</span>
+                    </label>
+                    <label class="d-block border rounded p-2" style="cursor:pointer;">
+                        <input class="form-check-input" type="radio" name="result" value="SEM_IDENTIFICACAO">
+                        <span class="fw-semibold ms-2" style="color:var(--c-text);">⚠️ Sem identificação</span>
+                    </label>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label fw-semibold small">Local onde foi encontrado (para local diferente)</label>
+                    <select name="found_location_id" class="form-select form-select-sm">
+                        <option value="">—</option>
+                        {% for loc in all_locations %}
+                        <option value="{{ loc.id }}">{{ loc.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Observação</label>
+                    <textarea name="observation" class="form-control form-control-sm" rows="2"
+                              placeholder="Detalhes da conferência (opcional)">{{ item.observation or '' }}</textarea>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="/assets/{{ asset.id }}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i> Registrar conferência</button>
+                </div>
+            </form>
+            {% endif %}
+
+            {% elif inv.status.value != 'ENCERRADO' %}
+            <div class="alert alert-warning small">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Este bem <strong>não está na lista de esperados</strong> do inventário {{ inv.code }}.
+                A ocorrência ficará registrada no inventário; o cadastro do bem não será alterado.
+            </div>
+            <form method="post" action="/inventarios/{{ inv.id }}/nao-previsto">
+                <input type="hidden" name="asset_id" value="{{ asset.id }}">
+                <div class="mb-2">
+                    <label class="form-label fw-semibold small">Local onde foi encontrado</label>
+                    <select name="found_location_id" class="form-select form-select-sm">
+                        <option value="">—</option>
+                        {% for loc in all_locations %}
+                        <option value="{{ loc.id }}">{{ loc.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Observação</label>
+                    <textarea name="observation" class="form-control form-control-sm" rows="2" placeholder="Detalhes (opcional)"></textarea>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="/assets/{{ asset.id }}" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-exclamation-triangle me-1"></i> Registrar como não previsto
+                    </button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
