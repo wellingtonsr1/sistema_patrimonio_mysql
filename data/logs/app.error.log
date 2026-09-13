@@ -9,3 +9,11 @@
 2026-09-12 17:24:10 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: socket connection error while opening: timed out
 2026-09-12 17:24:27 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: socket connection error while opening: timed out
 2026-09-12 17:28:36 | WARNING | sispatrimonio.web                   | Falha de login AD para 'wellingtonrodrigues': ADNoProfileError
+2026-09-12 22:54:05 | WARNING | app.services.ad_service             | Falha de comunicação com o AD: Falha de conexão/bind LDAP: socket connection error while opening: timed out
+2026-09-12 22:54:05 | WARNING | sispatrimonio.web                   | Falha de login AD para 'tetse': ADUnavailableError
+2026-09-12 22:54:08 | WARNING | app.services.ad_service             | Falha de comunicação com o AD: Falha de conexão/bind LDAP: socket connection error while opening: timed out
+2026-09-12 22:54:08 | WARNING | sispatrimonio.web                   | Falha de login AD para 'tetse': ADUnavailableError
+2026-09-12 22:54:09 | WARNING | app.services.ad_service             | Falha de comunicação com o AD: Falha de conexão/bind LDAP: socket connection error while opening: timed out
+2026-09-12 22:54:09 | WARNING | sispatrimonio.web                   | Falha de login AD para 'tetse': ADUnavailableError
+2026-09-12 22:54:09 | WARNING | app.services.ad_service             | Falha de comunicação com o AD: Falha de conexão/bind LDAP: socket connection error while opening: timed out
+2026-09-12 22:54:09 | WARNING | sispatrimonio.web                   | Falha de login AD para 'tetse': ADUnavailableError
