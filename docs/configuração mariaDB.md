@@ -2,8 +2,8 @@
 
 Vou considerar o ambiente que você já está usando:
 
-* Banco: `sispatrimoniopro`
-* Usuário: `patrimonio`
+* Banco: `nome_do_banco`
+* Usuário: `usuario_do_banco`
 * Host: `localhost`
 * Porta: `3306`
 * Driver Python: `PyMySQL`
@@ -29,7 +29,7 @@ MariaDB [(none)]>
 Dentro do MariaDB:
 
 ```sql
-CREATE DATABASE IF NOT EXISTS sispatrimoniopro
+CREATE DATABASE IF NOT EXISTS nome_do_banco
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 ```
@@ -43,7 +43,7 @@ SHOW DATABASES;
 Deve aparecer:
 
 ```text
-sispatrimoniopro
+nome_do_banco
 ```
 
 ---
@@ -53,8 +53,8 @@ sispatrimoniopro
 Ainda como administrador:
 
 ```sql
-CREATE USER IF NOT EXISTS 'patrimonio'@'localhost'
-IDENTIFIED BY 'Patrimonio2026';
+CREATE USER IF NOT EXISTS 'usuario_do_banco'@'localhost'
+IDENTIFIED BY 'senha_forte';
 ```
 
 **Use a mesma senha que você colocou no `DATABASE_URL`.**
@@ -68,8 +68,8 @@ Se o usuário já existir, não precisa executar esse comando novamente.
 Execute:
 
 ```sql
-GRANT ALL PRIVILEGES ON sispatrimoniopro.*
-TO 'patrimonio'@'localhost';
+GRANT ALL PRIVILEGES ON nome_do_banco.*
+TO 'usuario_do_banco'@'localhost';
 ```
 
 Depois:
@@ -81,13 +81,13 @@ FLUSH PRIVILEGES;
 Confira:
 
 ```sql
-SHOW GRANTS FOR 'patrimonio'@'localhost';
+SHOW GRANTS FOR 'usuario_do_banco'@'localhost';
 ```
 
 Você deverá encontrar algo semelhante a:
 
 ```text
-GRANT ALL PRIVILEGES ON `sispatrimoniopro`.* TO `patrimonio`@`localhost`
+GRANT ALL PRIVILEGES ON `nome_do_banco`.* TO `usuario_do_banco`@`localhost`
 ```
 
 ---
@@ -103,7 +103,7 @@ EXIT;
 Agora teste:
 
 ```bash
-mariadb -u patrimonio -p -h localhost sispatrimoniopro
+mariadb -u usuario_do_banco -p -h localhost nome_do_banco
 ```
 
 Digite a senha do usuário.
@@ -111,7 +111,7 @@ Digite a senha do usuário.
 Se funcionar, aparecerá:
 
 ```text
-MariaDB [sispatrimoniopro]>
+MariaDB [nome_do_banco]>
 ```
 
 Agora:
@@ -123,7 +123,7 @@ SELECT DATABASE();
 Resultado esperado:
 
 ```text
-sispatrimoniopro
+nome_do_banco
 ```
 
 E:
@@ -156,7 +156,7 @@ Crie um .env
 Cole nele:
 
 ```bash
-DATABASE_URL="mariadb+pymysql://patrimonio:Patrimonio2026@localhost:3306/sispatrimoniopro"
+DATABASE_URL="mariadb+pymysql://usuario_do_banco:senha_forte@localhost:3306/nome_do_banco"
 ```
 
 ### Importante
@@ -187,7 +187,7 @@ python3 -c "from urllib.parse import quote; print(quote('Minha@Senha#2026!', saf
 
 Depois coloque o resultado no .env:
 
-DATABASE_URL=mysql+pymysql://usuario:SENHA_CODIFICADA@localhost:3306/sispatrimoniopro
+DATABASE_URL=mysql+pymysql://usuario_do_banco:SENHA_CODIFICADA@localhost:3306/nome_do_banco
 
 ** Restringir o acesso ao arquivo
 
@@ -230,7 +230,7 @@ significa que essa etapa está **OK**.
 Entre novamente:
 
 ```bash
-mariadb -u patrimonio -p -h localhost sispatrimoniopro
+mariadb -u usuario_do_banco -p -h localhost nome_do_banco
 ```
 python3 -m pip install python-dotenv
 Execute:
@@ -290,7 +290,7 @@ http://127.0.0.1:8000
 Deixe o servidor rodando e abra outro terminal:
 
 ```bash
-mariadb -u patrimonio -p -h localhost sispatrimoniopro
+mariadb -u usuario_do_banco -p -h localhost nome_do_banco
 ```
 
 Execute:
@@ -321,7 +321,7 @@ Você pode executar:
 ```sql
 SELECT COUNT(*) AS quantidade_tabelas
 FROM information_schema.tables
-WHERE table_schema = 'sispatrimoniopro';
+WHERE table_schema = 'nome_do_banco';
 ```
 
 Isso fornece a quantidade de tabelas criadas.
@@ -337,7 +337,7 @@ Execute:
 ```sql
 SELECT TABLE_NAME, ENGINE
 FROM information_schema.tables
-WHERE TABLE_SCHEMA = 'sispatrimoniopro'
+WHERE TABLE_SCHEMA = 'nome_do_banco'
 ORDER BY TABLE_NAME;
 ```
 
@@ -360,7 +360,7 @@ SELECT
     TABLE_NAME,
     TABLE_COLLATION
 FROM information_schema.tables
-WHERE TABLE_SCHEMA = 'sispatrimoniopro'
+WHERE TABLE_SCHEMA = 'nome_do_banco'
 ORDER BY TABLE_NAME;
 ```
 
@@ -472,8 +472,8 @@ A partir desse erro dá para ajustar **somente o necessário para a migração M
 python3 -m pip install python-dotenv
 
 *** Alterar a senha do usuario do banco
-ALTER USER 'patrimonio'@'localhost'
-IDENTIFIED BY 'Patrimonio2026';
+ALTER USER 'usuario_do_banco'@'localhost'
+IDENTIFIED BY 'senha_forte';
 
 Depois:
 
