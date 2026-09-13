@@ -67,7 +67,7 @@ AUTH_PBKDF2_ITERATIONS = int(os.getenv("AUTH_PBKDF2_ITERATIONS", "600000"))
 
 # Proteção contra força bruta no login: após N tentativas falhas consecutivas,
 # a conta fica bloqueada por X segundos (o bloqueio é por conta, no servidor).
-AUTH_MAX_FAILED_ATTEMPTS = int(os.getenv("AUTH_MAX_FAILED_ATTEMPTS", "5"))
+AUTH_MAX_FAILED_ATTEMPTS = int(os.getenv("AUTH_MAX_FAILED_ATTEMPTS", "10"))
 AUTH_LOCKOUT_SECONDS = int(os.getenv("AUTH_LOCKOUT_SECONDS", "900"))
 
 # Usuário administrador inicial criado automaticamente no primeiro start
