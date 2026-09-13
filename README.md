@@ -2,7 +2,7 @@
 
 **SisPatrimônio Pro** é um sistema completo e moderno de **Gestão Patrimonial (Controle de Ativo Fixo e Equipamentos)** desenvolvido em **Python** com **FastAPI**, **SQLAlchemy** e **Bootstrap 5**, focado no **rastreamento auditável e gravação detalhada do fluxo de movimentação de cada equipamento**.
 
-**Status:** Em desenvolvimento ativo · Suite com **106 testes automatizados** (`pytest`, todos passando).
+**Status:** Em desenvolvimento ativo · Suite com **154 testes automatizados** (`pytest`; no estado atual, 153 passando e 1 falhando — detalhes na seção de testes).
 
 ---
 
@@ -28,26 +28,37 @@
 - Gestão fiscal e financeira (Nota Fiscal, fornecedor, garantia, data e valor de compra).
 - **Cálculo de Depreciação Linear Contábil** automática (20% ao ano sobre o valor de aquisição).
 - Busca e filtros multifacetados por status, categoria, setor e custodiante.
-- **Importação em massa via CSV** (equipamentos e colaboradores) com pré-visualização e confirmação.
+- **Importação em massa via CSV** (equipamentos, colaboradores e locais) com pré-visualização e confirmação.
 
-### 3. 👥 Gestão de Colaboradores & Departamentos
+### 3. 📋 Inventário Patrimonial (Conferência Física Comprobatória)
+- Inventários com código sequencial (`INV-AAAA-NNNN`) e escopo opcional por local e/ou setor (vazio = todo o acervo), com snapshot textual dos filtros para comprovação.
+- Geração da **lista de bens esperados** no momento da criação (snapshot da localização/custodiante cadastrados, imune a edições posteriores do cadastro).
+- Ciclo de vida `PLANEJADO → EM_ANDAMENTO → ENCERRADO`; cada item registra `PENDENTE`, `ENCONTRADO`, `LOCAL_DIFERENTE`, `NAO_ENCONTRADO` ou `SEM_IDENTIFICACAO`.
+- **Conferência em campo por bem** (via QR Code/busca na ficha do bem ou pela página do inventário): registra localização encontrada, observação, conferente e data/hora; aceita registro de **bens não previstos** na lista.
+- **Encerramento exige todos os bens esperados conferidos** e trava os itens (nenhuma conferência nova é aceita).
+- **Ata comprobatória exportável** em CSV, Excel (.xlsx) e PDF.
+- O inventário **nunca altera o cadastro** (bens, movimentações, locais): divergências são apenas registradas para tratamento pelos fluxos próprios.
+- Permissões próprias: `inventario.visualizar`, `inventario.criar`, `inventario.conferir`, `inventario.encerrar`.
+
+### 4. 👥 Gestão de Colaboradores & Departamentos
 - Cadastro de colaboradores com visão instantânea de todos os equipamentos sob a custódia de cada um.
 - Cadastro de unidades físicas, prédios, andares, salas e departamentos.
+- **Importação em massa de locais via CSV** (obrigatórios: nome, filial e departamento; opcionais: prédio, andar, sala, gestor e descrição) com pré-visualização, alias de colunas e detecção de duplicatas.
 
-### 4. 🔧 Gestão de Manutenções
+### 5. 🔧 Gestão de Manutenções
 - Abertura de Ordens de Serviço (Preventiva, Corretiva, Upgrade).
 - Controle de custos acumulados de reparo e prestadores de serviço.
 - Envio e retorno de manutenção com atualização automática do fluxo do bem.
 
-### 5. 📊 Dashboard, Relatórios & Exportações
+### 6. 📊 Dashboard, Relatórios & Exportações
 - Dashboard com KPIs operacionais, gráficos de pizza e barras (Chart.js).
-- Exportação de inventário, movimentações e colaboradores em **CSV** (UTF-8 com BOM, abre direto no Excel).
+- Exportação de inventário, movimentações e colaboradores em **CSV** (UTF-8 com BOM, abre direto no Excel), **Excel (.xlsx via OpenPyXL)** e **PDF (ReportLab)** — incluindo a ata comprobatória de cada inventário.
 - Documentação interativa da **API REST via Swagger UI** (`/docs`).
 
-### 6. 🧭 Central de Ajuda Integrada
+### 7. 🧭 Central de Ajuda Integrada
 - Manual embutido (`/ajuda`) com pesquisa em texto completo, artigos por módulo, FAQ e tooltips contextuais nos formulários.
 
-### 7. 🔐 Autenticação Local + Active Directory / Samba AD (LDAP)
+### 8. 🔐 Autenticação Local + Active Directory / Samba AD (LDAP)
 - Login híbrido: contas locais (PBKDF2) e contas do diretório (`ldap3`), com provisionamento automático no 1º login.
 - RBAC completo (perfis e permissões) permanece 100% interno — o AD nunca define permissões.
 
@@ -64,6 +75,7 @@
 | Validação | Pydantic v2 |
 | Templates | Jinja2 + Bootstrap 5 + Bootstrap Icons |
 | Frontend | Chart.js, QRCode.js, tema claro/escuro |
+| Exportações | OpenPyXL (Excel .xlsx) · ReportLab (PDF) |
 | Diretório | LDAP/LDAPS padrão via `ldap3` (Microsoft AD ou Samba AD DC) |
 | Testes | pytest (+ TestClient do FastAPI) |
 
@@ -116,7 +128,8 @@ python seed_demo.py
 python run.py
 ```
 
-Acesse no seu navegador:
+Acesse no seu navegador — o endereço depende das variáveis `APP_HOST` e `APP_PORT`
+(padrões do projeto: `APP_HOST=192.168.0.9` e `APP_PORT=8000`; ajuste conforme o seu ambiente):
 - **Interface Web**: [http://localhost:8000](http://localhost:8000)
 - **API REST (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Health check**: [http://localhost:8000/health](http://localhost:8000/health)
@@ -228,13 +241,14 @@ curl -b cookies.txt -c cookies.txt -X POST http://localhost:8000/api/v1/auth/log
 | `AUTH_COOKIE_NAME` | `session` | Nome do cookie de sessão |
 | `AUTH_COOKIE_SECURE` | `false` | `true` envia o cookie apenas via HTTPS |
 | `AUTH_PBKDF2_ITERATIONS` | `600000` | Iterações do PBKDF2 para hash de senha |
-| `AUTH_MAX_FAILED_ATTEMPTS` | `5` | Tentativas de login falhas antes do bloqueio temporário |
+| `AUTH_MAX_FAILED_ATTEMPTS` | `10` | Tentativas de login falhas antes do bloqueio temporário |
 | `AUTH_LOCKOUT_SECONDS` | `900` | Duração (s) do bloqueio por excesso de tentativas |
 
 ### Proteção contra força bruta (lockout)
 
-Após **5 tentativas de login com senha errada** (configurável), a conta fica
-bloqueada por **15 minutos** no servidor (`423 Locked` na API; mensagem na web).
+Após **10 tentativas de login com senha errada** (padrão atual, configurável via
+`AUTH_MAX_FAILED_ATTEMPTS`), a conta fica bloqueada por **15 minutos**
+(`AUTH_LOCKOUT_SECONDS`) no servidor (`423 Locked` na API; mensagem na web).
 O bloqueio é por conta, registrado na trilha de auditoria (`LOGIN_BLOQUEADO`),
 e não revela a existência da conta (o tempo de resposta é equalizado para
 usuários inexistentes).
@@ -395,9 +409,9 @@ interface — só pode ser concedido via CLI/env).
 | **Administrador** | Total: usuários, perfis, permissões, auditoria e todos os módulos |
 | **Gestor de TI** | Visualiza e cadastra/edita patrimônio, movimenta, registra manutenção, gera relatórios. Sem permissões de sistema |
 | **Técnico de TI** | Consulta equipamentos, registra manutenção/diagnóstico/peças, consulta histórico. Não exclui nem administra |
-| **Patrimônio** | Cadastra, edita e movimenta bens, inventário, termos e relatórios patrimoniais |
+| **Patrimônio** | Cadastra, edita e movimenta bens, cria/confere/encerra inventários, termos e relatórios patrimoniais |
 | **Almoxarifado** | Estoque: entradas/saídas e consulta de equipamentos |
-| **Auditor** | Somente leitura (patrimônio, movimentações, histórico, auditoria, relatórios) |
+| **Auditor** | Somente leitura (patrimônio, movimentações, inventários, histórico, auditoria, relatórios) |
 | **Consulta** | Somente leitura dos módulos autorizados (acesso mínimo) |
 
 Perfis padrão (`is_system=True`) **não podem ser excluídos**; podem ser
@@ -417,6 +431,7 @@ Todas as permissões seguem o padrão `modulo.acao`:
 | Usuários | `usuarios.visualizar`, `usuarios.criar`, `usuarios.editar`, `usuarios.bloquear` |
 | Perfis | `perfis.visualizar`, `perfis.criar`, `perfis.editar`, `perfis.excluir` |
 | Relatórios | `relatorios.visualizar`, `relatorios.exportar` |
+| Inventário | `inventario.visualizar`, `inventario.criar`, `inventario.conferir`, `inventario.encerrar` |
 | Auditoria | `auditoria.visualizar` |
 
 ### Endpoints protegidos (API)
@@ -435,7 +450,9 @@ Todas as permissões seguem o padrão `modulo.acao`:
 | `POST` | `/api/v1/locations` | `locais.criar` |
 | `PUT` | `/api/v1/locations/{id}` | `locais.editar` |
 | `GET` | `/api/v1/reports/dashboard-stats` | `relatorios.visualizar` |
-| `GET` | `/api/v1/reports/*/csv` | `relatorios.exportar` |
+| `GET` | `/api/v1/reports/inventory/{csv,excel,pdf}` | `relatorios.exportar` |
+| `GET` | `/api/v1/reports/inventarios/{id}/{csv,excel,pdf}` | `inventario.visualizar` + `relatorios.exportar` |
+| `GET` | `/api/v1/reports/movements/csv` e `/api/v1/reports/custodians/csv` | `relatorios.exportar` |
 | `GET` | `/api/v1/auth/me`, login/logout | Autenticado (público) |
 
 **Status HTTP:** `401` não autenticado · `403` autenticado sem permissão ·
@@ -485,7 +502,8 @@ consulta exige `auditoria.visualizar`.
 ### Banco de dados (migração segura)
 
 Tabelas novas: `roles`, `permissions`, `user_roles`, `role_permissions`,
-`audit_logs`, `ad_settings`, `ad_group_roles`. Colunas novas em `users`:
+`audit_logs`, `ad_settings`, `ad_group_roles`, `inventarios`, `inventario_itens`,
+`setup_claims`. Colunas novas em `users`:
 `failed_login_attempts`, `locked_until`, `ad_object_guid`, `ad_dn`,
 `ad_last_sync`, `auth_provider`. A migração é automática e idempotente
 (`init_db` + `_ensure_schema_migrations` com `ALTER TABLE ADD COLUMN`
@@ -613,14 +631,24 @@ Para rodar a suite de testes unitários e de integração:
 pytest -v
 ```
 
-A suite (106 testes) cobre: **controle de acesso** (`tests/test_rbac.py`):
+A suite tem **154 testes** e cobre: **controle de acesso** (`tests/test_rbac.py`):
 autorização por perfil em APIs e páginas, deny by default, menu dinâmico,
 bloqueio/desbloqueio de usuário, lockout por tentativas, auditoria,
 proteção do último administrador e tentativas de escalação de privilégios;
 **autenticação** (`tests/test_auth.py`); **integração AD** (`tests/test_ad.py`,
 com a camada LDAP mockada — inclui regressões do retorno `bool` de
-`Connection.search()` e do `raw_values` do `objectGUID`); movimentações, bens,
-importações e central de ajuda.
+`Connection.search()` e do `raw_values` do `objectGUID`); **inventário
+patrimonial** (`tests/test_inventario.py` — fluxo completo via web, RBAC e
+exportações CSV/Excel/PDF); movimentações, bens, importações (equipamentos,
+colaboradores e locais), navegação/menu, primeiro acesso e central de ajuda.
+
+> ⚠️ Estado atual: 153 testes passam e **1 falha**
+> (`tests/test_rbac.py::test_lockout_after_failed_attempts`) — o teste ainda
+> espera bloqueio após **5** tentativas, enquanto o padrão de
+> `AUTH_MAX_FAILED_ATTEMPTS` em `app/config.py` passou a ser **10**.
+
+Os testes usam **SQLite em memória** por padrão (sem depender do MariaDB);
+para executá-los contra outro banco, defina `DATABASE_URL_TEST`.
 
 ---
 
@@ -633,24 +661,29 @@ sistema_patrimonio/
 │   │   └── v1_router.py      # Agrega: auth, assets, movements, custodians, locations, reports
 │   ├── models/               # Modelos SQLAlchemy: User, Session, Role, Permission,
 │   │                         #   AuditLog, Asset, Movement, Custodian, Location,
-│   │                         #   Maintenance, ADSettings, ADGroupRole
+│   │                         #   Maintenance, ADSettings, ADGroupRole,
+│   │                         #   Inventario, InventarioItem, SetupClaim
 │   ├── schemas/              # Schemas de validação (Pydantic)
 │   ├── services/             # Regras de negócio: auth/sessão/RBAC, auditoria,
 │   │                         #   asset/movement/custodian/location/maintenance,
-│   │                         #   reports/dashboard/help/import,
+│   │                         #   inventario (conferência patrimonial),
+│   │                         #   reports/dashboard/help,
+│   │                         #   import + custodian_import + location_import (CSV),
 │   │                         #   ad_ldap (protocolo LDAP) + ad_service (integração AD)
 │   ├── web/                  # Interface Web e Templates Jinja2
 │   │   ├── routes.py         # Páginas do sistema (com permissões)
 │   │   ├── admin_routes.py   # Administração: usuários, perfis, auditoria, Integração AD
 │   │   ├── help_routes.py    # Central de ajuda (/ajuda)
 │   │   ├── static/           # CSS e JS customizados
-│   │   └── templates/        # HTML (Dashboard, CRUD, admin/*, 403/404)
+│   │   └── templates/        # HTML (Dashboard, CRUD, inventarios/*, admin/*, 403/404)
 │   ├── cli.py                # Interface de linha de comando (create-user --role)
 │   ├── config.py             # Configurações gerais (app, auth, AD via env)
 │   ├── database.py           # Conexão, sessão SQLAlchemy e migração leve
+│   ├── logging_config.py     # Logs técnicos com rotação (data/logs/app.log)
 │   └── main.py               # Aplicação principal FastAPI (lifespan, handlers 403/404)
 ├── data/                     # Diretório de dados (logs, uploads) — não versionar dados sensíveis
-├── tests/                    # Suite pytest (auth, rbac, ad, api, assets, movements, imports, help)
+├── docs/                     # Documentação técnica e guias internos
+├── tests/                    # Suite pytest (auth, rbac, ad, api, assets, movements, inventario, imports, help)
 ├── seed_demo.py              # Carga de dados de teste realistas (recria as tabelas)
 ├── run.py                    # Script de inicialização do servidor
 └── requirements.txt          # Dependências do projeto
