@@ -2,7 +2,7 @@
 .tmp_navcheck/
 
 # Testes
-tests/
+#tests/
 
 # Banco de dados SQLite do SisPatrimônio
 *.db
