@@ -7,7 +7,7 @@
 
 ## 1. RESUMO EXECUTIVO
 
-**Sistema analisado:** SisPatrimônio Pro v1.0.0  
+**Sistema analisado:** SisPatrimônio Pro v1.1.0  
 **Banco atual:** MariaDB/MySQL  
 **ORM:** SQLAlchemy 2.0.52  
 **Framework:** FastAPI + Uvicorn  

@@ -11,7 +11,7 @@
 | Item | Descrição |
 |---|---|
 | **Nome** | SisPatrimônio Pro (`APP_NAME` em `app/config.py`) |
-| **Versão** | `1.0.0` (`APP_VERSION` em `app/config.py`) |
+| **Versão** | `1.2.0` (`APP_VERSION` em `app/config.py`) |
 | **Finalidade** | Gestão Patrimonial: controle de ativo fixo/equipamentos, com foco no rastreamento auditável do fluxo de movimentação de cada bem |
 | **Problema que resolve** | Tombamento de equipamentos, controle de custódia (quem está com o bem), localização física, manutenções, depreciação contábil e histórico completo (audit trail) de cada movimentação |
 | **Usuários típicos** | Administrador, Gestor de TI, Técnico de TI, Patrimônio, Almoxarifado, Auditor, Consulta (perfis padrão em `app/services/permission_service.py`) |

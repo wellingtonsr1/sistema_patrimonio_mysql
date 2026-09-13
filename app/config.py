@@ -35,7 +35,7 @@ if not DATABASE_URL:
 # Configurações da Aplicação
 APP_NAME = "SisPatrimônio Pro"
 APP_DESCRIPTION = "Sistema Integrado de Gestão Patrimonial e Fluxo de Movimentação de Equipamentos"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.2.0"
 APP_HOST = os.getenv("APP_HOST", "192.168.0.9")
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
 
