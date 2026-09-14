@@ -884,24 +884,76 @@ a, button { transition: all .12s var(--ease); }
 /* ==========================================================================
    PRINT
    ========================================================================== */
+/* ==========================================================================
+   PRINT (Ajustado para o Termo de Responsabilidade)
+   ========================================================================== */
 @media print {
   @page {
-    size: A4;
-    margin: 10mm;
+    size: Auto;
+    margin: 10mm; /* Define margens compactas para o conteúdo não "descer" */
   }
-  
-  .no-print { display: none !important; }
-  body { background: #fff !important; font-size: 10.5pt; }
-  .card { box-shadow: none !important; border: 1px solid #d1d5db !important; }
-  .term-paper, .term-container {
+
+  /* Oculta elementos da interface do sistema */
+  .no-print, 
+  .app-navbar, 
+  header, 
+  footer, 
+  nav { 
+    display: none !important; 
+  }
+
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 9.5pt !important; /* Ajuste fino de tipografia para caber em 1 página */
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  main { 
+    padding: 0 !important; 
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Remove sombras, bordas pesadas e padding excessivo do container em papel */
+  .card, 
+  .term-paper, 
+  .term-container {
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
     margin: 0 !important;
     max-width: 100% !important;
+    width: 100% !important;
   }
-  .app-navbar { display: none !important; }
-  main { padding: 0 !important; }
+
+  /* Correção para tabelas não estourarem colunas e quebrarem certinho */
+  table {
+    width: 100% !important;
+    table-layout: fixed !important; /* Força respeitar a largura das colunas */
+    border-collapse: collapse !important;
+    page-break-inside: avoid;
+  }
+
+  th, td {
+    padding: 4px 6px !important; /* Padding reduzido para a tabela não ficar "alta" */
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    vertical-align: middle !important;
+    border: 1px solid #000 !important; /* Borda nítida para impressão */
+  }
+
+  /* Impede que blocos de assinaturas ou tabelas dividam no meio de duas páginas */
+  .term-paper > *, 
+  .table, 
+  .term-signature-line {
+    page-break-inside: avoid;
+  }
 }
 
 
