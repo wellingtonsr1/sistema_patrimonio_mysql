@@ -281,7 +281,7 @@
                         <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top text-muted" style="font-size:.74rem;">
                             <span>Registrado por: <strong style="color:var(--c-text);">{{ item.data.operator_name }}</strong></span>
                             {% if item.data.term_code and can('movimentacao.visualizar') %}
-                            <a href="/movements/{{ item.data.id }}/term" class="btn btn-ghost btn-sm py-1 px-2" target="_blank">
+                            <a href="/movements/{{ item.data.id }}/term" class="btn btn-ghost btn-sm py-1 px-2" target="">
                                 <i class="bi bi-printer me-1"></i> Imprimir Termo
                             </a>
                             {% endif %}
