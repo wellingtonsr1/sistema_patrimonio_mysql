@@ -1523,19 +1523,37 @@ html[data-theme="light"] #select-all-page:not(:checked) {
    break-inside/page-break-inside evitam que uma etiqueta seja dividida
    entre páginas: a quebra ocorre sempre ENTRE etiquetas. */
 @media print {
-  @page { size: A4; margin: 8mm; }
-  body > *:not(main),
-  main > *:not(#labels-print-area),
-  #labels-print-area ~ * { display: none !important; }
-  main { padding: 0 !important; max-width: 100% !important; }
-  /* Remove o espaçamento do navbar fixo (só existe na tela): sem esse reset,
-     a 1ª página perde ~24mm úteis no topo. */
-  body { padding-top: 0 !important; }
-  .labels-sheet { max-width: 194mm; /* A4 − 2×8mm: sem desperdício horizontal */ }
-  .label-card {
+
+  @page {
+    size: A4;
+    margin: 8mm;
+  }
+
+  /* Regras exclusivas da impressão de etiquetas */
+  body:has(#labels-print-area) > *:not(main),
+  body:has(#labels-print-area) main > *:not(#labels-print-area),
+  body:has(#labels-print-area) #labels-print-area ~ * {
+    display: none !important;
+  }
+
+  body:has(#labels-print-area) main {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body:has(#labels-print-area) {
+    padding-top: 0 !important;
+  }
+
+  body:has(#labels-print-area) .labels-sheet {
+    max-width: 194mm;
+  }
+
+  body:has(#labels-print-area) .label-card {
     break-inside: avoid;
     page-break-inside: avoid;
     border: 1px solid #d1d5db;
     background: #ffffff;
   }
+
 }
