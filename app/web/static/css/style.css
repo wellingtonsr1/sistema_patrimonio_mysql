@@ -885,6 +885,11 @@ a, button { transition: all .12s var(--ease); }
    PRINT
    ========================================================================== */
 @media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+  
   .no-print { display: none !important; }
   body { background: #fff !important; font-size: 10.5pt; }
   .card { box-shadow: none !important; border: 1px solid #d1d5db !important; }
@@ -1523,11 +1528,6 @@ html[data-theme="light"] #select-all-page:not(:checked) {
    break-inside/page-break-inside evitam que uma etiqueta seja dividida
    entre páginas: a quebra ocorre sempre ENTRE etiquetas. */
 @media print {
-
-  @page {
-    size: A4;
-    margin: 8mm;
-  }
 
   /* Regras exclusivas da impressão de etiquetas */
   body:has(#labels-print-area) > *:not(main),
