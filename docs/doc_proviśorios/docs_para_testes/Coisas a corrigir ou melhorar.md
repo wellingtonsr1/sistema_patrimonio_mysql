@@ -1,4 +1,4 @@
-1 - Implementar o reset de senha do admin
+1 - Implementar o reset de senha do admin ---> OK
 1.1 Atuzalizar "Ajuda/Manual" + docuemntação
 
 2 - Na conferência do inventário: "Resultado da conferência: LOCAL DIFERENTE de: Situação da divergência: PENDENTE DE REGULARIZAÇÃO"
