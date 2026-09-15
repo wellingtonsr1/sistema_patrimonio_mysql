@@ -1,6 +1,14 @@
 # Arquivos temporários
 .tmp_navcheck/
 
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+*.egg-info/
+
 # Testes
 #tests/
 

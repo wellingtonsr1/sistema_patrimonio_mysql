@@ -83,7 +83,7 @@ sistema_patrimonio/
 │   ├── main.py                # Aplicação FastAPI: lifespan (init_db, admin, seed RBAC), montagem de /static e dos roteadores, handler central de HTTPException (403/404 amigáveis)
 │   ├── config.py              # Único ponto de configuração: app, banco, autenticação (AUTH_*), AD (AD_*) via variáveis de ambiente
 │   ├── database.py            # engine/SessionLocal/Base; get_db(); init_db(); _ensure_schema_migrations() (migração leve idempotente)
-│   ├── cli.py                 # CLI: stats, list, show, move, create-user
+│   ├── cli.py                 # CLI: stats, list, show, move, create-user, reset-password
 │   ├── logging_config.py      # Logs técnicos: data/logs/app.log e app.error.log (rotação 5 MB × 5 backups; chamado por run.py)
 │   ├── api/                   # API REST /api/v1
 │   │   ├── v1_router.py       # Agrega auth + demais roteadores (estes com require_api_auth)
@@ -127,7 +127,7 @@ chamam serviços ou fazem operações curtas de ORM na própria rota.
 
 ```bash
 python run.py        # servidor web + API (fluxo principal)
-python -m app.cli    # CLI (stats, list, show, move, create-user)
+python -m app.cli    # CLI (stats, list, show, move, create-user, reset-password)
 python seed_demo.py  # DEMO: apaga e recria todas as tabelas + dados de exemplo
 pytest               # suíte de testes
 ```
@@ -1097,7 +1097,7 @@ python seed_demo.py
 python run.py            # http://127.0.0.1:8000 · Swagger /docs · health /health
 
 # 6. CLI
-python -m app.cli stats|list|show|move|create-user
+python -m app.cli stats|list|show|move|create-user|reset-password
 
 # 7. Testes
 pytest -v

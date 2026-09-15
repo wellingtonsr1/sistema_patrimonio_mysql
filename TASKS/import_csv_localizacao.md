@@ -1,3 +1,9 @@
+# [CANCELADA] Tarefa: Implementar suporte à coluna de localização na importação CSV de equipamentos
+
+> **Status:** Cancelada
+> **Data do Cancelamento:** 15/09/2026
+> **Motivo:** [Insira o motivo aqui, ex: Regra de negócio alterada / prioridade alterada]
+
 """
 Tarefa: Implementar suporte à coluna de localização na importação CSV de equipamentos.
 
@@ -5,7 +11,7 @@ Objetivo:
   - Ler a coluna de localização do CSV (se presente).
   - Resolver o nome da localização para um location_id via LocationService.get_by_name.
   - Atribuir location_id ao Asset criado.
-  - Usar o nome resolvido (ex: "IPMJP - DAF - Setor de Suporte") no Movement de
+  - Usar o nome resolvido (ex: "IPMJP - Setor de Suporte") no Movement de
     aquisição, em vez do hardcoded "Estoque Central".
   - Se a localização não for encontrada no cadastro: importar com location_id NULL e
     registrar aviso na importação (não falhar a linha inteira, a menos que a regra de

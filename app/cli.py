@@ -1,7 +1,11 @@
 import argparse
+import getpass
+import os
 import sys
 from datetime import datetime
+from typing import Callable, Optional
 from app.database import SessionLocal, init_db
+from app.models.user import User
 from app.models.enums import AssetStatus, AssetCondition, AssetCategory, MovementType
 from app.schemas.asset import AssetCreate
 from app.schemas.movement import MovementCreate
@@ -13,7 +17,178 @@ from app.services.custodian_service import CustodianService
 from app.services.location_service import LocationService
 from app.services.dashboard_service import DashboardService
 from app.services.auth_service import create_user
+from app.services.auth_service import reset_password as _reset_password
+from app.services.audit_service import (
+    ACTION_PASSWORD_RESET,
+    RESULT_FAILURE,
+    RESULT_SUCCESS,
+    write_audit,
+)
+from app.services.ad_service import PROVIDER_AD
 from app.services.permission_service import assign_role, ensure_default_roles, get_all_roles, get_role_by_name
+
+
+# Mensagens do contrato do subcomando reset-password (contrato CLI, feature 002)
+_MSG_SUCESSO = "Sucesso: senha redefinida para o usuário '{username}'. Sessões ativas foram invalidadas."
+_MSG_INEXISTENTE = "Erro: usuário '{username}' não encontrado."
+_MSG_AD = (
+    "Erro: '{username}' autentica pelo Active Directory. Este comando redefine apenas "
+    "a senha local do SisPatrimônio e não altera credenciais do AD."
+)
+_MSG_ENTRADA = "Erro: entrada de senha indisponível. Operação abortada."
+_MSG_CONFEREM = "Erro: as senhas não conferem."
+_MSG_GENERICA = "Erro: falha ao atualizar a senha. Tente novamente."
+_MSG_AVISO_AUDITORIA = "Atenção: não foi possível registrar o evento de auditoria."
+
+
+def _get_os_operator() -> Optional[str]:
+    """Identifica o operador do sistema operacional (decisão D-2).
+
+    Prioriza SUDO_USER (execução via sudo); fallback para getpass.getuser().
+    Qualquer indisponibilidade retorna None sem propagar exceção — a operação
+    nunca deve falhar apenas por não conseguir identificar o operador.
+    """
+    try:
+        return os.environ.get("SUDO_USER") or getpass.getuser()
+    except Exception:
+        return None
+
+
+def _audit_reset(
+    db,
+    *,
+    username: str,
+    result: str,
+    description: str,
+    resource_id: Optional[int] = None,
+) -> None:
+    """Grava o evento RESET_SENHA (ator nulo + snapshot do alvo — decisão D-2).
+
+    Best-effort (plan §5.1): uma falha de auditoria NUNCA altera o resultado
+    da operação — apenas emite um único aviso genérico, sem detalhes internos.
+    """
+    operador = _get_os_operator()
+    new_data = {"origem": "CLI"}
+    if operador:
+        new_data["operador_so"] = operador
+    try:
+        write_audit(
+            db,
+            user=None,
+            username=username,
+            action=ACTION_PASSWORD_RESET,
+            module="Usuários",
+            resource="User",
+            resource_id=resource_id,
+            resource_ref=username,
+            ip_address=None,
+            result=result,
+            description=description,
+            previous_data=None,
+            new_data=new_data,
+        )
+    except Exception:
+        print(_MSG_AVISO_AUDITORIA)
+
+
+def run_reset_password(
+    db,
+    username: str,
+    password_reader: Callable[[str], str] = getpass.getpass,
+) -> int:
+    """Orquestrador do reset administrativo de senha (feature 002).
+
+    Regras de negócio (política de senha, hash, invalidação de sessões,
+    limpeza de lockout) permanecem EXCLUSIVAMENTE em auth_service — este
+    orquestrador apenas valida o contexto, coleta a senha oculta e delega.
+
+    Retorna 0 em sucesso e 1 em qualquer erro (plan §5.1: uma falha de
+    auditoria APÓS o reset efetivado mantém o retorno 0).
+    """
+    username = (username or "").strip()
+
+    # 1) Usuário inexistente — recusa antes de qualquer prompt de senha
+    user = db.query(User).filter(User.username == username).first()
+    if user is None:
+        _audit_reset(
+            db,
+            username=username,
+            result=RESULT_FAILURE,
+            description=f"Tentativa de redefinição de senha para usuário inexistente '{username}' (origem: CLI).",
+        )
+        print(_MSG_INEXISTENTE.format(username=username))
+        return 1
+
+    # 2) Usuário AD — recusa antes de qualquer prompt; nada do AD é tocado
+    if user.auth_provider == PROVIDER_AD:
+        _audit_reset(
+            db,
+            username=username,
+            result=RESULT_FAILURE,
+            description=f"Tentativa de redefinição de senha do usuário AD '{username}' recusada (origem: CLI).",
+        )
+        print(_MSG_AD.format(username=username))
+        return 1
+
+    # 3) Coleta da senha — exclusivamente por prompt oculto (decisão D-1)
+    try:
+        senha = password_reader("Nova senha: ")
+        confirmacao = password_reader("Confirme a nova senha: ")
+    except EOFError:
+        _audit_reset(
+            db,
+            username=username,
+            result=RESULT_FAILURE,
+            description="Entrada de senha indisponível (EOF) — operação abortada (origem: CLI).",
+        )
+        print(_MSG_ENTRADA)
+        return 1
+
+    if not senha or senha != confirmacao:
+        _audit_reset(
+            db,
+            username=username,
+            result=RESULT_FAILURE,
+            description="Confirmação de senha divergente ou vazia (origem: CLI).",
+        )
+        print(_MSG_CONFEREM)
+        return 1
+
+    # 4) Escrita da senha + sessões — EXCLUSIVAMENTE pelo service existente
+    try:
+        _reset_password(db, user, senha)
+    except ValueError as e:
+        # Política de senha: mensagem original do service (FR-006), sem segredos
+        _audit_reset(
+            db,
+            username=username,
+            result=RESULT_FAILURE,
+            description=f"Política de senha não atendida (origem: CLI).",
+        )
+        print(f"Erro: {e}")
+        return 1
+    except Exception:
+        # Falha de banco / erro inesperado: mensagem genérica (FR-013/FR-014)
+        _audit_reset(
+            db,
+            username=username,
+            result=RESULT_FAILURE,
+            description="Falha na atualização da senha (origem: CLI).",
+        )
+        print(_MSG_GENERICA)
+        return 1
+
+    # 5) Reset efetivado — auditoria de sucesso (best-effort, plan §5.1)
+    _audit_reset(
+        db,
+        username=username,
+        result=RESULT_SUCCESS,
+        description=f"Redefinição de senha do usuário '{username}' (sessões invalidadas) — origem: CLI",
+        resource_id=user.id,
+    )
+    print(_MSG_SUCESSO.format(username=username))
+    return 0
+
 
 
 def main():
@@ -56,6 +231,17 @@ def main():
     create_user_parser.add_argument("--email", default="", help="E-mail do usuário")
     create_user_parser.add_argument("--admin", action="store_true", help="Marca o usuário como administrador (superusuário)")
     create_user_parser.add_argument("--role", action="append", default=[], help="Perfil a atribuir (pode repetir para múltiplos perfis). Ex: --role 'Técnico de TI'")
+
+    # Command: reset-password (feature 002 — senha NUNCA via argumento/opção)
+    reset_password_parser = subparsers.add_parser(
+        "reset-password",
+        help="Redefine a senha de um usuário local (entrada oculta, com confirmação; não altera usuários do Active Directory)",
+    )
+    reset_password_parser.add_argument(
+        "--username",
+        required=True,
+        help="Nome de usuário (login) do usuário LOCAL alvo. A senha é sempre solicitada de forma oculta, duas vezes.",
+    )
 
     args = parser.parse_args()
     db = SessionLocal()
@@ -177,6 +363,9 @@ def main():
             except ValueError as e:
                 print(f"Erro: {e}")
                 sys.exit(1)
+
+        elif args.command == "reset-password":
+            sys.exit(run_reset_password(db, args.username))
 
         else:
             parser.print_help()

@@ -695,6 +695,15 @@ ARTICLES: List[Dict] = [
                 ],
             },
             {
+                "heading": "Redefinir senha pela linha de comando (servidor)",
+                "steps": [
+                    "No servidor, execute: python -m app.cli reset-password --username usuario",
+                    "Digite a nova senha e a confirmação — a digitação é oculta e a senha nunca é informada como argumento do comando.",
+                    "As sessões ativas do usuário são invalidadas; perfis e a situação da conta permanecem inalterados.",
+                    "Usuários do Active Directory não são afetados: a senha deles é mantida no próprio AD.",
+                ],
+            },
+            {
                 "heading": "Regras de segurança",
                 "note": (
                     "Um usuário não pode bloquear a si mesmo, e o sistema não permite remover ou "

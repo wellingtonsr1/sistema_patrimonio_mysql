@@ -157,6 +157,22 @@ pytest tests/test_rbac.py -v        # apenas RBAC
 ### Criar um usuário administrador
 CLI: `python -m app.cli create-user --username X --admin` — em `app/cli.py`.
 
+### Recuperar o acesso de um usuário local (reset administrativo de senha)
+Quando um usuário local perde o acesso (senha esquecida ou conta de serviço sem dono):
+
+```bash
+python -m app.cli reset-password --username X
+```
+
+- A nova senha é solicitada **duas vezes, de forma oculta** (nunca use argumento de
+  senha — o comando não oferece essa opção de propósito).
+- Todas as sessões ativas do usuário são invalidadas (ele fará novo login).
+- Perfis, permissões e a situação da conta **não são alterados** — redefinir a senha
+  de um usuário bloqueado não o reativa; reative-o pela tela Usuários se necessário.
+- Usuários autenticados pelo **Active Directory** têm a senha mantida no AD: o comando
+  recusa o reset e a troca deve ser feita no próprio AD.
+- Toda execução (sucesso ou falha) gera registro na tela de Auditoria, sem conter a senha.
+
 ### Proteger um novo endpoint
 ```python
 from app.api.deps import require_permission

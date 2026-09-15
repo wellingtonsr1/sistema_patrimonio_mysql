@@ -581,12 +581,20 @@ python -m app.cli create-user --username admin --password 'SenhaForte@123' --nam
 # Criar um usuário com perfil específico (menor privilégio)
 python -m app.cli create-user --username maria --password 'SenhaForte@123' --name "Maria" --role "Técnico de TI"
 python -m app.cli create-user --username joao --password 'SenhaForte@123' --name "João" --role "Consulta" --role "Auditor"
+
+# Redefinir a senha de um usuário local (senha oculta, pedida duas vezes)
+python -m app.cli reset-password --username admin
 ```
 
 > `create-user` solicita a senha interativamente se `--password` for omitido.
 > `--role` pode ser repetido para múltiplos perfis. Sem `--role` nem `--admin`,
 > o usuário é criado sem permissões (deny by default) até um administrador
 > atribuir perfis pela interface.
+>
+> `reset-password` redefine a senha de um **usuário local** pelo terminal: a senha
+> é sempre digitada de forma oculta (nunca como argumento), com confirmação dupla,
+> invalida as sessões ativas do usuário e mantém perfis e situação da conta.
+> Usuários autenticados pelo **Active Directory** devem ser tratados no próprio AD.
 
 O catálogo de permissões e os perfis padrão são garantidos automaticamente a
 cada execução do CLI (`ensure_default_roles`).
