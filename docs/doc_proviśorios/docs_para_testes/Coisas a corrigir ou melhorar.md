@@ -78,7 +78,7 @@ Matrícula: PROV-000123 (provisória)
 6 - Ajusatr impressão em relatórios
 6.1 Atuzalizar "Ajuda/Manual" + docuemntação
 
-7 - risco de sobrescrita silenciosa:
+7 - risco de sobrescrita silenciosa: ---> OK
 Fluxo do usuário na prática
 
 ```text
@@ -96,3 +96,5 @@ Sobrescrita gravada + auditoria com antes/depois (quem, quando, IP)
       ↓
 Ata final continua imutável após o encerramento
 7.1 Atuzalizar "Ajuda/Manual" + docuemntação
+
+8 - Ver correção da hora

@@ -35,6 +35,7 @@
 - Geração da **lista de bens esperados** no momento da criação (snapshot da localização/custodiante cadastrados, imune a edições posteriores do cadastro).
 - Ciclo de vida `PLANEJADO → EM_ANDAMENTO → ENCERRADO`; cada item registra `PENDENTE`, `ENCONTRADO`, `LOCAL_DIFERENTE`, `NAO_ENCONTRADO` ou `SEM_IDENTIFICACAO`.
 - **Conferência em campo por bem** (via QR Code/busca na ficha do bem ou pela página do inventário): registra localização encontrada, observação, conferente e data/hora; aceita registro de **bens não previstos** na lista.
+- **Re-conferência visível e deliberada**: enquanto o inventário estiver aberto, itens já conferidos exibem quem conferiu antes, quando e o resultado anterior, e exigem confirmação antes de um novo registro substituir o resultado anterior (itens `PENDENTE` registram diretamente; encerrado permanece travado).
 - **Encerramento exige todos os bens esperados conferidos** e trava os itens (nenhuma conferência nova é aceita).
 - **Ata comprobatória exportável** em CSV, Excel (.xlsx) e PDF.
 - O inventário **nunca altera o cadastro** (bens, movimentações, locais): divergências são apenas registradas para tratamento pelos fluxos próprios.

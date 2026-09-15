@@ -294,12 +294,21 @@
 <div class="modal fade" id="modalConferir{{ item.id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" action="/inventarios/{{ inv.id }}/conferir/{{ item.id }}">
+            <form method="post" action="/inventarios/{{ inv.id }}/conferir/{{ item.id }}"
+                  {% if item.status.value != 'PENDENTE' %}onsubmit="return confirm('Este item já foi conferido. Registrar um novo resultado vai substituir o anterior. Continuar?')"{% endif %}>
                 <div class="modal-header">
                     <h5 class="modal-title"><span class="tag-badge me-2">{{ item.asset.tag }}</span> {{ item.asset.name }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
+                    {% if item.status.value != 'PENDENTE' %}
+                    <div class="alert alert-warning small">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Já conferido{% if item.checked_by_name %} por {{ item.checked_by_name }}{% endif %}{% if item.checked_at %} em {{ item.checked_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}.<br>
+                        Resultado anterior: {{ item.status.label }}.<br>
+                        Registrar um novo resultado substituirá o resultado anterior.
+                    </div>
+                    {% endif %}
                     <div class="text-muted small mb-3">
                         <i class="bi bi-geo-alt me-1"></i> Local cadastrado: {{ item.expected_location_name or 'Estoque Central' }}
                         {% if item.expected_custodian_name %} &bull; <i class="bi bi-person me-1"></i>{{ item.expected_custodian_name }}{% endif %}
