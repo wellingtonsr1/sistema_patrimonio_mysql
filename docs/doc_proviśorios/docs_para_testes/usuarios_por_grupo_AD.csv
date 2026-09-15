@@ -1,0 +1,371 @@
+SIGLA,SETOR,Nome,Email,Ativo
+ASS-CIN,Assessoria de Controle Interno,Conceição Lacerda,conceicaolacerda@ipmjp.pb.gov.br,True
+ASS-CIN,Assessoria de Controle Interno,Edgard José Pessoa Queiroz,edgardqueiroz@ipmjp.pb.gov.br,True
+ASS-CIN,Assessoria de Controle Interno,Ernesto Fialho Pessoa,ernestopessoa@ipmjp.pb.gov.br,True
+ASS-CIN,Assessoria de Controle Interno,Flavio Tadeu F. Medeiros Segundo,flaviosegundo@ipmjp.pb.gov.br,True
+ASS-CIN,Assessoria de Controle Interno,Jackson Santos Pereira,jacksonsantos@ipmjp.pb.gov.br,True
+ASS-CIN,Assessoria de Controle Interno,Lituania Farias,lituaniafarias@ipmjp.pb.gov.br,True
+ASS-CIN,Assessoria de Controle Interno,Luiz Henrique de Albuquerque,luizcavalcanti@ipmjp.pb.gov.br,False
+ASS-CIN,Assessoria de Controle Interno,Milena Araujo,milenaaraujo@ipmjp.pb.gov.br,False
+ASS-CIN,Assessoria de Controle Interno,Milena Torres,milenatorres@ipmjp.pb.gov.br,True
+ASS-CIN,Assessoria de Controle Interno,Renan Brayner Cavalcante,renancavalcante@ipmjp.pb.gov.br,True
+ASS-CIN,Assessoria de Controle Interno,Soraia Monteiro,soraiamonteiro@ipmjp.pb.gov.br,True
+ASS-CIN,Assessoria de Controle Interno,Victor Targino,victortargino@ipmjp.pb.gov.br,True
+ASS-CIN,Assessoria de Controle Interno,Werton José Cabral Rodrigues Filho,wertoncabral@ipmjp.pb.gov.br,True
+ASS-GAB,Assessoria de Gabinete,Angelica Ferreira,angelicaferreira@ipmjp.pb.gov.br,True
+ASS-GAB,Assessoria de Gabinete,Caroline Ferreira Agra,carolineferreira@ipmjp.pb.gov.br,True
+ASS-GAB,Assessoria de Gabinete,Jessyca Patricia Paiva Marques,jpatricia@ipmjp.pb.gov.br,True
+ASS-GAB,Assessoria de Gabinete,Letícia Magela,leticiamagela@ipmjp.pb.gov.br,True
+ASS-GAB,Assessoria de Gabinete,Nathalia Palmeira,nathaliapalmeira@ipmjp.pb.gov.br,False
+ASS-GAB,Assessoria de Gabinete,Rodrigo Macedo,rodrigomacedo@ipmjp.pb.gov.br,False
+ASS-GAB,Assessoria de Gabinete,Samantha Danielle Magalhães Barbosa Sales,samanthadanielle@ipmjp.pb.gov.br,False
+ASS-GAB,Assessoria de Gabinete,Victor Targino,victortargino@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Alex Maia,alexmaia@ipmjp.pb.gov.br,False
+ASS-JUR,Assessoria Jurídica,Aline Freire Paiva Pita,alinefreire@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Amanda da Costa Vieira,amandavieira@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Angelica Ferreira,angelicaferreira@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Antônio Romualdo Medeiros Netto,antonionetto@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Arthur Gondim do Valle Mello,arthurmello@ipmjp.pb.gov.br,False
+ASS-JUR,Assessoria Jurídica,Arturo de Assunção Santiago,arturo@ipmjp.pb.gov.br,False
+ASS-JUR,Assessoria Jurídica,Carlos Eduardo dos Santos Farias,carlosfarias@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Carlos Eduardo Toscano Leite,carloseduardo@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Clara Rodrigues Albuquerque Sousa,clarasousa@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Edgard José Pessoa Queiroz,edgardqueiroz@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Elizabeth Madja Magalhães Teixeira,elizabethteixeira@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Ernesto Fialho Pessoa,ernestopessoa@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Gabriel de Oliveira Jurema,gabrieloliveira@ipmjp.pb.gov.br,False
+ASS-JUR,Assessoria Jurídica,Gloria Elizabeth Fernandes C. Cunha,gloriacunha@ipmjp.pb.gov.br,False
+ASS-JUR,Assessoria Jurídica,Jessyca Patricia Paiva Marques,jpatricia@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Junior Nunes Porpino,juniornunes@ipmjp.pb.gov.br,False
+ASS-JUR,Assessoria Jurídica,Karina Leal Ernesto de Amorim,karinaleal@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Kássia Líriam de Lima C. C.,kassialiriam@ipmjp.pb.gov.br,False
+ASS-JUR,Assessoria Jurídica,Larissa Martins de Albuquerque,larissamartins@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Letícia Magela,leticiamagela@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Lituania Farias,lituaniafarias@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Manuel de Almeida Lima,manuellima@ipmjp.pb.gov.br,False
+ASS-JUR,Assessoria Jurídica,Maria Beatriz de Franca Cavalcante,mariafranca@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Mariana Souto Soares,marianasoares@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Marta Almeida,martaalmeida@ipmjp.pb.gov.br,False
+ASS-JUR,Assessoria Jurídica,Pamela Lizandra Dantas Jacinto,pameladantas@ipmjp.pb.gov.br,False
+ASS-JUR,Assessoria Jurídica,Paulo Roberto Alves de Brito,paulobrito@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Renan Brayner Cavalcante,renancavalcante@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Renato Gomes de Lacerda Alves,renatoalves@ipmjp.pb.gov.br,True
+ASS-JUR,Assessoria Jurídica,Victor Targino,victortargino@ipmjp.pb.gov.br,True
+ASS-PES,Secretaria de Pessoal,Lituania Farias,lituaniafarias@ipmjp.pb.gov.br,True
+ASS-PES,Secretaria de Pessoal,Renan Brayner Cavalcante,renancavalcante@ipmjp.pb.gov.br,True
+ATENDIMENTO,ATENDIMENTO,Luciana Amaral,lucianaamaral@ipmjp.pb.gov.br,False
+CONTRACHEQUE,CONTRACHEQUE,Carmem Lucia,carmemlucia@ipmjp.pb.gov.br,False
+CONTRACHEQUE,CONTRACHEQUE,Francisca Ramalho,franciscaramalho@ipmjp.pb.gov.br,False
+CONTRACHEQUE,CONTRACHEQUE,Luzinete Medeiros,luzinetemedeiros@ipmjp.pb.gov.br,False
+CPPI,,Antonio Henrique dos Santos,antoniohenrique@ipmjp.pb.gov.br,False
+CPPI,,Lucia Sarmento,luciasarmento@ipmjp.pb.gov.br,False
+CPPI,,Renato Gomes de Lacerda Alves,renatoalves@ipmjp.pb.gov.br,True
+CPPI,,Victor Hugo Lins Almeida de Andrade,victoralmeida@ipmjp.pb.gov.br,False
+CRD-CCI,Coordenadoria do Centro de Convivência do Idoso,Lituania Farias,lituaniafarias@ipmjp.pb.gov.br,True
+CRD-CCI,Coordenadoria do Centro de Convivência do Idoso,Renan Brayner Cavalcante,renancavalcante@ipmjp.pb.gov.br,True
+DIGITALIZACAO,DIGITALIZACAO,Alex Cavalcante dos Santos,alexsantos@ipmjp.pb.gov.br,False
+DIGITALIZACAO,DIGITALIZACAO,Aslan Ezequiel do Nascimento,aslannascimento@ipmjp.pb.gov.br,True
+DIGITALIZACAO,DIGITALIZACAO,Ednalva Rodrigues,ednalvarodrigues@ipmjp.pb.gov.br,False
+DIGITALIZACAO,DIGITALIZACAO,Emely Ferreira da Silva,emelyferreira@ipmjp.pb.gov.br,True
+DIGITALIZACAO,DIGITALIZACAO,Jerfeson Matias dos Santos,jerfesonmatias@ipmjp.pb.gov.br,True
+DIGITALIZACAO,DIGITALIZACAO,Jhossi Ferreira,jhossiferreira@ipmjp.pb.gov.br,False
+DIGITALIZACAO,DIGITALIZACAO,José Antônio Gonçalves Cabral,josecabral@ipmjp.pb.gov.br,True
+DIGITALIZACAO,DIGITALIZACAO,Juliane Gasparin,jugasparin@ipmjp.pb.gov.br,True
+DIGITALIZACAO,DIGITALIZACAO,Lucivaldo de Farias Gomes,lucivaldo@ipmjp.pb.gov.br,False
+DIGITALIZACAO,DIGITALIZACAO,Marcos Wanderson Vieira Monteiro,marcosmonteiro@ipmjp.pb.gov.br,True
+DIGITALIZACAO,DIGITALIZACAO,Mirian Medeiros,mirianmedeiros@ipmjp.pb.gov.br,False
+DIGITALIZACAO,DIGITALIZACAO,Renan Brayner Cavalcante,renancavalcante@ipmjp.pb.gov.br,True
+DIGITALIZACAO,DIGITALIZACAO,Romeu Soares,romeusoares@ipmjp.pb.gov.br,False
+DIGITALIZACAO,DIGITALIZACAO,Sarah Nóbrega Viaro,sarahnobrega@ipmjp.pb.gov.br,False
+DIGITALIZACAO,DIGITALIZACAO,Veronia Tomaz,veroniatomaz@ipmjp.pb.gov.br,False
+DIGITALIZACAO,DIGITALIZACAO,Victor Matheus F. Coutinho,victorcoutinho@ipmjp.pb.gov.br,True
+DIGITALIZACAO,DIGITALIZACAO,Victor Targino,victortargino@ipmjp.pb.gov.br,True
+DIGITALIZACAO,DIGITALIZACAO,Vitor Barros Canonico,vitorbarros@ipmjp.pb.gov.br,False
+DIV-ADF,Divisão Administrativa e Financeira,Angelica Ferreira,angelicaferreira@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Camila Pires de Sá Mariz Maia,camilapires@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Caroline Ferreira Agra,carolineferreira@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Daniela Araujo,danielaaraujo@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Eneas Lyra,eneaslyra@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Ernesto Fialho Pessoa,ernestopessoa@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Eurípedes Leal,euripedesleal@ipmjp.pb.gov.br,False
+DIV-ADF,Divisão Administrativa e Financeira,Fabíola de Carvalho Barreto,fabiolabarreto@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Gessica Freire,gessicafreire@ipmjp.pb.gov.br,False
+DIV-ADF,Divisão Administrativa e Financeira,Greicy Pessoa R. Crispim,greicycrispim@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Heloísa Ramos Mendes,heloisamendes@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Isabella Duarte,isabelladuarte@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Jessyca Patricia Paiva Marques,jpatricia@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Karla Janaina Vergara de Sá,karlavergara@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Letícia Magela,leticiamagela@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Lituania Farias,lituaniafarias@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Moca Medeiros,democrito@ipmjp.pb.gov.br,False
+DIV-ADF,Divisão Administrativa e Financeira,Moisés Pessoa,moisespessoa@ipmjp.pb.gov.br,False
+DIV-ADF,Divisão Administrativa e Financeira,Nathalia Palmeira,nathaliapalmeira@ipmjp.pb.gov.br,False
+DIV-ADF,Divisão Administrativa e Financeira,Renan Brayner Cavalcante,renancavalcante@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Suzana Sitonio de Eça,suzanasitonio@ipmjp.pb.gov.br,True
+DIV-ADF,Divisão Administrativa e Financeira,Werton José Cabral Rodrigues Filho,wertoncabral@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Aldineide Alves Barbosa,aldineidebarbosa@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Arturo de Assunção Santiago,arturo@ipmjp.pb.gov.br,False
+DIV-PRE,Divisão Previdenciária,Áurea Julieta de Araújo Lima,aurealima@ipmjp.pb.gov.br,False
+DIV-PRE,Divisão Previdenciária,Ayrton Ciraulo Neto,ayrtonneto@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Caroline Ferreira Agra,carolineferreira@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Conceição Lacerda,conceicaolacerda@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Eneas Lyra,eneaslyra@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Estacio Rangel,estaciorangel@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Eugenio Figueiredo de A Junior,eugeniojunior@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Eurípedes Leal,euripedesleal@ipmjp.pb.gov.br,False
+DIV-PRE,Divisão Previdenciária,Gessica Nieskier S. Ventura e Alencar,gessicaalencar@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Hailton Lima,hailtonlima@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Jessyca Patricia Paiva Marques,jpatricia@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Letícia Magela,leticiamagela@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Lituania Farias,lituaniafarias@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Lucas Gonçalves M. de Oliveira Lima,lucaslima@ipmjp.pb.gov.br,False
+DIV-PRE,Divisão Previdenciária,Luziane Heckendorff,luzianeheckendorff@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Micael de Araújo Silva,micaelsilva@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Milena Torres,milenatorres@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Moca Medeiros,democrito@ipmjp.pb.gov.br,False
+DIV-PRE,Divisão Previdenciária,Mychelle Desireé G Cabral,mychellecabral@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Nauber Barbosa Brilhante,nauberbarbosa@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Renan Brayner Cavalcante,renancavalcante@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Roberto Franca,robertofranca@ipmjp.pb.gov.br,False
+DIV-PRE,Divisão Previdenciária,Thyago Alves da Silva,thyagosilva@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Wallyson Dinamarti Rego Medeiros,wallysondinamarti@ipmjp.pb.gov.br,True
+DIV-PRE,Divisão Previdenciária,Yuri Veiga,yuriveiga@ipmjp.pb.gov.br,True
+DIV-TIN,Divisão de Tecnologia da Informação,Antonio Araújo,antonioaraujo@ipmjp.pb.gov.br,True
+DIV-TIN,Divisão de Tecnologia da Informação,Dahise Santos,dahisesantos@ipmjp.pb.gov.br,True
+DIV-TIN,Divisão de Tecnologia da Informação,Eneas Lyra,eneaslyra@ipmjp.pb.gov.br,True
+DIV-TIN,Divisão de Tecnologia da Informação,Francisco Emerson de Lucena Neto,franciscolucena@ipmjp.pb.gov.br,True
+DIV-TIN,Divisão de Tecnologia da Informação,Henrique de Paiva Araujo Pontes,henriquepontes@ipmjp.pb.gov.br,True
+DIV-TIN,Divisão de Tecnologia da Informação,Higor Delgado,higor@ipmjp.pb.gov.br,True
+DIV-TIN,Divisão de Tecnologia da Informação,Jefferson Batista,jeffersonbatista@ipmjp.pb.gov.br,True
+DIV-TIN,Divisão de Tecnologia da Informação,João Victor Lourenço,joaovictor@ipmjp.pb.gov.br,False
+DIV-TIN,Divisão de Tecnologia da Informação,Jônatas Lira Rodrigues,jonatasrodrigues@ipmjp.pb.gov.br,True
+DIV-TIN,Divisão de Tecnologia da Informação,Lidiane Costa da Silva,lidianecosta@ipmjp.pb.gov.br,False
+DIV-TIN,Divisão de Tecnologia da Informação,matheus araujo,matheusaraujo@ipmjp.pb.gov.br,True
+DIV-TIN,Divisão de Tecnologia da Informação,Rodrigo Carvalho,rodrigocarvalho@ipmjp.pb.gov.br,True
+DIV-TIN,Divisão de Tecnologia da Informação,Roniério Santana,ronierio@ipmjp.pb.gov.br,True
+DIV-TIN,Divisão de Tecnologia da Informação,Wellington dos Santos Rodrigues,wellingtonrodrigues@ipmjp.pb.gov.br,True
+FUN-PRE,Fundo Municipal de Previdência,Ayrton Ciraulo Neto,ayrtonneto@ipmjp.pb.gov.br,True
+FUN-PRE,Fundo Municipal de Previdência,Carlos Eduardo de Oliveira Silva,carlossilva@ipmjp.pb.gov.br,True
+FUN-PRE,Fundo Municipal de Previdência,Conceição Lacerda,conceicaolacerda@ipmjp.pb.gov.br,True
+FUN-PRE,Fundo Municipal de Previdência,Lituania Farias,lituaniafarias@ipmjp.pb.gov.br,True
+FUN-PRE,Fundo Municipal de Previdência,Maria Eduarda Dias Lima,mariaeduarda@ipmjp.pb.gov.br,False
+FUN-PRE,Fundo Municipal de Previdência,Renan Brayner Cavalcante,renancavalcante@ipmjp.pb.gov.br,True
+FUN-PRE,Fundo Municipal de Previdência,Roberta Alves,robertaalves@ipmjp.pb.gov.br,False
+FUN-PRE,Fundo Municipal de Previdência,Samuel Norat,samuelnorat@ipmjp.pb.gov.br,True
+FUN-PRE,Fundo Municipal de Previdência,Werton José Cabral Rodrigues Filho,wertoncabral@ipmjp.pb.gov.br,True
+GAB-ADJ,Gabinete da Superintendência Adjunta,Eryka Fernandes,erykafernandes@ipmjp.pb.gov.br,False
+GAB-ADJ,Gabinete da Superintendência Adjunta,Eurípedes Leal,euripedesleal@ipmjp.pb.gov.br,False
+GAB-ADJ,Gabinete da Superintendência Adjunta,Maria do Rosário Durand Falcone de Almeida,mariadorosario@ipmjp.pb.gov.br,True
+GAB-ADJ,Gabinete da Superintendência Adjunta,Moca Medeiros,democrito@ipmjp.pb.gov.br,False
+GAB-SUP,Gabinete da Superintendência,Angelica Ferreira,angelicaferreira@ipmjp.pb.gov.br,True
+GAB-SUP,Gabinete da Superintendência,Caroline Ferreira Agra,carolineferreira@ipmjp.pb.gov.br,True
+GAB-SUP,Gabinete da Superintendência,Eneas Lyra,eneaslyra@ipmjp.pb.gov.br,True
+GAB-SUP,Gabinete da Superintendência,Jessyca Patricia Paiva Marques,jpatricia@ipmjp.pb.gov.br,True
+GAB-SUP,Gabinete da Superintendência,Letícia Magela,leticiamagela@ipmjp.pb.gov.br,True
+GAB-SUP,Gabinete da Superintendência,Nathalia Palmeira,nathaliapalmeira@ipmjp.pb.gov.br,False
+GAB-SUP,Gabinete da Superintendência,Rodrigo Macedo,rodrigomacedo@ipmjp.pb.gov.br,False
+GAB-SUP,Gabinete da Superintendência,Samantha Danielle Magalhães Barbosa Sales,samanthadanielle@ipmjp.pb.gov.br,False
+GAB-SUP,Gabinete da Superintendência,Victor Targino,victortargino@ipmjp.pb.gov.br,True
+MANUTENCAO,MANUTENCAO,José William,josewilliam@ipmjp.pb.gov.br,True
+PROTOCOLO,PROTOCOLO,Ana Paula Costa Santos,paulacosta@ipmjp.pb.gov.br,False
+PROTOCOLO,PROTOCOLO,Antonio Henrique dos Santos,antoniohenrique@ipmjp.pb.gov.br,False
+PROTOCOLO,PROTOCOLO,Benício Melo Nascimento,beniciomelo@ipmjp.pb.gov.br,False
+PROTOCOLO,PROTOCOLO,Debora Raquel Ferreira F de Vasconcelos,,False
+PROTOCOLO,PROTOCOLO,Flayana Tatielle Henrique Amancio,flayana@ipmjp.pb.gov.br,False
+PROTOCOLO,PROTOCOLO,Luciana Amaral,lucianaamaral@ipmjp.pb.gov.br,False
+PROTOCOLO,PROTOCOLO,Luciana Souza,lucianasouza@ipmjp.pb.gov.br,False
+PROTOCOLO,PROTOCOLO,Milene Rodrigues de Aguiar,milene@ipmjp.pb.gov.br,False
+PROTOCOLO,PROTOCOLO,Roberto Beserra,robertobeserra@ipmjp.pb.gov.br,False
+PROTOCOLO,PROTOCOLO,Rosiene dos Santos Dias Paulino,rosienepaulino@ipmjp.pb.gov.br,True
+PROTOCOLO,PROTOCOLO,Tatiana Silva,tatianasilva@ipmjp.pb.gov.br,True
+PROTOCOLO,PROTOCOLO,Wagner Barbosa,wagnerbarbosa@ipmjp.pb.gov.br,False
+SEC-ADG,Seção de Administração Geral,Camila Pires de Sá Mariz Maia,camilapires@ipmjp.pb.gov.br,True
+SEC-ADG,Seção de Administração Geral,Letícia Magela,leticiamagela@ipmjp.pb.gov.br,True
+SEC-ADG,Seção de Administração Geral,Nathalia Palmeira,nathaliapalmeira@ipmjp.pb.gov.br,False
+SEC-BEN,Seção de Benefícios,Aldineide Alves Barbosa,aldineidebarbosa@ipmjp.pb.gov.br,True
+SEC-BEN,Seção de Benefícios,Milena Torres,milenatorres@ipmjp.pb.gov.br,True
+SEC-BEN,Seção de Benefícios,Roberto Franca,robertofranca@ipmjp.pb.gov.br,False
+SEC-BEN,Seção de Benefícios,Veronia Tomaz,veroniatomaz@ipmjp.pb.gov.br,False
+SEC-CCP,Seção de Compras,Anderson Diego Oliveira Gomes,andersongomes@ipmjp.pb.gov.br,False
+SEC-CCP,Seção de Compras,Antônio Romualdo Medeiros Netto,antonionetto@ipmjp.pb.gov.br,True
+SEC-CCP,Seção de Compras,Gessica Freire,gessicafreire@ipmjp.pb.gov.br,False
+SEC-CCP,Seção de Compras,Háder Sobreira dos Santos,hadersantos@ipmjp.pb.gov.br,False
+SEC-CCP,Seção de Compras,Isabella Duarte,isabelladuarte@ipmjp.pb.gov.br,True
+SEC-CCP,Seção de Compras,Karla Amorim,karlaamorim@ipmjp.pb.gov.br,True
+SEC-CCP,Seção de Compras,Leandro Moreira Rodrigues de Souza,leandromoreira@ipmjp.pb.gov.br,False
+SEC-CCP,Seção de Compras,Livia Mousinho Cavalcanti Barbosa,liviabarbosa@ipmjp.pb.gov.br,True
+SEC-CCP,Seção de Compras,Renato Gomes de Lacerda Alves,renatoalves@ipmjp.pb.gov.br,True
+SEC-CCP,Seção de Compras,Roberto Sinval,robertosinval@ipmjp.pb.gov.br,False
+SEC-CCP,Seção de Compras,Thaiane Rabelo da Costa,thaianecosta@ipmjp.pb.gov.br,True
+SEC-CCP,Seção de Compras,Thiago Oliveira,thiagooliveira@ipmjp.pb.gov.br,True
+SEC-CCP,Seção de Compras,Tiago Alves da Costa,tiagocosta@ipmjp.pb.gov.br,False
+SEC-CCP,Seção de Compras,Victor Hugo Lins Almeida de Andrade,victoralmeida@ipmjp.pb.gov.br,False
+SEC-COF,Seção de Contabilidade,Alzieny Nascimento,alzienynascimento@ipmjp.pb.gov.br,True
+SEC-COF,Seção de Contabilidade,Edgard José Pessoa Queiroz,edgardqueiroz@ipmjp.pb.gov.br,True
+SEC-COF,Seção de Contabilidade,Jandui Machado,janduimachado@ipmjp.pb.gov.br,True
+SEC-COF,Seção de Contabilidade,Rodrigo Maciel Dantas,rodrigodantas@ipmjp.pb.gov.br,True
+SEC-COF,Seção de Contabilidade,Soraia Monteiro,soraiamonteiro@ipmjp.pb.gov.br,True
+SEC-COF,Seção de Contabilidade,Thiago Santos Lima,thiagolima@ipmjp.pb.gov.br,True
+SEC-CPV,Seção de Compensação Previdenciária,Amanda Sibelle Lacerda Gomes,amandagomes@ipmjp.pb.gov.br,False
+SEC-CPV,Seção de Compensação Previdenciária,Ana Carolline de Souza Gomes,anacarolline@ipmjp.pb.gov.br,False
+SEC-CPV,Seção de Compensação Previdenciária,Ana Paula,anapaula@ipmjp.pb.gov.br,True
+SEC-CPV,Seção de Compensação Previdenciária,André Victor,andrevictor@ipmjp.pb.gov.br,False
+SEC-CPV,Seção de Compensação Previdenciária,Aurea Helena Leite Cariri,aurealeite@ipmjp.pb.gov.br,False
+SEC-CPV,Seção de Compensação Previdenciária,Celia Fernandes,celiafernandes@ipmjp.pb.gov.br,False
+SEC-CPV,Seção de Compensação Previdenciária,Diego Fernandes Herminio,diegofernandes@ipmjp.pb.gov.br,True
+SEC-CPV,Seção de Compensação Previdenciária,Fernanda Queiroga de Sousa,fernandasousa@ipmjp.pb.gov.br,True
+SEC-CPV,Seção de Compensação Previdenciária,Gessica Nieskier S. Ventura e Alencar,gessicaalencar@ipmjp.pb.gov.br,True
+SEC-CPV,Seção de Compensação Previdenciária,Janaina Fernandes,janainafernandes@ipmjp.pb.gov.br,True
+SEC-CPV,Seção de Compensação Previdenciária,Jessyca Patricia Paiva Marques,jpatricia@ipmjp.pb.gov.br,True
+SEC-CPV,Seção de Compensação Previdenciária,Joseane Costa,joseanecosta@ipmjp.pb.gov.br,False
+SEC-CPV,Seção de Compensação Previdenciária,Kelma Dionisio,kelmadionisio@ipmjp.pb.gov.br,False
+SEC-CPV,Seção de Compensação Previdenciária,Letícia Magela,leticiamagela@ipmjp.pb.gov.br,True
+SEC-CPV,Seção de Compensação Previdenciária,Lucia Sarmento,luciasarmento@ipmjp.pb.gov.br,False
+SEC-CPV,Seção de Compensação Previdenciária,Luciana Guimaraes,lucianaguimaraes@ipmjp.pb.gov.br,False
+SEC-CPV,Seção de Compensação Previdenciária,Patricia Lima,patricialima@ipmjp.pb.gov.br,False
+SEC-CPV,Seção de Compensação Previdenciária,Raquel Barros de Farias,raquelfarias@ipmjp.pb.gov.br,False
+SEC-DSV,Seção de Desenvolvimento,Antonio Araújo,antonioaraujo@ipmjp.pb.gov.br,True
+SEC-DSV,Seção de Desenvolvimento,Dahise Santos,dahisesantos@ipmjp.pb.gov.br,True
+SEC-DSV,Seção de Desenvolvimento,Eneas Lyra,eneaslyra@ipmjp.pb.gov.br,True
+SEC-DSV,Seção de Desenvolvimento,Henrique de Paiva Araujo Pontes,henriquepontes@ipmjp.pb.gov.br,True
+SEC-DSV,Seção de Desenvolvimento,Higor Delgado,higor@ipmjp.pb.gov.br,True
+SEC-DSV,Seção de Desenvolvimento,Jefferson Batista,jeffersonbatista@ipmjp.pb.gov.br,True
+SEC-DSV,Seção de Desenvolvimento,João Victor Lourenço,joaovictor@ipmjp.pb.gov.br,False
+SEC-DSV,Seção de Desenvolvimento,Jônatas Lira Rodrigues,jonatasrodrigues@ipmjp.pb.gov.br,True
+SEC-DSV,Seção de Desenvolvimento,Lidiane Costa da Silva,lidianecosta@ipmjp.pb.gov.br,False
+SEC-DSV,Seção de Desenvolvimento,Rodrigo Carvalho,rodrigocarvalho@ipmjp.pb.gov.br,True
+SEC-FLB,Seção de Folha de Benefícios,Daniela Araujo,danielaaraujo@ipmjp.pb.gov.br,True
+SEC-FLB,Seção de Folha de Benefícios,Fabíola de Carvalho Barreto,fabiolabarreto@ipmjp.pb.gov.br,True
+SEC-FLB,Seção de Folha de Benefícios,Karla Janaina Vergara de Sá,karlavergara@ipmjp.pb.gov.br,True
+SEC-FLB,Seção de Folha de Benefícios,Livia Mousinho Cavalcanti Barbosa,liviabarbosa@ipmjp.pb.gov.br,True
+SEC-FLB,Seção de Folha de Benefícios,Olívia Helena Martins Bronzeado,oliviamartins@ipmjp.pb.gov.br,False
+SEC-SPT,Seção de Suporte,Dahise Santos,dahisesantos@ipmjp.pb.gov.br,True
+SEC-SPT,Seção de Suporte,Eneas Lyra,eneaslyra@ipmjp.pb.gov.br,True
+SEC-SPT,Seção de Suporte,Higor Delgado,higor@ipmjp.pb.gov.br,True
+SEC-SPT,Seção de Suporte,matheus araujo,matheusaraujo@ipmjp.pb.gov.br,True
+SEC-SPT,Seção de Suporte,Roniério Santana,ronierio@ipmjp.pb.gov.br,True
+SEC-SPT,Seção de Suporte,Wellington dos Santos Rodrigues,wellingtonrodrigues@ipmjp.pb.gov.br,True
+SET-ALM,Setor de Almoxarifado,Seção de Suporte,andersongomes@ipmjp.pb.gov.br,False
+SET-ALM,Setor de Almoxarifado,Seção de Suporte,antonionetto@ipmjp.pb.gov.br,True
+SET-ALM,Setor de Almoxarifado,Háder Sobreira dos Santos,hadersantos@ipmjp.pb.gov.br,False
+SET-ALM,Setor de Almoxarifado,Isabella Duarte,isabelladuarte@ipmjp.pb.gov.br,True
+SET-ALM,Setor de Almoxarifado,Karla Amorim,karlaamorim@ipmjp.pb.gov.br,True
+SET-ALM,Setor de Almoxarifado,Leandro Moreira Rodrigues de Souza,leandromoreira@ipmjp.pb.gov.br,False
+SET-ALM,Setor de Almoxarifado,Livia Mousinho Cavalcanti Barbosa,liviabarbosa@ipmjp.pb.gov.br,True
+SET-ALM,Setor de Almoxarifado,Maria Lucia,marialucia@ipmjp.pb.gov.br,False
+SET-ALM,Setor de Almoxarifado,Tiago Alves da Costa,tiagocosta@ipmjp.pb.gov.br,False
+SET-ALM,Setor de Almoxarifado,Victor Hugo Lins Almeida de Andrade,victoralmeida@ipmjp.pb.gov.br,False
+SET-ANL,Setor de Análise de Benefícios,Adenilton Ferreira do Nascimento,adeniltonferreira@ipmjp.pb.gov.br,False
+SET-ANL,Setor de Análise de Benefícios,Ana Carolline de Souza Gomes,anacarolline@ipmjp.pb.gov.br,False
+SET-ANL,Setor de Análise de Benefícios,André Victor,andrevictor@ipmjp.pb.gov.br,False
+SET-ANL,Setor de Análise de Benefícios,Áurea Julieta de Araújo Lima,aurealima@ipmjp.pb.gov.br,False
+SET-ANL,Setor de Análise de Benefícios,Fernanda Queiroga de Sousa,fernandasousa@ipmjp.pb.gov.br,True
+SET-ANL,Setor de Análise de Benefícios,Gessica Nieskier S. Ventura e Alencar,gessicaalencar@ipmjp.pb.gov.br,True
+SET-ANL,Setor de Análise de Benefícios,Leonardo Neiva,leonardoneiva@ipmjp.pb.gov.br,True
+SET-ANL,Setor de Análise de Benefícios,Luziane Heckendorff,luzianeheckendorff@ipmjp.pb.gov.br,True
+SET-ANL,Setor de Análise de Benefícios,Maria Dione Dias Barbosa,mariadione@ipmjp.pb.gov.br,True
+SET-ANL,Setor de Análise de Benefícios,Sandra Maria de Cunha Almeida,sandraalmeida@ipmjp.pb.gov.br,True
+SET-ANL,Setor de Análise de Benefícios,Veronia Tomaz,veroniatomaz@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Ana Carolina,anacarolina@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Antonio Henrique dos Santos,antoniohenrique@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Claudilene Ribeiro,claudileneribeiro@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Cleide Fernandes,cleidefernandes@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Edberto Farias,edbertofarias@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Ednalva Rodrigues,ednalvarodrigues@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Ilvaniza Romao,ilvanizaromao@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Isabela Soares,isabelasoares@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Jhossi Ferreira,jhossiferreira@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,José Antônio Gonçalves Cabral,josecabral@ipmjp.pb.gov.br,True
+SET-ARQ,Setor de Arquivo,Luana Fernanda de Lima Santos,luanasantos@ipmjp.pb.gov.br,True
+SET-ARQ,Setor de Arquivo,Lucas Anderson Azevedo Ferreira,lucasazevedo@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Manoela Medeiros,manoelamedeiros@ipmjp.pb.gov.br,True
+SET-ARQ,Setor de Arquivo,Marcos Wanderson Vieira Monteiro,marcosmonteiro@ipmjp.pb.gov.br,True
+SET-ARQ,Setor de Arquivo,Michelli Cynthia,michellicynthia@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Raelma Dantas,raelmadantas@ipmjp.pb.gov.br,True
+SET-ARQ,Setor de Arquivo,Renan Brayner Cavalcante,renancavalcante@ipmjp.pb.gov.br,True
+SET-ARQ,Setor de Arquivo,Romeu Soares,romeusoares@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Sheila Larissa,sheilalarissa@ipmjp.pb.gov.br,False
+SET-ARQ,Setor de Arquivo,Victor Matheus F. Coutinho,victorcoutinho@ipmjp.pb.gov.br,True
+SET-CAL,,Arturo de Assunção Santiago,arturo@ipmjp.pb.gov.br,False
+SET-CAL,,Estacio Rangel,estaciorangel@ipmjp.pb.gov.br,True
+SET-CAL,,Hailton Lima,hailtonlima@ipmjp.pb.gov.br,True
+SET-CAL,,Lucas Gonçalves M. de Oliveira Lima,lucaslima@ipmjp.pb.gov.br,False
+SET-CNT,,Rodrigo Maciel Dantas,rodrigodantas@ipmjp.pb.gov.br,True
+SET-CNT,,Soraia Monteiro,soraiamonteiro@ipmjp.pb.gov.br,True
+SET-CPR,,Roberto Sinval,robertosinval@ipmjp.pb.gov.br,False
+SET-CSS,Setor de Concessão,Adenilton Ferreira do Nascimento,adeniltonferreira@ipmjp.pb.gov.br,False
+SET-CSS,Setor de Concessão,Aldineide Alves Barbosa,aldineidebarbosa@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,André Victor,andrevictor@ipmjp.pb.gov.br,False
+SET-CSS,Setor de Concessão,Áurea Julieta de Araújo Lima,aurealima@ipmjp.pb.gov.br,False
+SET-CSS,Setor de Concessão,Clara Rodrigues Albuquerque Sousa,clarasousa@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,clube, clube@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Debora Samara,deborasamara@ipmjp.pb.gov.br,False
+SET-CSS,Setor de Concessão,Emely Ferreira da Silva,emelyferreira@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Estacio Rangel,estaciorangel@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Eugenio Figueiredo de A Junior,eugeniojunior@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Fernanda Queiroga de Sousa,fernandasousa@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Flavio Tadeu F. Medeiros Segundo,flaviosegundo@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Jerfeson Matias dos Santos,jerfesonmatias@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Juliane Gasparin,jugasparin@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Karina Leal Ernesto de Amorim,karinaleal@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Leonardo Neiva,leonardoneiva@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Luciana Nunes,luciananunes@ipmjp.pb.gov.br,False
+SET-CSS,Setor de Concessão,Luziane Heckendorff,luzianeheckendorff@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Maria Dione Dias Barbosa,mariadione@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Roberto Franca,robertofranca@ipmjp.pb.gov.br,False
+SET-CSS,Setor de Concessão,Sandra Maria de Cunha Almeida,sandraalmeida@ipmjp.pb.gov.br,True
+SET-CSS,Setor de Concessão,Veronia Tomaz,veroniatomaz@ipmjp.pb.gov.br,False
+SET-FIN,Setor de Finanças,Soraia Monteiro,soraiamonteiro@ipmjp.pb.gov.br,True
+SET-GPE,Setor de Gestão de Pessoal,Amanda Carolinne,amandacarolinne@ipmjp.pb.gov.br,False
+SET-GPE,Setor de Gestão de Pessoal,Angelica Ferreira,angelicaferreira@ipmjp.pb.gov.br,True
+SET-GPE,Setor de Gestão de Pessoal,Camila Pires de Sá Mariz Maia,camilapires@ipmjp.pb.gov.br,True
+SET-GPE,Setor de Gestão de Pessoal,Caroline Ferreira Agra,carolineferreira@ipmjp.pb.gov.br,True
+SET-GPE,Setor de Gestão de Pessoal,Heloísa Ramos Mendes,heloisamendes@ipmjp.pb.gov.br,True
+SET-GPE,Setor de Gestão de Pessoal,Iane Caroline,ianecaroline@ipmjp.pb.gov.br,True
+SET-GPE,Setor de Gestão de Pessoal,Jessyca Patricia Paiva Marques,jpatricia@ipmjp.pb.gov.br,True
+SET-GPE,Setor de Gestão de Pessoal,Joseane E. da Conceição Figueiredo,joseanefigueiredo@ipmjp.pb.gov.br,True
+SET-GPE,Setor de Gestão de Pessoal,Joseane Farias de Souza,joseanefarias@ipmjp.pb.gov.br,True
+SET-GPE,Setor de Gestão de Pessoal,Karla Janaina Vergara de Sá,karlavergara@ipmjp.pb.gov.br,True
+SET-GPE,Setor de Gestão de Pessoal,Letícia Magela,leticiamagela@ipmjp.pb.gov.br,True
+SET-GPE,Setor de Gestão de Pessoal,Livia Mousinho Cavalcanti Barbosa,liviabarbosa@ipmjp.pb.gov.br,True
+SET-GPE,Setor de Gestão de Pessoal,Olívia Helena Martins Bronzeado,oliviamartins@ipmjp.pb.gov.br,False
+SET-GPE,Setor de Gestão de Pessoal,Suzana Sitonio de Eça,suzanasitonio@ipmjp.pb.gov.br,True
+SET-PAT,Setor de Patrimônio,Marta Maria Alves,martaalves@ipmjp.pb.gov.br,True
+SET-PAT,Setor de Patrimônio,Milena Araujo,milenaaraujo@ipmjp.pb.gov.br,False
+SET-REC,Setor de Recadastramento,Adenilton Ferreira do Nascimento,adeniltonferreira@ipmjp.pb.gov.br,False
+SET-REC,Setor de Recadastramento,Ana Karoline,anakaroline@ipmjp.pb.gov.br,False
+SET-REC,Setor de Recadastramento,André Luis dos Santos Alves,andrealves@ipmjp.pb.gov.br,False
+SET-REC,Setor de Recadastramento,Clara Rodrigues Albuquerque Sousa,clarasousa@ipmjp.pb.gov.br,True
+SET-REC,Setor de Recadastramento,clube, clube@ipmjp.pb.gov.br,True
+SET-REC,Setor de Recadastramento,Debora Raquel Ferreira F de Vasconcelos,,False
+SET-REC,Setor de Recadastramento,Emely Ferreira da Silva,emelyferreira@ipmjp.pb.gov.br,True
+SET-REC,Setor de Recadastramento,Fabiana Dionisio da Silva,fabianadionisio@ipmjp.pb.gov.br,False
+SET-REC,Setor de Recadastramento,Graciele Firmino,gracielefirmino@ipmjp.pb.gov.br,False
+SET-REC,Setor de Recadastramento,Jackceline Dias,jackcelinedias@ipmjp.pb.gov.br,True
+SET-REC,Setor de Recadastramento,Jerfeson Matias dos Santos,jerfesonmatias@ipmjp.pb.gov.br,True
+SET-REC,Setor de Recadastramento,Jonas Francelino,jonasfrancelino@ipmjp.pb.gov.br,False
+SET-REC,Setor de Recadastramento,Jose Martinho,josemartinho@ipmjp.pb.gov.br,False
+SET-REC,Setor de Recadastramento,Juliane Gasparin,jugasparin@ipmjp.pb.gov.br,True
+SET-REC,Setor de Recadastramento,Karina Leal Ernesto de Amorim,karinaleal@ipmjp.pb.gov.br,True
+SET-REC,Setor de Recadastramento,Leonardo Neiva,leonardoneiva@ipmjp.pb.gov.br,True
+SET-REC,Setor de Recadastramento,Rosiene dos Santos Dias Paulino,rosienepaulino@ipmjp.pb.gov.br,True
+SET-REC,Setor de Recadastramento,Shirley Paiva,shirleypaiva@ipmjp.pb.gov.br,False
+SET-REC,Setor de Recadastramento,Tatiana Silva,tatianasilva@ipmjp.pb.gov.br,True
+SET-REC,Setor de Recadastramento,Vanessa Fernandes Queiroga Pita,vanessapita@ipmjp.pb.gov.br,False
+SET-SVG,Setor de Serviços Gerais,José Marcos Freire Lima,marcosfreire@ipmjp.pb.gov.br,True
+SET-SVG,Setor de Serviços Gerais,José William,josewilliam@ipmjp.pb.gov.br,True
+SET-SVG,Setor de Serviços Gerais,Moisés Pessoa,moisespessoa@ipmjp.pb.gov.br,False
+SET-TRA,Setor de Transportes,Anderson Lisboa Meireles da Silva,andersonsilva@ipmjp.pb.gov.br,False
+SET-TRA,Setor de Transportes,Antonio do Nascimento Alves,antonioalves@ipmjp.pb.gov.br,True
+SET-TRA,Setor de Transportes,Eduardo Leal,eduardoleal@ipmjp.pb.gov.br,False
+SET-TRA,Setor de Transportes,Italo Ferreira de lima,italoferreira@ipmjp.pb.gov.br,False
+SET-TRA,Setor de Transportes,Leandro Fábio Bastos dos Santos,leandrofabio@ipmjp.pb.gov.br,True
+SET-TRA,Setor de Transportes,Marselio M. Moura R. Junior,marseliojunior@ipmjp.pb.gov.br,True
+SET-TRA,Setor de Transportes,Pedro Pereira da Silva,pedrosilva@ipmjp.pb.gov.br,False
+SET-TRA,Setor de Transportes,Roberval Marques da Silva Júnior,robervaljunior@ipmjp.pb.gov.br,False
+SET-TRA,Setor de Transportes,Sandro Ranieni,sandroranieri@ipmjp.pb.gov.br,False
+SET-TRA,Setor de Transportes,Valdemir Pereira de Farias,valdemirfarias@ipmjp.pb.gov.br,True
+SOM-IPM,Ouvidoria,Conceição Lacerda,conceicaolacerda@ipmjp.pb.gov.br,True
+SOM-IPM,Ouvidoria,Eugenio Figueiredo de A Junior,eugeniojunior@ipmjp.pb.gov.br,True
+SOM-IPM,Ouvidoria,Guilherme Carlos de Luna Coutinho,guilhermeluna@ipmjp.pb.gov.br,False
+SOM-IPM,Ouvidoria,Leonardo Neiva,leonardoneiva@ipmjp.pb.gov.br,True
