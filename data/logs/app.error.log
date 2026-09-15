@@ -18,3 +18,4 @@
 2026-09-12 22:54:09 | WARNING | app.services.ad_service             | Falha de comunicação com o AD: Falha de conexão/bind LDAP: socket connection error while opening: timed out
 2026-09-12 22:54:09 | WARNING | sispatrimonio.web                   | Falha de login AD para 'tetse': ADUnavailableError
 2026-09-14 10:52:32 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: ("('socket ssl wrapping error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: EE certificate key too weak (_ssl.c:1082)',)",)
+2026-09-15 10:43:49 | WARNING | app.services.ad_ldap                | Teste de conexão AD falhou: ("('socket ssl wrapping error: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: EE certificate key too weak (_ssl.c:1082)',)",)

@@ -29,7 +29,7 @@ MariaDB [(none)]>
 Dentro do MariaDB:
 
 ```sql
-CREATE DATABASE IF NOT EXISTS nome_do_banco
+CREATE DATABASE IF NOT EXISTS sispatrimoniopro
 CHARACTER SET utf8mb4
 COLLATE utf8mb4_unicode_ci;
 ```
@@ -53,8 +53,8 @@ nome_do_banco
 Ainda como administrador:
 
 ```sql
-CREATE USER IF NOT EXISTS 'usuario_do_banco'@'localhost'
-IDENTIFIED BY 'senha_forte';
+CREATE USER IF NOT EXISTS 'patrimonio'@'localhost'
+IDENTIFIED BY 'Patrimonio2026';
 ```
 
 **Use a mesma senha que você colocou no `DATABASE_URL`.**
@@ -68,8 +68,8 @@ Se o usuário já existir, não precisa executar esse comando novamente.
 Execute:
 
 ```sql
-GRANT ALL PRIVILEGES ON nome_do_banco.*
-TO 'usuario_do_banco'@'localhost';
+GRANT ALL PRIVILEGES ON sispatrimoniopro.*
+TO 'patrimonio'@'localhost';
 ```
 
 Depois:
@@ -81,7 +81,7 @@ FLUSH PRIVILEGES;
 Confira:
 
 ```sql
-SHOW GRANTS FOR 'usuario_do_banco'@'localhost';
+SHOW GRANTS FOR 'patrimonio'@'localhost';
 ```
 
 Você deverá encontrar algo semelhante a:
@@ -103,7 +103,7 @@ EXIT;
 Agora teste:
 
 ```bash
-mariadb -u usuario_do_banco -p -h localhost nome_do_banco
+mariadb -u patrimonio -p -h localhost sispatrimoniopro
 ```
 
 Digite a senha do usuário.

@@ -9,3 +9,4 @@
 2026-09-12 13:55:39 | INFO  | app.services.ad_ldap                | Bind AD recusado para o usuário informado (credencial inválida).
 2026-09-12 17:23:25 | INFO  | sispatrimonio.web                   | Primeiro administrador criado via setup: username=admin, ip=127.0.0.1
 2026-09-14 09:51:08 | INFO  | sispatrimonio.web                   | Primeiro administrador criado via setup: username=admin, ip=127.0.0.1
+2026-09-15 10:22:56 | INFO  | sispatrimonio.web                   | Primeiro administrador criado via setup: username=admin, ip=10.39.0.16
