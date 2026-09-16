@@ -1,4 +1,4 @@
-Tombamento,Responsavel,Descrição,Número de série,Categoria,Modelo,locations
+Tombamento,Responsavel,Equipamento,Número de série,Categoria,Modelo,locations
 TMB-2026-1001,Mariana Costa,Nobreak Senoidal Online 3000VA,SN-UPS-538994611,Energia e Proteção,APC Smart-UPS 3000VA,IPMJP - Seção de Folha de Benefícios
 TMB-2026-1002,Ricardo Santos,Notebook Corporativo i5 8GB SSD 256GB,SN-NB-249711785,Informática / Microcomputadores,Latitude 3420,IPMJP - Setor de Atendimento
 TMB-2026-1003,Patricia Lima,Nobreak Senoidal Online 3000VA,SN-UPS-382187251,Energia e Proteção,APC Smart-UPS 3000VA,IPMJP - Setor de Contabilidade
@@ -200,3 +200,5 @@ TMB-2026-1198,Carlos Eduardo Silva,Aparelho de Telefone IP SIP,SN-TEL-590754402,
 TMB-2026-1199,Camila Rodrigues,Nobreak Senoidal Online 3000VA,SN-UPS-304886579,Energia e Proteção,APC Smart-UPS 3000VA,IPMJP - Protocolo
 TMB-2026-1200,Ricardo Santos,Webcam Full HD 1080p com Microfone,SN-WC-121279040,Periféricos / Monitores,Logitech C920n,IPMJP - Setor de Recadastramento
 TMB-2026-1201,Ricardo Teste,Webcam Full HD 1080p com Microfone,SN-WC-121279040,Periféricos / Monitores,Logitech C920n,IPMJP - Digitalização
+TMB-2026-5000,Olavo,Webcam Full HD 1080p com Microfone Tec,SN-WC-121279049,Periféricos / Monitores,Logitech C920n,IPMJP - Setor de Finanças
+TMB-2026-6000,Pedro,Cadeira Ergonômica Presidente NR17,SN-CAD-198794000,Mobiliário e Utensílios de Escritório,Flexform Uni,IPMJP - Setor de Atendimento

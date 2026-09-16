@@ -98,3 +98,5 @@ Ata final continua imutável após o encerramento
 7.1 Atuzalizar "Ajuda/Manual" + docuemntação
 
 8 - Ver correção da hora
+
+9 - Na importação, nao fica o nome de quem já tá cadastrado
