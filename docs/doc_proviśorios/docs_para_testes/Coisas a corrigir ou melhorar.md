@@ -100,3 +100,7 @@ Ata final continua imutável após o encerramento
 8 - Ver correção da hora
 
 9 - Na importação, nao fica o nome de quem já tá cadastrado
+
+10 - Campo para pesqusia de colaborador
+
+11 - Campo para pesqusia de local
