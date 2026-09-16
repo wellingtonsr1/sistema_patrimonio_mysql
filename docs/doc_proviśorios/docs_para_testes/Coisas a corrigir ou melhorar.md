@@ -75,7 +75,7 @@ Matrícula: PROV-000123 (provisória)
 5 - ajustar impressão em Trilha de Auditoria & Fluxo, Relação de Colaboradores & Custodiantes
 5.1 Atuzalizar "Ajuda/Manual" + docuemntação
 
-6 - Ajusatr impressão em relatórios
+6 - Ajustar impressão em relatórios
 6.1 Atuzalizar "Ajuda/Manual" + docuemntação
 
 7 - risco de sobrescrita silenciosa: ---> OK
@@ -104,3 +104,7 @@ Ata final continua imutável após o encerramento
 10 - Campo para pesqusia de colaborador ---> OK
 
 11 - Campo para pesqusia de local ---> OK
+
+12 - Atualizar o README.md
+
+Ajustar a cor do check da tela de conferência.
