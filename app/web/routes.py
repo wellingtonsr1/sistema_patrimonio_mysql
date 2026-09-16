@@ -1160,15 +1160,15 @@ def view_custodian_detail(request: Request, custodian_id: int, db: Session = Dep
 # LOCAIS E DEPARTAMENTOS (LOCATIONS)
 # ==========================================
 @web_router.get("/locations", response_class=HTMLResponse, dependencies=[Depends(require_permission("locais.visualizar"))])
-def list_locations_view(request: Request, db: Session = Depends(get_db)):
-    locations = LocationService.get_all(db)
+def list_locations_view(request: Request, search: Optional[str] = None, db: Session = Depends(get_db)):
+    locations = LocationService.get_all(db, search=search)
     for loc in locations:
         loc.assets_count = LocationService.count_assets(db, loc.id)
 
     return templates.TemplateResponse(
         request=request,
         name="locations/list.html",
-        context={"locations": locations, "active_tab": "locations"}
+        context={"locations": locations, "search": (search or "").strip(), "active_tab": "locations"}
     )
 
 

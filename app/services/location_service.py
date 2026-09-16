@@ -8,8 +8,18 @@ from app.schemas.location import LocationCreate, LocationUpdate
 
 class LocationService:
     @staticmethod
-    def get_all(db: Session) -> List[Location]:
-        return db.query(Location).order_by(Location.branch, Location.department, Location.name).all()
+    def get_all(db: Session, search: Optional[str] = None) -> List[Location]:
+        """Lista locais; com `search`, filtra pelo nome (Nome / Identificação).
+
+        Feature 007 — pesquisa server-side mono-campo (apenas Location.name),
+        parcial e case-insensitive; sem termo, consulta idêntica à original
+        (retrocompatível com API REST e demais chamadores).
+        """
+        query = db.query(Location)
+        termo = (search or "").strip()
+        if termo:
+            query = query.filter(Location.name.ilike(f"%{termo}%"))
+        return query.order_by(Location.branch, Location.department, Location.name).all()
 
     @staticmethod
     def get_by_id(db: Session, location_id: int) -> Optional[Location]:

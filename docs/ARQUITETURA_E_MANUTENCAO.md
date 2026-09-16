@@ -652,6 +652,12 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
   `CustodianService.get_all(search=...)` (`or_` + `ilike` sobre matrícula, nome, cargo,
   departamento e e-mail — parcial e case-insensitive), no padrão da pesquisa de bens;
   sem `search`, a consulta é idêntica à anterior (retrocompatível com a API REST).
+- **Pesquisa na listagem de locais (feature 007):** `GET /locations?search=` filtra server-side
+  via `LocationService.get_all(search=...)` — **mono-campo**: `ilike` exclusivamente sobre
+  `Location.name` ("Nome / Identificação"), parcial e case-insensitive, termo normalizado com
+  `strip()` (na rota e no service); sem `search`, a consulta é idêntica à anterior
+  (retrocompatível com a API REST, que não expõe o filtro). Card de filtros separado com
+  botões Filtrar/Limpar no padrão das telas de bens/colaboradores.
 - **Regras reais:** matrícula e e-mail únicos (matrícula normalizada para maiúsculas, e-mail
   para minúsculas na importação); `count_assigned_assets` exclui bens `BAIXADO`; importação CSV
   de colaboradores valida e-mail por regex, converte `ativo` (sim/não/true/false/1/0/ativo/inativo)

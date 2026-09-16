@@ -603,6 +603,16 @@ ARTICLES: List[Dict] = [
                     "pelaquele local."
                 ),
             },
+            {
+                "heading": "Pesquisar locais",
+                "body": (
+                    "Use o campo de pesquisa acima da tabela para localizar um local pelo "
+                    "Nome / Identificação (a primeira coluna). A pesquisa aceita trechos do nome, "
+                    "ignora maiúsculas e minúsculas e ignora espaços extras no início e no fim do termo. "
+                    "Ela não busca por filial, departamento ou gestor — apenas pelo nome exibido no registro. "
+                    "Use Filtrar para aplicar e Limpar para voltar à lista completa."
+                ),
+            },
         ],
     },
 

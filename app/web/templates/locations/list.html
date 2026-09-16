@@ -20,6 +20,21 @@
     {% endif %}
 </div>
 
+<div class="card p-3 mb-4">
+    <form method="get" action="/locations" class="row g-2 align-items-center">
+        <div class="col-12 col-lg-5">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Pesquisar por nome / identificação do local..." value="{{ search }}">
+            </div>
+        </div>
+        <div class="col-auto d-flex gap-2 align-items-end">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i> Filtrar</button>
+            <a href="/locations" class="btn btn-ghost">Limpar</a>
+        </div>
+    </form>
+</div>
+
 <div class="card">
     {% if locations %}
     <div class="table-responsive">
@@ -64,6 +79,12 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+    {% elif search %}
+    <div class="empty-state">
+        <i class="bi bi-search empty-state-icon"></i>
+        <div class="empty-state-title">Nenhum local encontrado.</div>
+        <div class="text-muted small mt-1">Verifique o termo pesquisado ou limpe a pesquisa para ver todos os locais.</div>
     </div>
     {% else %}
     <div class="empty-state">

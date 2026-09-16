@@ -131,7 +131,7 @@ python run.py
 ```
 
 Acesse no seu navegador — o endereço depende das variáveis `APP_HOST` e `APP_PORT`
-(padrões do projeto: `APP_HOST=192.168.0.9` e `APP_PORT=8000`; ajuste conforme o seu ambiente):
+(padrões do projeto: `APP_HOST=127.0.0.1` e `APP_PORT=8000`; ajuste conforme o seu ambiente):
 - **Interface Web**: [http://localhost:8000](http://localhost:8000)
 - **API REST (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Health check**: [http://localhost:8000/health](http://localhost:8000/health)

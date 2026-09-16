@@ -101,6 +101,6 @@ Ata final continua imutável após o encerramento
 
 9 - Na importação, nao fica o nome de quem já tá cadastrado
 
-10 - Campo para pesqusia de colaborador
+10 - Campo para pesqusia de colaborador ---> OK
 
-11 - Campo para pesqusia de local
+11 - Campo para pesqusia de local ---> OK
