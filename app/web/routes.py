@@ -742,6 +742,7 @@ def form_new_movement(
     request: Request,
     asset_id: Optional[int] = None,
     m_type: Optional[str] = None,
+    error: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     assets, _ = AssetService.get_all(db, limit=500)
@@ -763,6 +764,7 @@ def form_new_movement(
             "movement_types": MovementType,
             "conditions": AssetCondition,
             "prefill_type": m_type or "",
+            "error": error or "",
             "active_tab": "movements"
         }
     )
@@ -798,7 +800,11 @@ def create_movement_form(
     try:
         movement = MovementService.create_movement(db, movement_data)
     except ValueError as err:
-        return RedirectResponse(url=f"/movements/new?asset_id={asset_id}&error={quote(str(err))}", status_code=status.HTTP_303_SEE_OTHER)
+        # Repassa o bem e o tipo escolhidos para repovoar o formulário com o aviso
+        return RedirectResponse(
+            url=f"/movements/new?asset_id={asset_id}&m_type={movement_type}&error={quote(str(err))}",
+            status_code=status.HTTP_303_SEE_OTHER
+        )
 
     asset_tag = movement.asset.tag if movement.asset else None
     write_change_audit(

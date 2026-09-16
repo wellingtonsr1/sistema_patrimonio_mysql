@@ -147,12 +147,15 @@ class TestUS2PersistenciaUTC:
         from app.models.enums import MovementType
 
         loc = _make_location(db_session)
+        # Feature 005: a matriz exige alteração efetiva — o teste usa um local
+        # de destino distinto do atual para obter a massa de teste.
+        destino = _make_location(db_session, name="Loc Destino UTC")
         asset = _make_asset(db_session, "DT-MOV-0001", location=loc)
 
         movement = MovementService.create_movement(db_session, MovementCreate(
             asset_id=asset.id,
             movement_type=MovementType.TRANSFER,
-            destination_location_id=loc.id,
+            destination_location_id=destino.id,
             reason="Teste de padronizacao UTC",
         ))
         db_session.expire(movement)
@@ -169,12 +172,13 @@ class TestUS2PersistenciaUTC:
         from app.models.enums import MovementType
 
         loc = _make_location(db_session)
+        destino = _make_location(db_session, name="Loc Destino Intra")
         asset = _make_asset(db_session, "DT-MOV-0002", location=loc)
 
         movement = MovementService.create_movement(db_session, MovementCreate(
             asset_id=asset.id,
             movement_type=MovementType.TRANSFER,
-            destination_location_id=loc.id,
+            destination_location_id=destino.id,
             reason="Teste de consistencia intra-linha",
         ))
         db_session.expire(movement)
@@ -314,11 +318,12 @@ class TestUS4Exports:
         from app.utils.time_utils import now_utc
 
         loc = _make_location(db_session)
+        destino = _make_location(db_session, name="Loc Destino CSV")
         asset = _make_asset(db_session, "DT-EXP-0002", location=loc)
         movement = MovementService.create_movement(db_session, MovementCreate(
             asset_id=asset.id,
             movement_type=MovementType.TRANSFER,
-            destination_location_id=loc.id,
+            destination_location_id=destino.id,
             reason="Teste export movimentacoes",
         ))
         # Fixa o carimbo em um instante conhecido (22:30 UTC = 19:30 Recife)
@@ -345,11 +350,12 @@ class TestUS5FiltrosPeriodo:
         from app.models.enums import MovementType
 
         loc = _make_location(db_session, name=f"Loc {tag}")
+        destino = _make_location(db_session, name=f"Loc Destino {tag}")
         asset = _make_asset(db_session, tag, location=loc)
         movement = MovementService.create_movement(db_session, MovementCreate(
             asset_id=asset.id,
             movement_type=MovementType.TRANSFER,
-            destination_location_id=loc.id,
+            destination_location_id=destino.id,
             reason=f"Teste filtro {tag}",
         ))
         movement.timestamp = ts

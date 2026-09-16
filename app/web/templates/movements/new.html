@@ -20,6 +20,13 @@
             </div>
         </div>
 
+        {% if error %}
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
         <form method="post" action="/movements/new" class="card p-4">
             <!-- 1. Asset Selection -->
             <div class="form-section"><i class="bi bi-laptop"></i> 1. Selecione o Equipamento <span class="text-danger ms-1">*</span></div>

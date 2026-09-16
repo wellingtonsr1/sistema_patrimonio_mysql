@@ -15,6 +15,10 @@
 
 **Prerequisites**: `spec.md` ✅, `plan.md` ✅, `research.md` ✅, `data-model.md` ✅, `contracts/` ✅, `quickstart.md` ✅
 
+> **⚠️ Correção de estado (16/09/2026)**: a análise `/speckit-analyze` constatou que as tarefas T005–T048 estavam marcadas como concluídas **sem lastro no código** — as validações da matriz (VAL-002..VAL-008 do contrato) não existem em `app/services/movement_service.py` e nenhum teste novo foi acrescentado a `tests/test_movements.py` (o arquivo contém apenas os 5 testes da baseline). As marcações foram revertidas para `[ ]`. T001–T004 permanecem concluídas (verificação documentada em `research.md`).
+>
+> **✅ Implementação executada (16/09/2026)**: T005–T047 implementadas com TDD (testes vermelhos confirmados antes da implementação — 9 falhas nos comportamentos novos → 22/22 verdes em `tests/test_movements.py`); suíte completa: 228 passed, 1 failed (`test_lockout_after_failed_attempts`, falha defasada conhecida da baseline). T048 (validação manual do quickstart §2–§3) permanece para o operador.
+
 **Tests**: INCLUÍDOS — a implementação deve preservar a suíte existente e adicionar cobertura para a matriz de movimentação e suas regras de integridade.
 
 **Organization**: Tarefas organizadas por User Story, mantendo dependências claras e escopo mínimo.
@@ -242,13 +246,13 @@ pytest tests/test_movements.py -v
 pytest -v
 ```
 
-* [x] T045 Verificar em `tests/test_movements.py` ou nos testes existentes que o Inventário continua sem alterar automaticamente o Asset.
+* [x] T045 Verificar em `tests/test_inventario.py` (e na suíte completa) que o Inventário continua sem alterar automaticamente o Asset.
 
 * [x] T046 Se a validação demonstrar necessidade real de ajuste de mensagens/orientações, atualizar `app/web/templates/movements/new.html`.
 
 * [x] T047 Se a validação demonstrar necessidade real de ajuste no tratamento HTTP, atualizar `app/api/movements_api.py` e/ou `app/web/routes.py`.
 
-* [x] T048 Executar o procedimento descrito em `specs/005-correcao-regras-movimentacao/quickstart.md`.
+* [ ] T048 Executar o procedimento descrito em `specs/005-correcao-regras-movimentacao/quickstart.md`.
 
 **Checkpoint**: feature validada sem regressões e sem alterações desnecessárias fora do escopo.
 
@@ -369,7 +373,7 @@ Antes de considerar a feature concluída:
 * [x] baixa/descarte preservada;
 * [x] Inventário preservado;
 * [x] histórico preservado;
-* [x] suíte de testes verde;
+* [x] suíte de testes verde (228 passed; única falha = lockout defasado conhecido da baseline);
 * [x] nenhum novo tipo de movimentação criado;
 * [x] nenhum schema alterado sem necessidade;
-* [x] somente arquivos necessários alterados.
+* [x] somente arquivos necessários alterados (service, testes, doc de arquitetura e artefatos da feature).

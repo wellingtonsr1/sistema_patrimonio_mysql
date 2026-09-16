@@ -61,6 +61,84 @@ class MovementService:
         # Determinar novo status e atualizar campos do Ativo conforme o Tipo de Movimentação
         m_type = data.movement_type
 
+        # ===================================================================
+        # Feature 005 — Matriz de Movimentação (Local x Responsável)
+        # ===================================================================
+        # Resolução determinística dos valores efetivos de origem/destino,
+        # ANTES de qualquer mutação do Asset (nenhum efeito parcial).
+        origin_location_id = prev_location_id
+        origin_custodian_id = prev_custodian_id
+        effective_dest_location_id = (
+            data.destination_location_id
+            if (data.destination_location_id and data.destination_location_id > 0)
+            else origin_location_id  # "Manter Local Atual" e destino omitido = local atual
+        )
+        if m_type in (MovementType.RETURN_STOCK, MovementType.WRITE_OFF):
+            effective_dest_custodian_id = None
+        elif m_type == MovementType.ALLOCATION:
+            effective_dest_custodian_id = data.destination_custodian_id
+        elif m_type == MovementType.TRANSFER:
+            # Transferência não representa mudança de custódia: preserva o atual
+            effective_dest_custodian_id = data.destination_custodian_id or origin_custodian_id
+        else:
+            # Demais tipos (manutenção, estado, aquisição) mantêm regras próprias
+            effective_dest_custodian_id = origin_custodian_id
+
+        # NULL + NULL = iguais; NULL x identificado = diferentes (comparação direta)
+        is_location_same = (effective_dest_location_id == origin_location_id)
+        is_custodian_same = (effective_dest_custodian_id == origin_custodian_id)
+
+        # A matriz se aplica somente a ALOCAÇÃO/CAUTELA e TRANSFERÊNCIA —
+        # devolução, baixa/descarte e manutenção possuem fluxos próprios preservados.
+        if m_type in (MovementType.ALLOCATION, MovementType.TRANSFER):
+            # VAL-005 — transferência sem local de destino informado (campo ausente;
+            # verificada antes da matriz por ser erro de preenchimento mais específico)
+            if m_type == MovementType.TRANSFER and not data.destination_location_id:
+                raise ValueError(
+                    "Para transferência de setor é obrigatório selecionar o local de destino."
+                )
+            # VAL-002 — nenhuma alteração efetiva: bloquear sem gravar nada
+            if is_location_same and is_custodian_same:
+                raise ValueError(
+                    "Nenhuma alteração efetiva detectada. "
+                    "O local e o colaborador de destino são idênticos aos atuais."
+                )
+            # VAL-003 — alocação/cautela exige responsável de destino
+            if m_type == MovementType.ALLOCATION and not effective_dest_custodian_id:
+                raise ValueError(
+                    "Para alocação/cautela é obrigatório selecionar o colaborador de destino."
+                )
+            # VAL-004 — mudança só de local com o mesmo responsável é Transferência
+            if m_type == MovementType.ALLOCATION and not is_location_same and is_custodian_same:
+                raise ValueError(
+                    "O colaborador informado já é o responsável atual pelo equipamento. "
+                    "Para transferir o equipamento mantendo o mesmo responsável, "
+                    "utilize Transferência de Setor / Filial."
+                )
+            # VAL-006 — transferência exige alteração efetiva de local
+            if m_type == MovementType.TRANSFER and is_location_same:
+                raise ValueError(
+                    "Para transferência de setor/filial é obrigatório selecionar um local "
+                    "de destino diferente do atual. Para alterar apenas o colaborador "
+                    "responsável, utilize Alocação / Cautela."
+                )
+            # VAL-007 — entrega a novo colaborador deve ser Alocação/Cautela (termo)
+            if (
+                m_type == MovementType.TRANSFER
+                and not is_location_same
+                and not is_custodian_same
+                and effective_dest_custodian_id is not None
+            ):
+                raise ValueError(
+                    "A entrega do equipamento a um novo colaborador deve ser registrada "
+                    "como Alocação / Cautela para emissão do Termo de Responsabilidade."
+                )
+        elif m_type == MovementType.RETURN_STOCK:
+            # VAL-008 — devolução redundante: bem já disponível no estoque, sem
+            # responsável e sem alteração efetiva de local
+            if origin_custodian_id is None and is_location_same:
+                raise ValueError("O equipamento já se encontra no estoque neste local.")
+
         if m_type == MovementType.ALLOCATION:
             if not data.destination_custodian_id:
                 raise ValueError("Para alocação/cautela é obrigatório selecionar o colaborador de destino.")
@@ -135,8 +213,19 @@ class MovementService:
             origin_custodian_name=prev_custodian_name or "Nenhum / Estoque",
             destination_location_id=data.destination_location_id or prev_location_id,
             destination_location_name=new_location_name or prev_location_name,
-            destination_custodian_id=data.destination_custodian_id if m_type != MovementType.RETURN_STOCK else None,
-            destination_custodian_name=new_custodian_name if m_type != MovementType.RETURN_STOCK else "Almoxarifado / Estoque",
+            # Feature 005 (T008/T028): o registro histórico reflete a custódia
+            # efetiva — transferência que preserva o responsável grava o
+            # custodiante real, não NULL.
+            destination_custodian_id=(
+                None if m_type == MovementType.RETURN_STOCK
+                else effective_dest_custodian_id if m_type == MovementType.TRANSFER
+                else data.destination_custodian_id
+            ),
+            destination_custodian_name=(
+                "Almoxarifado / Estoque" if m_type == MovementType.RETURN_STOCK
+                else (new_custodian_name or prev_custodian_name) if m_type == MovementType.TRANSFER
+                else new_custodian_name
+            ),
             previous_status=prev_status,
             new_status=new_status,
             previous_condition=prev_condition,

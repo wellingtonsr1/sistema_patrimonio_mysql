@@ -599,7 +599,10 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
   `app/web/routes.py` (seção MOVEMENTS), `app/models/movement.py`.
 - **Permissões:** `movimentacao.visualizar` / `movimentacao.criar`.
 - **Motor (`create_movement`):** transação única que (1) valida o bem (não movimenta `BAIXADO`),
-  (2) tira snapshots de origem, (3) aplica a regra do tipo:
+  (2) tira snapshots de origem, (3) aplica a **matriz de movimentação** (feature 005 — comparação
+  determinística origem × destino, com valores efetivos: destino omitido/"Manter Local Atual" =
+  local atual; `NULL` × `NULL` de responsável = iguais; matriz aplicada somente a Alocação e
+  Transferência) e a regra do tipo:
 
 | Tipo | Regra aplicada |
 |---|---|
@@ -610,6 +613,16 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
 | `RETORNO_MANUTENCAO` | status → `DISPONIVEL` (ou `EM_USO` se custodiante informado) |
 | `BAIXA_DESCARTE` | status → `BAIXADO`; limpa custodiante; condição default `INSERVIVEL` |
 | `ATUALIZACAO_ESTADO` | mantém status/origem; registra troca de condição |
+
+  **Matriz Local × Responsável** (validações antes de qualquer gravação): local igual +
+  responsável igual → **bloqueado** ("Nenhuma alteração efetiva detectada..."); local igual +
+  responsável diferente → somente `ALOCACAO_CAUTELA`; local diferente + responsável igual →
+  somente `TRANSFERENCIA_LOCAL` (o histórico registra o custodiante preservado, não `NULL`);
+  local diferente + responsável diferente → somente `ALOCACAO_CAUTELA` (entrega a novo
+  colaborador, com termo). `TRANSFERENCIA_LOCAL` exige local de destino diferente do atual;
+  `DEVOLUCAO_ESTOQUE` redundante (bem já disponível no estoque, sem responsável e no mesmo
+  local) também é bloqueada. Erros chegam à API como HTTP 400 (`detail`) e à web como
+  redirect `/movements/new?error=...` pelo mecanismo genérico de `ValueError`.
 
   (4) grava o registro imutável com `previous_*`/`new_*`; (5) gera `term_code`
   (`TR-<ano>-<seq>`) quando `generate_term` **ou** tipo ∈ {ALOCACAO_CAUTELA, DEVOLUCAO_ESTOQUE}.
