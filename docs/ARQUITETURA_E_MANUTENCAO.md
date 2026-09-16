@@ -648,6 +648,10 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
 - **Permissões:** `colaboradores.*`, `locais.*`.
 - **Importação CSV de locais:** `location_import_service.py` (`parse_locations_csv`, `preview_locations_import`, `execute_locations_import`), telas `/locations/import` + `/locations/import/confirm` (preview → confirm), permissão `locais.criar`.
 - **Edição de colaborador:** telas `GET/POST /custodians/{id}/edit` (`colaboradores.editar`) e API `PUT /api/v1/custodians/{id}`.
+- **Pesquisa na listagem (feature 006):** `GET /custodians?search=` filtra server-side via
+  `CustodianService.get_all(search=...)` (`or_` + `ilike` sobre matrícula, nome, cargo,
+  departamento e e-mail — parcial e case-insensitive), no padrão da pesquisa de bens;
+  sem `search`, a consulta é idêntica à anterior (retrocompatível com a API REST).
 - **Regras reais:** matrícula e e-mail únicos (matrícula normalizada para maiúsculas, e-mail
   para minúsculas na importação); `count_assigned_assets` exclui bens `BAIXADO`; importação CSV
   de colaboradores valida e-mail por regex, converte `ativo` (sim/não/true/false/1/0/ativo/inativo)

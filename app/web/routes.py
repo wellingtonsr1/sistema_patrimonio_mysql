@@ -870,15 +870,15 @@ def _custodian_audit_snapshot(c) -> dict:
 
 
 @web_router.get("/custodians", response_class=HTMLResponse, dependencies=[Depends(require_permission("colaboradores.visualizar"))])
-def list_custodians_view(request: Request, db: Session = Depends(get_db)):
-    custodians = CustodianService.get_all(db)
+def list_custodians_view(request: Request, search: Optional[str] = None, db: Session = Depends(get_db)):
+    custodians = CustodianService.get_all(db, search=search)
     for c in custodians:
         c.active_assets_count = CustodianService.count_assigned_assets(db, c.id)
 
     return templates.TemplateResponse(
         request=request,
         name="custodians/list.html",
-        context={"custodians": custodians, "active_tab": "custodians"}
+        context={"custodians": custodians, "search": search or "", "active_tab": "custodians"}
     )
 
 

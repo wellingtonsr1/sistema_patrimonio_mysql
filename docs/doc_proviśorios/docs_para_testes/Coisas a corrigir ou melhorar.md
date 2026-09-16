@@ -1,7 +1,7 @@
 1 - Implementar o reset de senha do admin ---> OK
 1.1 Atuzalizar "Ajuda/Manual" + docuemntação
 
-2 - Na conferência do inventário: "Resultado da conferência: LOCAL DIFERENTE de: Situação da divergência: PENDENTE DE REGULARIZAÇÃO"
+2 - Na conferência do inventário: "Resultado da conferência: LOCAL DIFERENTE de: Situação da divergência: PENDENTE DE REGULARIZAÇÃO" ---> OK
 Depois poderia evoluir para:
 
 LOCAL DIFERENTE
@@ -97,7 +97,7 @@ Sobrescrita gravada + auditoria com antes/depois (quem, quando, IP)
 Ata final continua imutável após o encerramento
 7.1 Atuzalizar "Ajuda/Manual" + docuemntação
 
-8 - Ver correção da hora
+8 - Ver correção da hora ---> OK
 
 9 - Na importação, nao fica o nome de quem já tá cadastrado
 

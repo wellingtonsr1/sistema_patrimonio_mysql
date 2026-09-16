@@ -552,6 +552,16 @@ ARTICLES: List[Dict] = [
                 ],
             },
             {
+                "heading": "Pesquisar colaboradores",
+                "body": (
+                    "Na listagem de colaboradores, use o campo de pesquisa acima da tabela para "
+                    "localizar rapidamente: digite parte da matrícula, nome, cargo, departamento "
+                    "ou e-mail — não é preciso escolher o campo. A pesquisa ignora maiúsculas e "
+                    "minúsculas e aceita correspondência parcial; para voltar à lista completa, "
+                    "limpe o campo e pesquise novamente ou use o botão Limpar."
+                ),
+            },
+            {
                 "heading": "Importação em massa",
                 "body": (
                     "Também é possível importar colaboradores via arquivo CSV, com pré-visualização "

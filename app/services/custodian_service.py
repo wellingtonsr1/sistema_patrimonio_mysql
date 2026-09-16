@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app.models.custodian import Custodian
 from app.models.asset import Asset
 from app.models.enums import AssetStatus
@@ -9,10 +9,30 @@ from app.schemas.custodian import CustodianCreate, CustodianUpdate
 
 class CustodianService:
     @staticmethod
-    def get_all(db: Session, active_only: bool = False) -> List[Custodian]:
+    def get_all(db: Session, active_only: bool = False, search: Optional[str] = None) -> List[Custodian]:
+        """Lista colaboradores, opcionalmente filtrada por termo de pesquisa.
+
+        Feature 006: `search` é combinado (matrícula, nome, cargo, departamento,
+        e-mail), com correspondência parcial e sem diferenciar maiúsculas de
+        minúsculas (padrão da pesquisa de bens em asset_service.get_all).
+        Sem termo (None/vazio), a consulta permanece idêntica à anterior —
+        retrocompatível com API REST e demais chamadores.
+        """
         query = db.query(Custodian)
         if active_only:
             query = query.filter(Custodian.is_active == True)
+
+        termo = (search or "").strip()
+        if termo:
+            filtro = f"%{termo}%"
+            query = query.filter(or_(
+                Custodian.registration_code.ilike(filtro),
+                Custodian.name.ilike(filtro),
+                Custodian.role.ilike(filtro),
+                Custodian.department.ilike(filtro),
+                Custodian.email.ilike(filtro),
+            ))
+
         return query.order_by(Custodian.name).all()
 
     @staticmethod
