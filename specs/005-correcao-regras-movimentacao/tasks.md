@@ -252,7 +252,7 @@ pytest -v
 
 * [x] T047 Se a validação demonstrar necessidade real de ajuste no tratamento HTTP, atualizar `app/api/movements_api.py` e/ou `app/web/routes.py`.
 
-* [ ] T048 Executar o procedimento descrito em `specs/005-correcao-regras-movimentacao/quickstart.md`.
+* [x] T048 Executar o procedimento descrito em `specs/005-correcao-regras-movimentacao/quickstart.md`.
 
 **Checkpoint**: feature validada sem regressões e sem alterações desnecessárias fora do escopo.
 
