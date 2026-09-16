@@ -18,8 +18,8 @@
 
 **Purpose**: Carregar contexto e estabelecer baseline antes de qualquer alteração
 
-- [ ] T001 Ler os artefatos da feature (spec.md, plan.md §Implementation Flow, research.md R1–R5, contracts/locations-csv-contract.md, quickstart.md) e os arquivos-alvo: `app/services/report_service.py` (métodos `generate_*_csv`, em especial `generate_custodians_csv` ~L410), `app/api/reports_api.py` (endpoint `export_custodians_csv` ~L219), `app/web/templates/locations/list.html` (page-header) e `tests/test_rbac.py` L100-170 (padrão do teste de permissão de export)
-- [ ] T002 Executar baseline da suíte: `python -m pytest tests/ -q --tb=no` e registrar o patamar em Validation Results (baseline de referência desta sessão: 264 passed / 1 failed conhecido — lockout defasado; a feature não pode piorar esse patamar além de somar testes novos)
+- [x] T001 Ler os artefatos da feature (spec.md, plan.md §Implementation Flow, research.md R1–R5, contracts/locations-csv-contract.md, quickstart.md) e os arquivos-alvo: `app/services/report_service.py` (métodos `generate_*_csv`, em especial `generate_custodians_csv` ~L410), `app/api/reports_api.py` (endpoint `export_custodians_csv` ~L219), `app/web/templates/locations/list.html` (page-header) e `tests/test_rbac.py` L100-170 (padrão do teste de permissão de export)
+- [x] T002 Executar baseline da suíte: `python -m pytest tests/ -q --tb=no` e registrar o patamar em Validation Results (baseline de referência desta sessão: 264 passed / 1 failed conhecido — lockout defasado; a feature não pode piorar esse patamar além de somar testes novos)
 
 **Checkpoint**: Contexto carregado e baseline registrada — nenhuma linha de código alterada ainda.
 
@@ -31,7 +31,7 @@
 
 **⚠️ CRITICAL**: Nenhuma user story começa antes desta fase
 
-- [ ] T003 Verificar (somente leitura) e registrar em Validation Results: (a) padrão exato de `generate_custodians_csv` em `app/services/report_service.py` (assinatura com lista opcional, `io.StringIO`, `csv.writer(delimiter=";", quoting=csv.QUOTE_MINIMAL)`, cabeçalhos PT minúsculos, campos `or ""`); (b) padrão de resposta de `export_custodians_csv` em `app/api/reports_api.py` (`require_permission("relatorios.exportar")`, `Response(media_type="text/csv; charset=utf-8-sig", headers={"Content-Disposition": "attachment; filename=..."})`); (c) estrutura atual do page-header de `app/web/templates/locations/list.html` (grupo de botões gated por `locais.criar`, padrão `btn btn-ghost` + `bi-upload me-1` nos 3 botões existentes do sistema); (d) fixtures `client`/`unauth_client`/`db_session` em `tests/conftest.py` e padrão de 403 por perfil sem `relatorios.exportar` em `tests/test_rbac.py`; (e) id do artigo de ajuda `cadastrar-locais` e a §12.5 de `docs/ARQUITETURA_E_MANUTENCAO.md`. Qualquer divergência em relação ao plan → PARAR e reportar antes de seguir
+- [x] T003 Verificar (somente leitura) e registrar em Validation Results: (a) padrão exato de `generate_custodians_csv` em `app/services/report_service.py` (assinatura com lista opcional, `io.StringIO`, `csv.writer(delimiter=";", quoting=csv.QUOTE_MINIMAL)`, cabeçalhos PT minúsculos, campos `or ""`); (b) padrão de resposta de `export_custodians_csv` em `app/api/reports_api.py` (`require_permission("relatorios.exportar")`, `Response(media_type="text/csv; charset=utf-8-sig", headers={"Content-Disposition": "attachment; filename=..."})`); (c) estrutura atual do page-header de `app/web/templates/locations/list.html` (grupo de botões gated por `locais.criar`, padrão `btn btn-ghost` + `bi-upload me-1` nos 3 botões existentes do sistema); (d) fixtures `client`/`unauth_client`/`db_session` em `tests/conftest.py` e padrão de 403 por perfil sem `relatorios.exportar` em `tests/test_rbac.py`; (e) id do artigo de ajuda `cadastrar-locais` e a §12.5 de `docs/ARQUITETURA_E_MANUTENCAO.md`. Qualquer divergência em relação ao plan → PARAR e reportar antes de seguir
 
 **Checkpoint**: Mecanismos de reuso confirmados — user stories liberadas.
 
@@ -47,14 +47,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] [US1] Criar `tests/test_locations_export.py` com os testes US1 (fixtures `client`/`db_session`), ANTES de qualquer implementação: (a) botão "Exportar CSV" presente no HTML de `GET /locations` com `href="/api/v1/reports/locations/csv"` e gate correto; (b) `GET /api/v1/reports/locations/csv` → 200 com `text/csv; charset=utf-8-sig` no content-type e `attachment; filename=locais.csv` no Content-Disposition; (c) corpo contém o nome de todos os locais criados na massa (e somente eles); (d) após a exportação, `GET /locations` segue 200 com a tabela íntegra (tela não afetada). Executar `python -m pytest tests/test_locations_export.py -q` e CONFIRMAR que falham (endpoint e botão não existem) — registrar a saída em Validation Results
+- [x] T004 [P] [US1] Criar `tests/test_locations_export.py` com os testes US1 (fixtures `client`/`db_session`), ANTES de qualquer implementação: (a) botão "Exportar CSV" presente no HTML de `GET /locations` com `href="/api/v1/reports/locations/csv"` e gate correto; (b) `GET /api/v1/reports/locations/csv` → 200 com `text/csv; charset=utf-8-sig` no content-type e `attachment; filename=locais.csv` no Content-Disposition; (c) corpo contém o nome de todos os locais criados na massa (e somente eles) — inclusive com filtro de pesquisa ativo na chamada da tela: `GET /locations?search=<termo>` seguido da exportação mantém o conjunto completo, não o filtrado (FR-006/FR-010); (d) após a exportação, `GET /locations` segue 200 com a tabela íntegra (tela não afetada). Executar `python -m pytest tests/test_locations_export.py -q` e CONFIRMAR que falham (endpoint e botão não existem) — registrar a saída em Validation Results
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Implementar `generate_locations_csv(db, locations: Optional[List[Location]] = None) -> str` em `app/services/report_service.py` (junto aos demais `generate_*_csv`): se `locations is None` → `LocationService.get_all(db)` (todos, ordenação vigente `branch, department, name`); `io.StringIO` + `csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)`; cabeçalho `nome;filial;departamento;predio;andar;sala;gestor`; uma linha por local com `name, branch, department, building or "", floor or "", room or "", manager_name or ""` — SEM colunas "Ações" e "Bens" (FR-004/research R2); importar `LocationService` seguindo o padrão de import existente no arquivo
-- [ ] T006 [US1] Implementar `GET /locations/csv` em `app/api/reports_api.py` (junto aos demais `export_*_csv`): `dependencies=[Depends(require_permission("relatorios.exportar"))]`; corpo idêntico a `export_custodians_csv` — chamar `ReportService.generate_locations_csv(db)` e responder `Response(content=csv_content, media_type="text/csv; charset=utf-8-sig", headers={"Content-Disposition": "attachment; filename=locais.csv"})`; SEM parâmetros de query (FR-006/research R5)
-- [ ] T007 [US1] Adicionar o botão no page-header de `app/web/templates/locations/list.html`: `{% if can('relatorios.exportar') %}<a href="/api/v1/reports/locations/csv" class="btn btn-ghost"><i class="bi bi-upload me-1"></i> Exportar CSV</a>{% endif %}` como primeiro botão do grupo (precedente de colaboradores), fora do bloco `locais.criar`; markup byte-idêntico aos 3 botões existentes (contrato §4)
-- [ ] T008 [US1] Executar `python -m pytest tests/test_locations_export.py -q` → US1 100% verde; em seguida regressão direta no estado da baseline: `python -m pytest tests/ -q --tb=no` sem novos failures (registrar em Validation Results)
+- [x] T005 [US1] Implementar `generate_locations_csv(db, locations: Optional[List[Location]] = None) -> str` em `app/services/report_service.py` (junto aos demais `generate_*_csv`): se `locations is None` → `LocationService.get_all(db)` (todos, ordenação vigente `branch, department, name`); `io.StringIO` + `csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)`; cabeçalho `nome;filial;departamento;predio;andar;sala;gestor`; uma linha por local com `name, branch, department, building or "", floor or "", room or "", manager_name or ""` — SEM colunas "Ações" e "Bens" (FR-004/research R2); importar `LocationService` seguindo o padrão de import existente no arquivo
+- [x] T006 [US1] Implementar `GET /locations/csv` em `app/api/reports_api.py` (junto aos demais `export_*_csv`): `dependencies=[Depends(require_permission("relatorios.exportar"))]`; corpo idêntico a `export_custodians_csv` — chamar `ReportService.generate_locations_csv(db)` e responder `Response(content=csv_content, media_type="text/csv; charset=utf-8-sig", headers={"Content-Disposition": "attachment; filename=locais.csv"})`; SEM parâmetros de query (FR-006/research R5)
+- [x] T007 [US1] Adicionar o botão no page-header de `app/web/templates/locations/list.html`: `{% if can('relatorios.exportar') %}<a href="/api/v1/reports/locations/csv" class="btn btn-ghost"><i class="bi bi-upload me-1"></i> Exportar CSV</a>{% endif %}` como primeiro botão do grupo (precedente de colaboradores), fora do bloco `locais.criar`; markup byte-idêntico aos 3 botões existentes (contrato §4)
+- [x] T008 [US1] Executar `python -m pytest tests/test_locations_export.py -q` → US1 100% verde; em seguida regressão direta no estado da baseline: `python -m pytest tests/ -q --tb=no` sem novos failures (registrar em Validation Results)
 
 **Checkpoint**: US1 (MVP) funcional e testável independentemente — PARAR E VALIDAR antes de US2/US3.
 
@@ -68,11 +68,11 @@
 
 ### Tests for User Story 2 ⚠️ (TDD — estender ANTES de tocar em implementação)
 
-- [ ] T009 [P] [US2] Estender `tests/test_locations_export.py` com os casos US2 (executar após cada bloco): (a) primeira linha EXATAMENTE `nome;filial;departamento;predio;andar;sala;gestor` (contrato §3); (b) uma linha por local, na ordenação filial→departamento→nome (massa com filiais/departamentos fora de ordem de inserção); (c) escapamento — local com `;` no nome e local com aspas/acentos: linhas íntegras, célula única ao re-parsear com `csv.reader(delimiter=";")`; (d) campos opcionais nulos → vazios (`""`), não `"None"`; (e) ausência das colunas de interface — sem "Ações"/"Ver Bens" e sem contagem de bens no corpo; (f) `ReportService.generate_locations_csv(db)` direto (sem argumento) = mesmo conteúdo do endpoint (reuso R1)
+- [x] T009 [P] [US2] Estender `tests/test_locations_export.py` com os casos US2 (executar após cada bloco): (a) primeira linha EXATAMENTE `nome;filial;departamento;predio;andar;sala;gestor` (contrato §3); (b) uma linha por local, na ordenação filial→departamento→nome (massa com filiais/departamentos fora de ordem de inserção); (c) escapamento — local com `;` no nome e local com aspas/acentos: linhas íntegras, célula única ao re-parsear com `csv.reader(delimiter=";")`; (d) campos opcionais nulos → vazios (`""`), não `"None"`; (e) ausência das colunas de interface — sem "Ações"/"Ver Bens" e sem contagem de bens no corpo; (f) `ReportService.generate_locations_csv(db)` direto (sem argumento) = mesmo conteúdo do endpoint (reuso R1)
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Conformidade do formato: os casos (a)–(f) de T009 devem passar com a implementação da T005; ajustar o service SOMENTE se algum caso evidenciar lacuna (ex.: escaping ou default de lista) — sem reescrever o mecanismo padrão (research R1)
+- [x] T010 [US2] Conformidade do formato: os casos (a)–(f) de T009 devem passar com a implementação da T005; ajustar o service SOMENTE se algum caso evidenciar lacuna (ex.: escaping ou default de lista) — sem reescrever o mecanismo padrão (research R1)
 
 **Checkpoint**: US1 + US2 funcionando independentemente.
 
@@ -86,8 +86,8 @@
 
 ### Tests for User Story 3 ⚠️ (TDD — casos de proteção/não regressão)
 
-- [ ] T012 [P] [US3] Estender `tests/test_locations_export.py` com os casos US3: (a) usuário autenticado SEM `relatorios.exportar` (padrão de perfil do `test_rbac.py`) → botão AUSENTE no HTML de `/locations` e endpoint com **403**; (b) `unauth_client` no endpoint → 401 (mecanismo da API); (c) read-only — snapshot de `Location` (contagem + campos) antes/depois de exportações repetidas é idêntico; (d) zero locais → 200 com APENAS a linha de cabeçalho (sem 500); (e) não-regressão das exportações existentes — `/api/v1/reports/custodians/csv` continua 200 com `filename=colaboradores.csv` e `/api/v1/reports/inventory/csv` continua 200 (mesmo gate e resposta de antes); (f) tela sem o gate de exportação para usuário sem permissão: pesquisa (007) e tabela seguem íntegras
-- [ ] T011 [US3] Executar `python -m pytest tests/test_locations_export.py -q` → 100% verde; regressão direta no estado da baseline sem novos failures (nota: T011 executa a validação da story — os testes T012 são escritos primeiro; ordem de escrita: T012 → correções mínimas se houver lacuna → T011 verde)
+- [x] T012 [P] [US3] Estender `tests/test_locations_export.py` com os casos US3: (a) usuário autenticado SEM `relatorios.exportar` (padrão de perfil do `test_rbac.py`) → botão AUSENTE no HTML de `/locations` e endpoint com **403**; (b) `unauth_client` no endpoint → 401 (mecanismo da API); (c) read-only — snapshot de `Location` (contagem + campos) antes/depois de exportações repetidas é idêntico; (d) zero locais → 200 com APENAS a linha de cabeçalho (sem 500); (e) não-regressão das exportações existentes — `/api/v1/reports/custodians/csv` continua 200 com `filename=colaboradores.csv` e `/api/v1/reports/inventory/csv` continua 200 (mesmo gate e resposta de antes); (f) tela sem o gate de exportação para usuário sem permissão: pesquisa (007) e tabela seguem íntegras
+- [x] T011 [US3] Executar `python -m pytest tests/test_locations_export.py -q` → 100% verde; regressão direta no estado da baseline sem novos failures (nota: T011 executa a validação da story — os testes T012 são escritos primeiro; ordem de escrita: T012 → correções mínimas se houver lacuna → T011 verde)
 
 **Checkpoint**: Todas as user stories funcionando.
 
@@ -97,11 +97,11 @@
 
 **Purpose**: Validação final, documentação e governança (Constitution VIII/XI/XII)
 
-- [ ] T013 Executar a suíte completa: `python -m pytest tests/ -q --tb=no` → patamar baseline + testes novos, nenhum failure novo além do lockout defasado conhecido (registrar números exatos em Validation Results)
-- [ ] T014 [P] Documentação na central de ajuda embutida: acrescentar seção "Exportar locais" ao artigo `cadastrar-locais` em `app/services/help_service.py` — o que exporta (todos os locais, dados cadastrais da tabela, sem colunas de interface), formato CSV padrão do sistema (Excel-friendly), botão no cabeçalho e permissão necessária (Constitution XI)
-- [ ] T015 [P] Documentação em `docs/ARQUITETURA_E_MANUTENCAO.md` §12.5 (Relatórios & Exportações): nova exportação `GET /api/v1/reports/locations/csv` (`locais.csv`), geração via `ReportService.generate_locations_csv`, gate `relatorios.exportar`, decisão "todos os locais, sem colunas de interface" (Constitution XI)
-- [ ] T016 Validação manual no navegador conforme quickstart.md §3 (cenários 3.1–3.11, incluindo abertura no Excel — SC-002) e spot-checks §4 — executada pelo operador; registrar resultado e data em Validation Results
-- [ ] T017 Fechamento: conferir checklist Constitution (plan §Constitution Check), `git status` com escopo exato (report_service.py, reports_api.py, locations/list.html, tests/test_locations_export.py, help_service.py, docs/ARQUITETURA_E_MANUTENCAO.md, artifacts da feature — nada além disso) e preencher a síntese dos Success Criteria (SC-001..SC-006) em Validation Results
+- [x] T013 Executar a suíte completa: `python -m pytest tests/ -q --tb=no` → patamar baseline + testes novos, nenhum failure novo além do lockout defasado conhecido (registrar números exatos em Validation Results)
+- [x] T014 [P] Documentação na central de ajuda embutida: acrescentar seção "Exportar locais" ao artigo `cadastrar-locais` em `app/services/help_service.py` — o que exporta (todos os locais, dados cadastrais da tabela, sem colunas de interface), formato CSV padrão do sistema (Excel-friendly), botão no cabeçalho e permissão necessária (Constitution XI)
+- [x] T015 [P] Documentação em `docs/ARQUITETURA_E_MANUTENCAO.md` §12.5 (Relatórios & Exportações): nova exportação `GET /api/v1/reports/locations/csv` (`locais.csv`), geração via `ReportService.generate_locations_csv`, gate `relatorios.exportar`, decisão "todos os locais, sem colunas de interface" (Constitution XI)
+- [x] T016 Validação manual no navegador conforme quickstart.md §3 (cenários 3.1–3.11, incluindo abertura no Excel — SC-002) e spot-checks §4 — executada pelo operador; registrar resultado e data em Validation Results
+- [x] T017 Fechamento: conferir checklist Constitution (plan §Constitution Check), `git status` com escopo exato (report_service.py, reports_api.py, locations/list.html, tests/test_locations_export.py, help_service.py, docs/ARQUITETURA_E_MANUTENCAO.md, artifacts da feature — nada além disso) e preencher a síntese dos Success Criteria (SC-001..SC-006) em Validation Results
 
 ---
 
@@ -176,29 +176,35 @@ T004 (testes vermelhos) → T005 (service) → T006 (endpoint) → T007 (templat
 
 ### Baseline (T002)
 
-- (a preencher)
+- `python3 -m pytest tests/ -q --tb=no` → **264 passed / 1 failed** (lockout defasado conhecido) — idêntico ao patamar de referência do plan. Nenhuma linha de código alterada antes do baseline.
 
 ### TDD vermelho (T004)
 
-- (a preencher)
+- `tests/test_locations_export.py` criado com 5 testes US1; execução antes da implementação → **5 failed** (botão e endpoint inexistentes, como esperado). Saída registrada nesta sessão.
 
 ### Execuções por story (T008/T011)
 
-- (a preencher)
+- **T008/US1**: 5 passed; regressão imediata da suíte completa → 269 passed / 1 failed (mesma falha pré-existente; +5 testes novos).
+- **T009/US2**: casos (a)–(f) acrescentados → 11 passed. Nenhuma lacuna evidenciada → **T010 não exigiu ajuste** no service (conformidade de formato confirmada).
+- **T011/US3**: casos (a)–(f) de T012 escritos antes → 17 passed (arquivo completo: US1+US2+US3).
 
 ### Suíte completa (T013)
 
-- (a preencher)
+- Execução final (após docs T014/T015): **281 passed / 1 failed** — única falha é o lockout defasado pré-existente à feature; +17 testes novos; **zero regressões**.
 
 ### Validação manual (T016)
 
-- (a preencher — operador)
+- **2026-09-16 — CONCLUÍDA pelo operador** (execução manual escolhida nesta sessão; servidor de produção `192.168.0.9:8000` já carregando o código da feature, navegador Firefox). Operador reportou **"ok"** para o protocolo completo — todos os cenários aprovados, sem falhas:
+  - Cenários 3.1–3.11: ✅ **ok** (botão visível/padrão; download `locais.csv`; cabeçalho exato; ordem/dados da tabela; abertura no Excel com acentos corretos — UTF-8 BOM; pesquisa 007 funcionando com exportação completa; read-only em exportações repetidas; botão ausente + 403 sem permissão; 401 sem sessão)
+  - Spot-checks §4: ✅ **ok** (Colaboradores/Movimentações/Dashboard inalterados; tela de Locais pós-007 íntegra)
+  - Falhas encontradas: **nenhuma**
 
 ### Success Criteria (T017)
 
-- SC-001 (download em 1 clique com `relatorios.exportar`): (a preencher — T004/T016)
-- SC-002 (abre no Excel com padrão do sistema): (a preencher — T016)
-- SC-003 (100% dos locais, sem colunas de interface): (a preencher — T004c/T009e)
-- SC-004 (100% das tentativas sem permissão negadas): (a preencher — T012a/T012b)
-- SC-005 (zero alterações de dados): (a preencher — T012c)
-- SC-006 (suíte verde, sem regressão): (a preencher — T013)
+- SC-001 (download em 1 clique com `relatorios.exportar`): ✅ automatizado (T004a/T004b) e **confirmado no navegador pelo operador (T016, 2026-09-16)**.
+- SC-002 (abre no Excel com padrão do sistema): ✅ **CONFIRMADO — T016 (2026-09-16)**: operador reportou abertura correta no Excel (UTF-8 BOM, separador `;`, acentos íntegros).
+- SC-003 (100% dos locais, sem colunas de interface): ✅ T004c (incl. variante com filtro de pesquisa ativo) e T009e.
+- SC-004 (100% das tentativas sem permissão negadas): ✅ T012a (botão oculto + 403, perfil Almoxarifado) e T012b (401).
+- SC-005 (zero alterações de dados): ✅ T012c (snapshot antes/depois de 3 exportações).
+- SC-006 (suíte verde, sem regressão): ✅ 281 passed / 1 failed pré-existente; nenhum teste existente alterado.
+- **Nota T017 — escopo do git status**: `app/services/report_service.py`, `app/api/reports_api.py`, `app/web/templates/locations/list.html`, `tests/test_locations_export.py` (novo), `app/services/help_service.py`, `docs/ARQUITETURA_E_MANUTENCAO.md`, artefatos da spec (`specs/008-exportar-locais/spec.md`, `tasks.md`) — nada além disso (arquivos `.pyc` rastreados são subprodutos das execuções pytest). `docs/ARQUITETURA_E_MANUTENCAO.md` foi restaurado do git nesta sessão, com aprovação do responsável, após remoção externa detectada durante o implement (T015).

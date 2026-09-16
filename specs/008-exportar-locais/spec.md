@@ -48,7 +48,7 @@ O CSV gerado deve seguir exatamente o padrão das exportações existentes: sepa
 **Acceptance Scenarios**:
 
 1. **Given** o arquivo gerado, **When** a primeira linha é lida, **Then** o cabeçalho segue o padrão do sistema (rótulos em português, minúsculos, separados por `;`), cobrindo Nome / Identificação, Filial, Departamento, Prédio, Andar, Sala e Gestor — **sem colunas de interface** (sem "Ações", sem "Bens").
-2. **Given** locais com valores contendo `;`, vírgulas, acentos ou quebra de linha na descrição, **When** o CSV é gerado, **Then** os valores são adequadamente escapados pelo mecanismo padrão (o arquivo abre corretamente no Excel com a codificação padrão do sistema — UTF-8 com BOM).
+2. **Given** locais com valores contendo `;`, vírgulas, aspas, acentos ou quebra de linha no nome ou nos demais campos exportados, **When** o CSV é gerado, **Then** os valores são adequadamente escapados pelo mecanismo padrão (o arquivo abre corretamente no Excel com a codificação padrão do sistema — UTF-8 com BOM).
 3. **Given** o arquivo gerado, **When** as colunas são inspecionadas, **Then** nenhuma coluna de interface aparece: sem "Ações" e sem a contagem de "Bens" (precedente estrito do CSV de colaboradores).
 4. **Given** o conjunto de locais, **When** o CSV é gerado, **Then** a ordenação das linhas é a mesma da listagem (filial, departamento, nome).
 

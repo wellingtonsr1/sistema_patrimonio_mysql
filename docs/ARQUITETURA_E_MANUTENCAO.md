@@ -668,8 +668,14 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
 - **Arquivos:** `dashboard_service.py`, `report_service.py`, `app/api/reports_api.py`,
   templates `dashboard.html`, `reports/*.html`.
 - **Permissões:** `relatorios.visualizar` (dashboard-stats e páginas) e `relatorios.exportar` (CSV).
-- **CSVs:** inventário (com depreciação), movimentações e colaboradores — separador `;`,
+- **CSVs:** inventário (com depreciação), movimentações, colaboradores e locais — separador `;`,
   `utf-8-sig` (abre direto no Excel).
+- **Exportação de locais (feature 008):** `GET /api/v1/reports/locations/csv` (`locais.csv`),
+  gerado por `ReportService.generate_locations_csv` (padrão de `generate_custodians_csv`);
+  exporta sempre **todos** os locais (não recebe filtro/pesquisa), apenas dados cadastrais
+  (`nome;filial;departamento;predio;andar;sala;gestor`), sem colunas de interface ("Ações" e
+  contagem de "Bens"). Botão "Exportar CSV" no cabeçalho da tela de Locais, gated por
+  `relatorios.exportar`. Operação read-only, sem auditoria (padrão dos demais CSVs).
 
 ### 12.6 Administração
 

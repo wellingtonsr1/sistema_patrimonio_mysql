@@ -225,3 +225,14 @@ def export_custodians_csv(db: Session = Depends(get_db)):
         media_type="text/csv; charset=utf-8-sig",
         headers={"Content-Disposition": "attachment; filename=colaboradores.csv"}
     )
+
+
+@router.get("/locations/csv", dependencies=[Depends(require_permission("relatorios.exportar"))])
+def export_locations_csv(db: Session = Depends(get_db)):
+    """Exporta todos os locais em CSV (mesmo desenho da exportação de colaboradores)"""
+    csv_content = ReportService.generate_locations_csv(db)
+    return Response(
+        content=csv_content,
+        media_type="text/csv; charset=utf-8-sig",
+        headers={"Content-Disposition": "attachment; filename=locais.csv"}
+    )

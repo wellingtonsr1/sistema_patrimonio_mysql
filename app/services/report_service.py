@@ -9,6 +9,8 @@ from app.models.custodian import Custodian
 from app.services.asset_service import AssetService
 from app.services.custodian_service import CustodianService
 from app.services.inventario_service import InventarioService
+from app.services.location_service import LocationService
+from app.models.location import Location
 from app.models.enums import AssetStatus, AssetCategory, InventarioStatus, InventarioItemStatus
 from app.models.inventario import Inventario, InventarioItem
 from app.utils.time_utils import format_local
@@ -437,6 +439,43 @@ class ReportService:
                 c.department,
                 c.cpf or "",
                 "sim" if c.is_active else "não",
+            ])
+
+        return output.getvalue()
+
+    @staticmethod
+    def generate_locations_csv(db: Session, locations: Optional[List[Location]] = None) -> str:
+        """
+        Gera um CSV com todos os locais no mesmo desenho da exportação de
+        colaboradores (colunas: nome;filial;departamento;predio;andar;sala;gestor).
+        Somente dados cadastrais: sem colunas de interface ("Ações" e a
+        contagem de "Bens"); campos opcionais nulos como "".
+        """
+        if locations is None:
+            locations = LocationService.get_all(db)
+
+        output = io.StringIO()
+        writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+
+        writer.writerow([
+            "nome",
+            "filial",
+            "departamento",
+            "predio",
+            "andar",
+            "sala",
+            "gestor",
+        ])
+
+        for loc in locations:
+            writer.writerow([
+                loc.name,
+                loc.branch,
+                loc.department,
+                loc.building or "",
+                loc.floor or "",
+                loc.room or "",
+                loc.manager_name or "",
             ])
 
         return output.getvalue()

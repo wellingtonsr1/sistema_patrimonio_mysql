@@ -8,16 +8,21 @@
         <h3 class="page-header-title">Locais & Departamentos</h3>
         <p class="page-header-subtitle">Controle físico de unidades, prédios, salas e setores da organização.</p>
     </div>
-    {% if can('locais.criar') %}
     <div class="d-flex gap-2">
+        {% if can('relatorios.exportar') %}
+        <a href="/api/v1/reports/locations/csv" class="btn btn-ghost">
+            <i class="bi bi-upload me-1"></i> Exportar CSV
+        </a>
+        {% endif %}
+        {% if can('locais.criar') %}
         <a href="/locations/import" class="btn btn-ghost">
             <i class="bi bi-download me-1"></i> Importar CSV
         </a>
         <a href="/locations/new" class="btn btn-primary">
             <i class="bi bi-building-add me-1"></i> Cadastrar Novo Local
         </a>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
 
 <div class="card p-3 mb-4">

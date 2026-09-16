@@ -613,6 +613,20 @@ ARTICLES: List[Dict] = [
                     "Use Filtrar para aplicar e Limpar para voltar à lista completa."
                 ),
             },
+            {
+                "heading": "Exportar locais",
+                "body": (
+                    "O botão Exportar CSV, no cabeçalho da tela, baixa o arquivo locais.csv com "
+                    "todos os locais cadastrados, na mesma ordenação da listagem (filial, "
+                    "departamento, nome). O arquivo contém apenas os dados cadastrais da tabela "
+                    "(nome, filial, departamento, prédio, andar, sala e gestor), sem as colunas de "
+                    "interface (Ações e a contagem de bens), no formato CSV padrão do sistema "
+                    "(separador ;, codificação UTF-8 com BOM — abre direto no Excel). A exportação "
+                    "não é afetada por filtros de pesquisa ativos na tela. É necessário ter a "
+                    "permissão de exportação de relatórios (o botão só aparece para quem pode "
+                    "exportar)."
+                ),
+            },
         ],
     },
 

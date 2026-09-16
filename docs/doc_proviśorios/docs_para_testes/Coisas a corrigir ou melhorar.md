@@ -105,6 +105,5 @@ Ata final continua imutável após o encerramento
 
 11 - Campo para pesqusia de local ---> OK
 
-12 - Atualizar o README.md
 
 Ajustar a cor do check da tela de conferência.
