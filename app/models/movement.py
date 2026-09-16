@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from app.utils.time_utils import now_utc
 import uuid
 from sqlalchemy import Column, Integer, String, DateTime, Text, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
@@ -18,7 +20,7 @@ class Movement(Base):
     movement_uuid = Column(String(36), unique=True, default=lambda: str(uuid.uuid4()), index=True)
     asset_id = Column(Integer, ForeignKey("assets.id", ondelete="CASCADE"), nullable=False, index=True)
     movement_type = Column(Enum(MovementType), nullable=False, index=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    timestamp = Column(DateTime, default=now_utc, nullable=False, index=True)
 
     # Origem (Snapshots e Foreign Keys)
     origin_location_id = Column(Integer, ForeignKey("locations.id"), nullable=True)
@@ -44,7 +46,7 @@ class Movement(Base):
     term_code = Column(String(50), nullable=True, index=True)               # Código único do Termo (ex: TR-2026-0001)
     term_signed = Column(Boolean, default=False)                            # Se termo foi assinado/aceito
     notes = Column(Text, nullable=True)                                     # Observações detalhadas
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc)
 
     # Relacionamentos
     asset = relationship("Asset", back_populates="movements")

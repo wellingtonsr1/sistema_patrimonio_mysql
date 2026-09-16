@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from app.utils.time_utils import now_utc
 from sqlalchemy import Column, Integer, String, DateTime, Text
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -16,7 +18,7 @@ class Location(Base):
     department = Column(String(100), nullable=False)                    # Ex: "Tecnologia da Informação"
     manager_name = Column(String(100), nullable=True)                   # Responsável pelo setor
     description = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc)
 
     # Relacionamentos
     assets = relationship("Asset", back_populates="location")

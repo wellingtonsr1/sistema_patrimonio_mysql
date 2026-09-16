@@ -104,6 +104,7 @@ Interface Web (Jinja2)          API REST (/api/v1)
 - **Autorização** (o que você pode fazer): **RBAC interno** — o AD apenas indica um *perfil* existente do sistema via mapeamento Grupo AD → Perfil. Permissões nunca vêm do AD.
 - **Sessões**: token aleatório (`secrets.token_urlsafe`) gravado em cookie **HttpOnly + SameSite=Lax** (Secure opcional); o banco armazena apenas o **hash SHA-256** do token. Expiração no servidor (padrão 8h) e revogação no logout.
 - **Auditoria**: trilha somente-leitura (`audit_logs`) com eventos de autenticação, alterações, movimentações e acessos negados.
+- **Convenção de data e hora** (feature 004): todo timestamp gerado pelo sistema é **gerado e persistido em UTC** (naive) pelo mecanismo central `app/utils/time_utils.py` (`now_utc()`); na **apresentação** (templates, relatórios, documentos), os valores são convertidos para `America/Recife` pelo filtro Jinja `localtime` / helper `format_local()`. Valores naive lidos de colunas `DATETIME` são tratados como **UTC por contrato da aplicação**. **Datas de negócio** (`purchase_date`, `warranty_expiry`, datas de CSV/formulários) **não recebem conversão de fuso**. Filtros de período sobre timestamps interpretam o intervalo informado em `America/Recife` e o convertem para UTC antes de comparar. Detalhes: `specs/004-padronizacao-datas-utc/`.
 
 ---
 

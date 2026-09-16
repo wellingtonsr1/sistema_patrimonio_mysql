@@ -11,6 +11,7 @@ from app.services.custodian_service import CustodianService
 from app.services.inventario_service import InventarioService
 from app.models.enums import AssetStatus, AssetCategory, InventarioStatus, InventarioItemStatus
 from app.models.inventario import Inventario, InventarioItem
+from app.utils.time_utils import format_local
 
 
 class ReportService:
@@ -470,7 +471,7 @@ class ReportService:
             name = m.asset.name if m.asset else "N/A"
             writer.writerow([
                 m.movement_uuid,
-                m.timestamp.strftime("%d/%m/%Y %H:%M:%S"),
+                m.timestamp and format_local(m.timestamp, "%d/%m/%Y %H:%M:%S"),
                 tag,
                 name,
                 m.movement_type.label,
@@ -506,7 +507,7 @@ class ReportService:
                 "responsavel_esperado": item.expected_custodian_name or "Estoque / Livre",
                 "resultado": item.status.label,
                 "local_encontrado": item.found_location_name or "-",
-                "conferido_em": item.checked_at.strftime("%d/%m/%Y %H:%M") if item.checked_at else "-",
+                "conferido_em": format_local(item.checked_at) if item.checked_at else "-",
                 "conferido_por": item.checked_by_name or "-",
                 "observacao": item.observation or "",
             })
@@ -527,11 +528,11 @@ class ReportService:
         writer.writerow(["Escopo", inventario.scope_filters or "Todo o acervo"])
         writer.writerow(["Status", inventario.status.label])
         writer.writerow(["Criado por", inventario.created_by_name or "-"])
-        writer.writerow(["Criado em", inventario.created_at.strftime("%d/%m/%Y %H:%M") if inventario.created_at else "-"])
+        writer.writerow(["Criado em", format_local(inventario.created_at) if inventario.created_at else "-"])
         if inventario.started_at:
-            writer.writerow(["Conferência iniciada em", inventario.started_at.strftime("%d/%m/%Y %H:%M")])
+            writer.writerow(["Conferência iniciada em", format_local(inventario.started_at)])
         if inventario.closed_at:
-            writer.writerow(["Encerrado em", inventario.closed_at.strftime("%d/%m/%Y %H:%M")])
+            writer.writerow(["Encerrado em", format_local(inventario.closed_at)])
             writer.writerow(["Encerrado por", inventario.closed_by_name or "-"])
         if inventario.closure_notes:
             writer.writerow(["Notas do encerramento", inventario.closure_notes])
@@ -606,16 +607,16 @@ class ReportService:
             Paragraph(f"<b>Status:</b> {inventario.status.label}", meta_style),
             Paragraph(
                 f"<b>Criado por</b> {inventario.created_by_name or '-'} "
-                f"em {inventario.created_at.strftime('%d/%m/%Y %H:%M') if inventario.created_at else '-'}",
+                f"em {format_local(inventario.created_at) if inventario.created_at else '-'}",
                 meta_style,
             ),
         ]
         if inventario.started_at:
-            elements.append(Paragraph(f"<b>Conferência iniciada em</b> {inventario.started_at.strftime('%d/%m/%Y %H:%M')}", meta_style))
+            elements.append(Paragraph(f"<b>Conferência iniciada em</b> {format_local(inventario.started_at)}", meta_style))
         if inventario.closed_at:
             elements.append(Paragraph(
                 f"<b>Encerrado por</b> {inventario.closed_by_name or '-'} "
-                f"em {inventario.closed_at.strftime('%d/%m/%Y %H:%M')}",
+                f"em {format_local(inventario.closed_at)}",
                 meta_style,
             ))
         if inventario.closure_notes:
@@ -722,12 +723,12 @@ class ReportService:
             ("Escopo", inventario.scope_filters or "Todo o acervo"),
             ("Status", inventario.status.label),
             ("Criado por", inventario.created_by_name or "-"),
-            ("Criado em", inventario.created_at.strftime("%d/%m/%Y %H:%M") if inventario.created_at else "-"),
+            ("Criado em", format_local(inventario.created_at) if inventario.created_at else "-"),
         ]
         if inventario.started_at:
-            meta.append(("Conferência iniciada em", inventario.started_at.strftime("%d/%m/%Y %H:%M")))
+            meta.append(("Conferência iniciada em", format_local(inventario.started_at)))
         if inventario.closed_at:
-            meta.append(("Encerrado em", inventario.closed_at.strftime("%d/%m/%Y %H:%M")))
+            meta.append(("Encerrado em", format_local(inventario.closed_at)))
             meta.append(("Encerrado por", inventario.closed_by_name or "-"))
         if inventario.closure_notes:
             meta.append(("Notas do encerramento", inventario.closure_notes))

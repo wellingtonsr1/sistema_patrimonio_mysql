@@ -26,6 +26,7 @@ from datetime import datetime
 from typing import List, Dict, Tuple, Optional
 from sqlalchemy.orm import Session
 
+from app.utils.time_utils import now_utc
 from app.models.enums import AssetCategory, AssetCondition, AssetStatus
 from app.models.asset import Asset
 from app.models.movement import Movement
@@ -503,7 +504,7 @@ def execute_import(
             movement = Movement(
                 asset_id=asset.id,
                 movement_type=MovementType.ACQUISITION,
-                timestamp=datetime.now(),
+                timestamp=now_utc(),
                 origin_location_name="Importação CSV",
                 origin_custodian_name="Sistema",
                 destination_location_name=location_name or "Estoque Central",

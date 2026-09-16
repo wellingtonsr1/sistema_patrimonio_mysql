@@ -45,7 +45,7 @@
             <tbody>
                 {% for m in movements %}
                 <tr>
-                    <td class="text-nowrap">{{ m.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td class="text-nowrap">{{ (m.timestamp | localtime).strftime('%d/%m/%Y %H:%M') }}</td>
                     <td class="font-monospace fw-bold">{{ m.asset.tag }}</td>
                     <td>{{ m.asset.name }}</td>
                     <td><span class="badge badge-soft-primary" style="font-size:.68rem;">{{ m.movement_type.label }}</span></td>

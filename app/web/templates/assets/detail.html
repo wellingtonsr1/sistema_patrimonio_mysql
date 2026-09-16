@@ -213,7 +213,7 @@
                                 {% endif %}
                             </div>
                             <span class="text-muted small" style="font-size:.74rem;">
-                                <i class="bi bi-calendar3 me-1"></i>{{ item.timestamp.strftime('%d/%m/%Y %H:%M') }}
+                                <i class="bi bi-calendar3 me-1"></i>{{ (item.timestamp | localtime).strftime('%d/%m/%Y %H:%M') }}
                             </span>
                         </div>
                         
@@ -246,7 +246,7 @@
                                 {% endif %}
                             </div>
                             <span class="text-muted small" style="font-size:.74rem;">
-                                <i class="bi bi-calendar3 me-1"></i>{{ item.timestamp.strftime('%d/%m/%Y %H:%M') }}
+                                <i class="bi bi-calendar3 me-1"></i>{{ (item.timestamp | localtime).strftime('%d/%m/%Y %H:%M') }}
                             </span>
                         </div>
 

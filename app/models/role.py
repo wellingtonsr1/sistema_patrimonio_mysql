@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from app.utils.time_utils import now_utc
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -19,7 +21,7 @@ class Role(Base):
     name = Column(String(100), unique=True, index=True, nullable=False)
     description = Column(String(255), nullable=True)
     is_system = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc)
 
     # Relacionamentos
     user_roles = relationship("UserRole", back_populates="role", cascade="all, delete-orphan")

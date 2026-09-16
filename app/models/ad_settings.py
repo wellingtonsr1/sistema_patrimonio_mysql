@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from app.utils.time_utils import now_utc
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from app.database import Base
 
@@ -37,7 +39,7 @@ class ADSettings(Base):
     disabled_behavior = Column(String(20), default="deny", nullable=False)  # deny | block (conta desabilitada no AD)
 
     # --- Metadados ---
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=now_utc, onupdate=now_utc)
     updated_by = Column(String(100), nullable=True)
 
     def __repr__(self):

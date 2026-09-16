@@ -62,7 +62,7 @@
                 {% if item.found_location_name %} ({{ item.found_location_name }}){% endif %}
                 — pode ser atualizado abaixo enquanto o inventário estiver aberto.
                 {% if item.checked_by_name or item.checked_at %}<br>{% endif %}
-                {% if item.checked_by_name %}Conferido por {{ item.checked_by_name }}{% endif %}{% if item.checked_at %} em {{ item.checked_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}{% if item.checked_by_name or item.checked_at %}.{% endif %}
+                {% if item.checked_by_name %}Conferido por {{ item.checked_by_name }}{% endif %}{% if item.checked_at %} em {{ (item.checked_at | localtime).strftime('%d/%m/%Y %H:%M') }}{% endif %}{% if item.checked_by_name or item.checked_at %}.{% endif %}
             </div>
             {% endif %}
 

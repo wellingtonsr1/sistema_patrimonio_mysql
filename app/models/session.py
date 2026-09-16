@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from app.utils.time_utils import now_utc
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -18,7 +20,7 @@ class UserSession(Base):
     id = Column(Integer, primary_key=True, index=True)
     token_hash = Column(String(64), unique=True, index=True, nullable=False)  # sha256 hex do token
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=now_utc, nullable=False)
     expires_at = Column(DateTime, nullable=False, index=True)
 
     # Relacionamentos

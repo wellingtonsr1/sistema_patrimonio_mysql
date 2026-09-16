@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional, Tuple, Dict, Any
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
+from app.utils.time_utils import now_utc, format_local, local_to_utc
 from app.models.asset import Asset
 from app.models.movement import Movement
 from app.models.location import Location
@@ -113,7 +114,7 @@ class MovementService:
         asset.status = new_status
         if data.new_condition:
             asset.condition = data.new_condition
-        asset.updated_at = datetime.now()
+        asset.updated_at = now_utc()
 
         # Gera termo de responsabilidade sequencial
         term_code = None
@@ -127,7 +128,7 @@ class MovementService:
         movement = Movement(
             asset_id=asset.id,
             movement_type=data.movement_type,
-            timestamp=datetime.now(),
+            timestamp=now_utc(),
             origin_location_id=prev_location_id,
             origin_location_name=prev_location_name or "Não definido",
             origin_custodian_id=prev_custodian_id,
@@ -269,10 +270,13 @@ class MovementService:
                     (Movement.origin_location_id == filters.location_id) |
                     (Movement.destination_location_id == filters.location_id)
                 )
+            # Feature 004: intervalo informado em horário local (America/Recife)
+            # é convertido para UTC antes de comparar com Movement.timestamp (UTC).
+            # Valor com offset explícito (aware) é respeitado como instante absoluto.
             if filters.start_date:
-                query = query.filter(Movement.timestamp >= filters.start_date)
+                query = query.filter(Movement.timestamp >= local_to_utc(filters.start_date))
             if filters.end_date:
-                query = query.filter(Movement.timestamp <= filters.end_date)
+                query = query.filter(Movement.timestamp <= local_to_utc(filters.end_date))
 
         total = query.count()
         items = query.order_by(desc(Movement.timestamp)).offset(skip).limit(limit).all()
@@ -299,7 +303,7 @@ class MovementService:
             },
             "term_code": movement.term_code or f"TR-{movement.timestamp.year}-{movement.id:05d}",
             "movement_type": movement.movement_type.value,
-            "date": movement.timestamp.strftime("%d/%m/%Y às %H:%M"),
+            "date": format_local(movement.timestamp, "%d/%m/%Y às %H:%M"),
             "operator": movement.operator_name,
             "reason": movement.reason,
             "notes": movement.notes or "",

@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from app.utils.time_utils import now_utc
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -19,7 +21,7 @@ class Permission(Base):
     module = Column(String(50), nullable=False, index=True)               # ex: Patrimônio
     label = Column(String(150), nullable=False)                           # ex: Cadastrar patrimônio
     description = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc)
 
     # Relacionamentos
     role_permissions = relationship("RolePermission", back_populates="permission", cascade="all, delete-orphan")

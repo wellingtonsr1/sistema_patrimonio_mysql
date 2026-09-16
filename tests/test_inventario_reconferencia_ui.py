@@ -16,6 +16,7 @@ critérios CA-01..CA-09 da spec.
 import pytest
 
 from app.models.enums import AssetCategory, AssetCondition, InventarioItemStatus
+from app.utils.time_utils import utc_to_recife
 from app.services.asset_service import AssetService
 from app.services.inventario_service import InventarioService
 from app.services.location_service import LocationService
@@ -126,9 +127,10 @@ def test_modal_conferido_exibe_alerta_com_dados(client, db_session):
     html = _detail_page(client, inv.id)
 
     assert "Já conferido por testuser" in html
-    # Data/hora no formato %d/%m/%Y %H:%M (usa o checked_at recém-gravado)
+    # Data/hora no formato %d/%m/%Y %H:%M exibida em America/Recife (feature 004:
+    # checked_at é persistido em UTC e convertido na apresentação)
     assert item.checked_at is not None
-    assert item.checked_at.strftime("%d/%m/%Y %H:%M") in html
+    assert utc_to_recife(item.checked_at).strftime("%d/%m/%Y %H:%M") in html
     assert "Resultado anterior: Encontrado" in html
     assert "substituirá" in html
 
@@ -242,7 +244,7 @@ def test_conferir_page_alerta_complementado_e_pendente_sem_alerta(client, db_ses
     inv = InventarioService.get_by_id(db_session, inv.id)
     item1 = _get_item_for_asset(db_session, inv, asset1)
     assert item1.checked_at is not None
-    assert item1.checked_at.strftime("%d/%m/%Y %H:%M") in html
+    assert utc_to_recife(item1.checked_at).strftime("%d/%m/%Y %H:%M") in html
 
     # Item pendente: apresentação atual, sem alerta de resultado registrado
     resp = client.get(f"/inventarios/{inv.id}/conferir/{asset2.id}")

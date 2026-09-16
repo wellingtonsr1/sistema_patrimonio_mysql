@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from app.utils.time_utils import now_utc
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -15,7 +17,7 @@ class Custodian(Base):
     role = Column(String(100), nullable=False)                                       # Cargo
     department = Column(String(100), nullable=False)                                 # Setor
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc)
 
     # Relacionamentos
     assets = relationship("Asset", back_populates="custodian")

@@ -12,6 +12,8 @@ conferência (resultado, conferente, data/hora, observação).
 """
 
 from datetime import datetime
+
+from app.utils.time_utils import now_utc
 from sqlalchemy import Column, Integer, String, DateTime, Text, Enum, ForeignKey, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 
@@ -45,7 +47,7 @@ class Inventario(Base):
     notes = Column(Text, nullable=True)
     created_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_by_name = Column(String(100), nullable=True)   # snapshot do username
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc)
     started_at = Column(DateTime, nullable=True)           # primeiro registro de conferência
     closed_at = Column(DateTime, nullable=True)            # encerramento
     closed_by_name = Column(String(100), nullable=True)    # snapshot do username que encerrou
@@ -102,7 +104,7 @@ class InventarioItem(Base):
     checked_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     checked_by_name = Column(String(100), nullable=True)
     checked_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc)
 
     # Relacionamentos
     inventario = relationship("Inventario", back_populates="itens")

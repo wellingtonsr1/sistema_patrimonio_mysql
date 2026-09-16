@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from app.utils.time_utils import now_utc
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -22,9 +24,9 @@ class Maintenance(Base):
     solution = Column(Text, nullable=True)                 # Resolução / Peças trocadas
     cost = Column(Float, default=0.0)                      # Custo total (R$)
 
-    start_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    start_date = Column(DateTime, default=now_utc, nullable=False)
     end_date = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc)
 
     # Relacionamento
     asset = relationship("Asset", back_populates="maintenances")

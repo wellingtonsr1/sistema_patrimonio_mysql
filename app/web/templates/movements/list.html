@@ -66,7 +66,7 @@
             <tbody>
                 {% for m in movements %}
                 <tr>
-                    <td class="small text-muted text-nowrap">{{ m.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td class="small text-muted text-nowrap">{{ (m.timestamp | localtime).strftime('%d/%m/%Y %H:%M') }}</td>
                     <td>
                         <a href="/assets/{{ m.asset_id }}" class="tag-badge text-decoration-none">{{ m.asset.tag }}</a>
                     </td>

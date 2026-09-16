@@ -12,6 +12,7 @@ from pathlib import Path
 
 from app.database import get_db
 from app.config import APP_NAME, APP_VERSION, COMPANY_NAME, COMPANY_CNPJ, COMPANY_ADDRESS, AUTH_COOKIE_NAME
+from app.utils.time_utils import utc_to_recife
 from app.models.enums import AssetStatus, AssetCondition, AssetCategory, MovementType, MaintenanceType, MaintenanceStatus, InventarioStatus, InventarioItemStatus
 from app.models.location import Location
 from app.models.asset import Asset
@@ -123,6 +124,9 @@ templates.env.globals["app_version"] = APP_VERSION
 templates.env.globals["company_name"] = COMPANY_NAME
 templates.env.globals["current_year"] = datetime.now().year
 templates.env.globals["action_label"] = action_label
+# Feature 004 — mecanismo central de apresentação (UTC -> America/Recife)
+templates.env.filters["localtime"] = utc_to_recife
+templates.env.globals["localtime"] = utc_to_recife
 
 web_router = APIRouter(include_in_schema=False)
 

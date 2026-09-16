@@ -20,7 +20,7 @@
         </h3>
         <p class="page-header-subtitle">
             {% if user.full_name %}{{ user.full_name }} • {% endif %}
-            Último acesso: {{ user.last_login.strftime('%d/%m/%Y %H:%M') if user.last_login else 'Nunca' }} •
+            Último acesso: {{ (user.last_login | localtime).strftime('%d/%m/%Y %H:%M') if user.last_login else 'Nunca' }} •
             Origem: {% if user.auth_provider == 'ad' %}Active Directory{% else %}Local{% endif %}
         </p>
     </div>
@@ -97,7 +97,7 @@
             <ul class="small text-muted mb-0 ps-3">
                 <li>Identificador AD: <code>{{ user.ad_object_guid or '-' }}</code></li>
                 <li>DN: <span class="text-break">{{ user.ad_dn or '-' }}</span></li>
-                <li>Última sincronização: {{ user.ad_last_sync.strftime('%d/%m/%Y %H:%M') if user.ad_last_sync else 'Nunca' }}</li>
+                <li>Última sincronização: {{ (user.ad_last_sync | localtime).strftime('%d/%m/%Y %H:%M') if user.ad_last_sync else 'Nunca' }}</li>
                 <li>Perfis atribuídos via AD são sincronizados a cada login; perfis manuais são preservados.</li>
             </ul>
         </div>
@@ -113,7 +113,7 @@
                 <span class="badge badge-soft-red fs-6">BLOQUEADO</span>
                 {% endif %}
                 {% if user.locked_until and user.locked_until > now %}
-                <span class="badge badge-soft-red">Bloqueio temporário até {{ user.locked_until.strftime('%d/%m/%Y %H:%M') }}</span>
+                <span class="badge badge-soft-red">Bloqueio temporário até {{ (user.locked_until | localtime).strftime('%d/%m/%Y %H:%M') }}</span>
                 {% endif %}
             </div>
             {% if can('usuarios.bloquear') %}

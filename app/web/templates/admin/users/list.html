@@ -98,7 +98,7 @@
                         {% endif %}
                     </td>
                     <td class="small text-muted text-nowrap">
-                        {{ u.last_login.strftime('%d/%m/%Y %H:%M') if u.last_login else 'Nunca' }}
+                        {{ (u.last_login | localtime).strftime('%d/%m/%Y %H:%M') if u.last_login else 'Nunca' }}
                     </td>
                     <td class="text-end text-nowrap">
                         {% if can('usuarios.editar') %}

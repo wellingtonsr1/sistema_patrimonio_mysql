@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, desc, and_
+from app.utils.time_utils import now_utc
 from app.models.asset import Asset
 from app.models.movement import Movement
 from app.models.location import Location
@@ -175,7 +176,7 @@ class AssetService:
         initial_movement = Movement(
             asset_id=asset.id,
             movement_type=MovementType.ACQUISITION,
-            timestamp=datetime.now(),
+            timestamp=now_utc(),
             origin_location_name="Fornecedor / Entrada Inicial",
             origin_custodian_name="Almoxarifado Geral",
             destination_location_id=data.initial_location_id,
@@ -221,7 +222,7 @@ class AssetService:
             movement = Movement(
                 asset_id=asset.id,
                 movement_type=MovementType.STATUS_UPDATE,
-                timestamp=datetime.now(),
+                timestamp=now_utc(),
                 origin_location_id=asset.location_id,
                 origin_location_name=asset.location.name if asset.location else None,
                 origin_custodian_id=asset.custodian_id,

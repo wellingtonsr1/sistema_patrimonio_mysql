@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from app.utils.time_utils import now_utc
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -24,7 +26,7 @@ class User(Base):
     is_admin = Column(Boolean, default=False)                              # flag simples; RBAC completo fica para depois
     auth_provider = Column(String(20), default="local", nullable=False)    # local | ad (futuro)
     last_login = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now_utc)
 
     # Proteção contra força bruta (preenchidos pela autenticação)
     failed_login_attempts = Column(Integer, default=0, nullable=False)   # tentativas falhas consecutivas

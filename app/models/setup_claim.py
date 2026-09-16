@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from app.utils.time_utils import now_utc
+
 from sqlalchemy import Column, DateTime, Integer
 
 from app.database import Base
@@ -23,7 +25,7 @@ class SetupClaim(Base):
     __tablename__ = "setup_claims"
 
     id = Column(Integer, primary_key=True)  # singleton: sempre 1
-    claimed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    claimed_at = Column(DateTime, default=now_utc, nullable=False)
 
     def __repr__(self):
         return f"<SetupClaim(id={self.id}, claimed_at='{self.claimed_at}')>"

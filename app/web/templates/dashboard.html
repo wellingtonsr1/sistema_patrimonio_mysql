@@ -255,7 +255,7 @@
             <tbody>
                 {% for m in stats.recent_movements %}
                 <tr>
-                    <td class="text-muted small text-nowrap">{{ m.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td class="text-muted small text-nowrap">{{ (m.timestamp | localtime).strftime('%d/%m/%Y %H:%M') }}</td>
                     <td><span class="tag-badge">{{ m.asset.tag }}</span></td>
                     <td>
                         <a href="/assets/{{ m.asset_id }}" class="fw-semibold text-decoration-none" style="color:var(--c-text);">

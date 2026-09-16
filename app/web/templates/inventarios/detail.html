@@ -11,7 +11,7 @@
         </h3>
         <p class="page-header-subtitle">
             {{ inv.scope_filters }} &bull;
-            {% if inv.status.value == 'PLANEJADO' %}conferência ainda não iniciada{% elif inv.status.value == 'EM_ANDAMENTO' %}conferência em andamento{% else %}encerrado em {{ inv.closed_at.strftime('%d/%m/%Y %H:%M') if inv.closed_at }}{% endif %}
+            {% if inv.status.value == 'PLANEJADO' %}conferência ainda não iniciada{% elif inv.status.value == 'EM_ANDAMENTO' %}conferência em andamento{% else %}encerrado em {{ (inv.closed_at | localtime).strftime('%d/%m/%Y %H:%M') if inv.closed_at }}{% endif %}
         </p>
     </div>
     <div class="d-flex gap-2">
@@ -189,7 +189,7 @@
                                 {% endif %}
                                 {% if item.checked_by_name %}
                                 <div class="text-muted" style="font-size:.68rem;">
-                                    {{ item.checked_at.strftime('%d/%m/%Y %H:%M') if item.checked_at }} • {{ item.checked_by_name }}
+                                    {{ (item.checked_at | localtime).strftime('%d/%m/%Y %H:%M') if item.checked_at }} • {{ item.checked_by_name }}
                                 </div>
                                 {% endif %}
                             </td>
@@ -236,7 +236,7 @@
                     <div class="text-muted small"><em>{{ item.observation }}</em></div>
                     {% endif %}
                     <div class="text-muted" style="font-size:.68rem;">
-                        {{ item.checked_at.strftime('%d/%m/%Y %H:%M') if item.checked_at }} • {{ item.checked_by_name }}
+                        {{ (item.checked_at | localtime).strftime('%d/%m/%Y %H:%M') if item.checked_at }} • {{ item.checked_by_name }}
                     </div>
                 </li>
                 {% endfor %}
@@ -272,12 +272,12 @@
         <div class="card p-4">
             <div class="section-divider mb-3"><i class="bi bi-journal-check"></i> Comprovação</div>
             <ul class="list-unstyled small text-muted mb-0">
-                <li class="mb-2"><i class="bi bi-person me-2"></i>Criado por <strong style="color:var(--c-text);">{{ inv.created_by_name or '—' }}</strong> em {{ inv.created_at.strftime('%d/%m/%Y %H:%M') }}</li>
+                <li class="mb-2"><i class="bi bi-person me-2"></i>Criado por <strong style="color:var(--c-text);">{{ inv.created_by_name or '—' }}</strong> em {{ (inv.created_at | localtime).strftime('%d/%m/%Y %H:%M') }}</li>
                 {% if inv.started_at %}
-                <li class="mb-2"><i class="bi bi-play-circle me-2"></i>Conferência iniciada em {{ inv.started_at.strftime('%d/%m/%Y %H:%M') }}</li>
+                <li class="mb-2"><i class="bi bi-play-circle me-2"></i>Conferência iniciada em {{ (inv.started_at | localtime).strftime('%d/%m/%Y %H:%M') }}</li>
                 {% endif %}
                 {% if inv.closed_at %}
-                <li class="mb-2"><i class="bi bi-lock me-2"></i>Encerrado por <strong style="color:var(--c-text);">{{ inv.closed_by_name or '—' }}</strong> em {{ inv.closed_at.strftime('%d/%m/%Y %H:%M') }}</li>
+                <li class="mb-2"><i class="bi bi-lock me-2"></i>Encerrado por <strong style="color:var(--c-text);">{{ inv.closed_by_name or '—' }}</strong> em {{ (inv.closed_at | localtime).strftime('%d/%m/%Y %H:%M') }}</li>
                 {% endif %}
                 {% if inv.closure_notes %}
                 <li class="mb-2"><i class="bi bi-card-text me-2"></i>{{ inv.closure_notes }}</li>
@@ -304,7 +304,7 @@
                     {% if item.status.value != 'PENDENTE' %}
                     <div class="alert alert-warning small">
                         <i class="bi bi-exclamation-triangle me-1"></i>
-                        Já conferido{% if item.checked_by_name %} por {{ item.checked_by_name }}{% endif %}{% if item.checked_at %} em {{ item.checked_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}.<br>
+                        Já conferido{% if item.checked_by_name %} por {{ item.checked_by_name }}{% endif %}{% if item.checked_at %} em {{ (item.checked_at | localtime).strftime('%d/%m/%Y %H:%M') }}{% endif %}.<br>
                         Resultado anterior: {{ item.status.label }}.<br>
                         Registrar um novo resultado substituirá o resultado anterior.
                     </div>
