@@ -48,6 +48,21 @@ class CustodianService:
         return f"{_PROV_PREFIX}{seq:06d}"
 
     @staticmethod
+    def generate_available_provisional_code(db: Session) -> str:
+        """Feature 014: fachada pública do gerador único (feature 010).
+
+        Retorna o próximo PROV-%06d disponível: delega a _next_provisional_code
+        (lógica interna INTOCADA) e repete enquanto o código já existir
+        (verificação pré-inserção, mesmo padrão do create). Não persiste nada —
+        a constraint UNIQUE de registration_code permanece a garantia final.
+        Consumido pela importação CSV (custodian_import_service)."""
+        for _attempt in range(5):
+            code = CustodianService._next_provisional_code(db)
+            if not CustodianService.get_by_registration_code(db, code):
+                return code
+        raise ValueError("Não foi possível gerar o identificador provisório. Tente novamente.")
+
+    @staticmethod
     def create(db: Session, data: CustodianCreate) -> Custodian:
         # Feature 010: matrícula não informada → gera identificador provisório.
         provided_code = (data.registration_code or "").strip() or None

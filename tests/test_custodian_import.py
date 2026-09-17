@@ -36,7 +36,10 @@ MAT-3002;Bruno Lima;bruno.lima@empresa.com;Dev;TI;;inativo
 
 
 def test_parse_custodian_csv_reports_missing_required_fields(db_session):
-    """Linhas sem campos obrigatórios geram erros e são descartadas"""
+    """Linhas sem campos obrigatórios geram erros e são descartadas.
+
+    Feature 014: matrícula deixou de ser obrigatória (ausência não gera erro);
+    as demais obrigatoriedades (nome/email/cargo/setor) permanecem."""
     csv_content = """matricula;nome;email;cargo;setor
 MAT-4001;Ana Souza;ana@empresa.com;;TI
 ;Bruno Lima;bruno@empresa.com;Dev;TI
@@ -44,12 +47,14 @@ MAT-4002;;nao-e-email;Dev;TI
 """
     rows, errors = parse_custodian_csv(csv_content)
 
-    assert rows == []
-    assert len(errors) == 4
+    # A única linha inválida é a do meio-cargo ausente; a sem matrícula é válida
+    assert len(rows) == 1
+    assert rows[0]["registration_code"] == ""  # linha sem matrícula entra em rows
+    assert len(errors) == 3
     assert any("cargo é obrigatório" in e for e in errors)
-    assert any("matricula é obrigatória" in e for e in errors)
     assert any("nome é obrigatório" in e for e in errors)
     assert any("email inválido" in e for e in errors)
+    assert not any("matricula" in e for e in errors)
 
 
 def test_execute_custodian_import_creates_records(db_session):

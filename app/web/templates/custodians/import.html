@@ -244,7 +244,7 @@
     </div>
     <div class="card-body">
         <p class="mb-3">O arquivo CSV deve conter um <strong>cabeçalho</strong> (primeira linha) com os nomes das colunas.
-        As colunas <code>matricula</code>, <code>nome</code>, <code>email</code>, <code>cargo</code> e <code>setor</code> são <strong>obrigatórias</strong>.</p>
+        As colunas <code>nome</code>, <code>email</code>, <code>cargo</code> e <code>setor</code> são <strong>obrigatórias</strong>.</p>
 
         <div class="table-responsive">
             <table class="table table-sm table-bordered font-monospace" style="font-size:.82rem;">
@@ -259,9 +259,9 @@
                 <tbody>
                     <tr>
                         <td><code>matricula</code></td>
-                        <td><span class="badge bg-danger">Sim</span></td>
+                        <td><span class="badge bg-secondary">Não</span></td>
                         <td>MAT-1045</td>
-                        <td>Código funcional único do colaborador</td>
+                        <td>Se informada, será utilizada. Quando não informada, o sistema gerará automaticamente uma matrícula provisória, seguindo a mesma regra do cadastro individual.</td>
                     </tr>
                     <tr>
                         <td><code>nome</code></td>
@@ -307,8 +307,9 @@
             <h6 class="fw-semibold">Exemplo de CSV (ponto e vírgula):</h6>
             <pre class="bg-light p-3 rounded border small mb-0">matricula;nome;email;cargo;setor;cpf;ativo
 MAT-1045;Carlos Eduardo Silva;carlos.silva@empresa.com;Desenvolvedor Sênior;Engenharia de Software;111.222.333-44;sim
-MAT-1050;Mariana Souza Lima;mariana.lima@empresa.com;Product Designer;Design e UX;222.333.444-55;sim
-MAT-1062;João Pedro Costa;joao.costa@empresa.com;Analista de Suporte;Tecnologia da Informação;;sim</pre>
+;Mariana Souza Lima;mariana.lima@empresa.com;Product Designer;Design e UX;;sim
+MAT-1062;João Pedro Costa;joao.costa@empresa.com;Analista de Suporte;Tecnologia da Informação;;sim
+;Paula Mendes;paula.mendes@empresa.com;Analista;Financeiro;;sim</pre>
         </div>
     </div>
 </div>

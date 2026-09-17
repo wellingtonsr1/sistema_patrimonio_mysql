@@ -1,8 +1,12 @@
 """
 Serviço de importação em massa de Colaboradores (Custodiantes) via CSV.
 
-Colunas esperadas (mínimo: matricula, nome, email, cargo, setor):
-  - matricula  (obrigatório) → registration_code
+Colunas esperadas (obrigatórias: nome, email, cargo, setor):
+  - matricula  (opcional)     → registration_code — Feature 014: se informada,
+    é utilizada (normalização trim+upper); se ausente (vazia, só espaços ou
+    coluna inexistente), o sistema gera automaticamente uma matrícula
+    provisória PROV-%06d, seguindo a MESMA regra/implementação do cadastro
+    individual (CustodianService.generate_available_provisional_code).
   - nome       (obrigatório) → name
   - email      (obrigatório) → email
   - cargo      (obrigatório) → role
@@ -22,6 +26,7 @@ from typing import Dict, List, Optional, Tuple
 from sqlalchemy.orm import Session
 
 from app.models.custodian import Custodian
+from app.services.custodian_service import CustodianService
 
 # Mapeamento de nomes alternativos de colunas → campo canônico
 COLUMN_ALIASES = {
@@ -146,10 +151,13 @@ def _parse_bool(value: str) -> Optional[bool]:
 
 
 def _validate_row(row: Dict[str, str], row_num: int) -> List[str]:
-    """Valida uma linha do CSV e retorna lista de erros (vazia = OK)."""
+    """Valida uma linha do CSV e retorna lista de erros (vazia = OK).
+
+    Feature 014: a matrícula deixou de ser obrigatória — célula vazia, só
+    espaços ou coluna ausente geram matrícula provisória automaticamente na
+    execução (mesma regra do cadastro individual). As demais obrigatoriedades
+    (nome, email, cargo, setor) e validações permanecem."""
     errors = []
-    if not row.get("registration_code", "").strip():
-        errors.append(f"Linha {row_num}: matricula é obrigatória")
     if not row.get("name", "").strip():
         errors.append(f"Linha {row_num}: nome é obrigatório")
     if not row.get("email", "").strip():
@@ -223,7 +231,15 @@ def preview_custodian_import(rows: List[Dict[str, str]], db: Session) -> Dict:
         reg_code = _normalize_registration_code(row.get("registration_code", ""))
         email = _normalize_email(row.get("email", ""))
 
-        existing = _find_by_registration_code(db, reg_code) or _find_by_email(db, email)
+        # Feature 014: matrícula vazia (não informada) → será gerada provisória na
+        # execução. O preview não fabrica número (FR-007): apenas sinaliza via flag.
+        will_generate_provisional = not reg_code
+
+        # Feature 014 (research R3): sem matrícula, a busca por matrícula é suprimida
+        # (consulta por "" é inócua) — a duplicata continua sendo verificada por e-mail.
+        existing = (
+            _find_by_registration_code(db, reg_code) if reg_code else None
+        ) or _find_by_email(db, email)
         is_dup = existing is not None
         if is_dup:
             duplicates += 1
@@ -236,6 +252,7 @@ def preview_custodian_import(rows: List[Dict[str, str]], db: Session) -> Dict:
             "email": email,
             "existing_custodian_id": existing.id if existing else None,
             "is_duplicate": is_dup,
+            "will_generate_provisional": will_generate_provisional,
         })
 
     return {
@@ -311,6 +328,14 @@ def execute_custodian_import(
                 continue
 
             # Cria novo colaborador
+            # Feature 014: matrícula não informada (vazia/espaços/chave ausente)
+            # → gera PROV-%06d pelo gerador único do cadastro individual
+            # (mesma implementação da feature 010). A geração ocorre imediatamente
+            # antes do db.add; o flush seguinte torna a provisória visível para as
+            # linhas seguintes, garantindo unicidade dentro da mesma importação.
+            if not reg_code:
+                reg_code = CustodianService.generate_available_provisional_code(db)
+
             custodian = Custodian(
                 registration_code=reg_code,
                 name=name,
