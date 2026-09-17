@@ -552,6 +552,14 @@ ARTICLES: List[Dict] = [
                 ),
             },
             {
+                "heading": "Localizar inventários",
+                "body": (
+                    "Na listagem de Inventários há busca por código ou nome do inventário e filtro por "
+                    "status (PLANEJADO, EM_ANDAMENTO, ENCERRADO) — use Filtrar para aplicar e Limpar "
+                    "para voltar à lista completa."
+                ),
+            },
+            {
                 "heading": "Ciclo de vida",
                 "steps": [
                     "PLANEJADO — criado, lista de bens esperados gerada; conferências ainda não são aceitas.",
@@ -903,6 +911,88 @@ ARTICLES: List[Dict] = [
         ],
     },
     {
+        "id": "integracao-active-directory",
+        "title": "Integração com Active Directory (administração)",
+        "module": "Administração",
+        "icon": "bi-hdd-network",
+        "audience": "admin",
+        "summary": "Ativar login via AD/LDAP, mapear grupos a perfis e entender provisionamento e erros comuns.",
+        "keywords": ["active directory", "ad", "ldap", "ldaps", "samba", "domínio", "grupo", "mapeamento", "integração", "admin"],
+        "sections": [
+            {
+                "heading": "O que a integração faz",
+                "body": (
+                    "Permite que usuários do domínio (Microsoft AD ou Samba AD DC) entrem no sistema com a "
+                    "própria conta, via LDAP/LDAPS. O AD apenas autentica: as permissões continuam 100% "
+                    "internas (perfis e permissões do SisPatrimônio) — nenhum acesso é concedido pelo AD. "
+                    "Contas locais existentes continuam funcionando normalmente."
+                ),
+            },
+            {
+                "heading": "Como ativar",
+                "steps": [
+                    "Acesse Administração → Integração AD.",
+                    "Marque Habilitar integração com Active Directory.",
+                    "Informe o Servidor AD e a Porta (389 para LDAP; 636 para LDAPS).",
+                    "Recomendado: marque Usar LDAPS (recomendado, porta 636) e Validar certificado TLS.",
+                    "Informe a Base DN (ex.: DC=empresa,DC=local) e, se desejar restringir a busca, o DN de busca de usuários.",
+                    "Clique em Testar Conexão e, estando ok, em Salvar Configuração.",
+                ],
+                "note": (
+                    "As variáveis de ambiente AD_* (AD_SERVER, AD_BASE_DN, AD_BIND_USER, AD_BIND_PASSWORD etc.) "
+                    "servem de valores iniciais/fallback dos campos da tela — a senha de serviço existe somente "
+                    "no ambiente, nunca no banco."
+                ),
+            },
+            {
+                "heading": "Mapear grupos do AD a perfis",
+                "steps": [
+                    "Na mesma tela, informe o Grupo AD (o CN do grupo, ex.: GRP-SISPAT-TECNICOS-TI) e o Perfil existente.",
+                    "Defina a Prioridade (quando um usuário pertence a vários grupos mapeados, vence o menor número).",
+                    "Clique em Adicionar Mapeamento — repita para cada grupo autorizado.",
+                    "Opcionalmente, use Prioridade dos grupos (opcional) para sobrepor a prioridade pela ordem dos grupos.",
+                    "Para revogar um grupo, use Remover mapeamento — sem grupo mapeado, o login do AD é negado.",
+                ],
+                "note": (
+                    "Somente entra no sistema quem pertencer a um grupo explicitamente mapeado. Usuários do "
+                    "domínio sem grupo mapeado não recebem usuário, colaborador, perfil ou permissão — apenas "
+                    "a tentativa fica registrada na auditoria. Perfis atribuídos manualmente nunca são removidos "
+                    "pela sincronização do AD."
+                ),
+            },
+            {
+                "heading": "Primeiro login de um usuário do AD",
+                "body": (
+                    "Confirmado o grupo mapeado, o usuário do sistema é criado automaticamente e vinculado ao "
+                    "colaborador existente por e-mail/matrícula (nunca duplica cadastro) — a tela oferece as "
+                    "opções Criar usuário do sistema automaticamente quando autenticar no AD e Vincular "
+                    "colaborador existente pelo e-mail (nunca duplica cadastro). Dados patrimoniais do "
+                    "colaborador (matrícula, CPF, cargo, setor) não são sobrescritos pelo AD. A senha do "
+                    "usuário do AD nunca é armazenada no SisPatrimônio."
+                ),
+            },
+            {
+                "heading": "Mensagens e erros comuns",
+                "steps": [
+                    "\"autenticado, mas não possui um perfil autorizado\" — o usuário autentica no AD, mas não está em nenhum grupo mapeado.",
+                    "Credencial inválida — usuário ou senha incorretos no diretório.",
+                    "Conta desabilitada — o usuário está desabilitado no próprio AD (userAccountControl).",
+                    "AD indisponível — o controlador de domínio não respondeu (verifique servidor, porta e rede).",
+                    "Login falha como credencial inválida mesmo com senha correta — confira o DN de busca de usuários: vazio, a busca usa a Base DN inteira; um DN apontando para uma OU sem os usuários faz a busca não encontrá-los (o log registra a base usada).",
+                ],
+            },
+            {
+                "heading": "Segurança",
+                "note": (
+                    "A senha do usuário nunca é persistida, logada ou auditada. LDAPS com validação de "
+                    "certificado é o recomendado em produção; desativar a validação TLS é uma escolha explícita "
+                    "do administrador (ambientes sem CA publicada). A integração adiciona eventos próprios na "
+                    "trilha de auditoria — sempre sem credenciais."
+                ),
+            },
+        ],
+    },
+    {
         "id": "auditoria",
         "title": "Como consultar a trilha de auditoria (administração)",
         "module": "Administração",
@@ -951,7 +1041,8 @@ FAQ: List[Dict] = [
             "e quais grupos do AD correspondem a cada perfil do sistema. Só entra no sistema o "
             "usuário cujo grupo estiver mapeado para um perfil; contas locais continuam funcionando "
             "normalmente. Sem a integração configurada, o acesso é feito com usuário e senha "
-            "cadastrados no próprio sistema."
+            "cadastrados no próprio sistema. Veja o artigo Integração com Active Directory "
+            "(administração) para o passo a passo completo."
         ),
     },
     {
@@ -1118,7 +1209,7 @@ CATEGORIES: List[Dict] = [
         "icon": "bi-shield-lock",
         "description": "Usuários, perfis, permissões e auditoria.",
         "audience": "admin",
-        "article_ids": ["gerenciar-usuarios", "perfis-e-permissoes", "auditoria"],
+        "article_ids": ["gerenciar-usuarios", "perfis-e-permissoes", "integracao-active-directory", "auditoria"],
     },
 ]
 

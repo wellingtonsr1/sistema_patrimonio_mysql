@@ -733,7 +733,8 @@ botão ❓ no cabeçalho ou pelo item "Ajuda e Manual" no menu.
 
 - **Pesquisa** no manual (artigos e FAQ por texto completo).
 - **Artigos** por módulo (primeiros passos, patrimônio, movimentação, manutenção,
-  inventários, colaboradores/locais, relatórios, administração) com passos a passo.
+  inventários, colaboradores/locais, relatórios, administração — incluindo a
+  integração AD) com passos a passo.
 - **FAQ** (perguntas frequentes) em acordeão.
 - **Ajuda contextual**: tooltips em campos de formulários e botões
   "Como faço isso?" em telas-chave.
