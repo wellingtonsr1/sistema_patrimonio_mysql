@@ -12,7 +12,7 @@
             <div>
                 <h3 class="fw-bold mb-0" style="font-size:1.25rem;">{{ custodian.name }}</h3>
                 <div class="text-muted small">
-                    Matrícula: <strong>{{ custodian.registration_code }}</strong> • {{ custodian.role }} • {{ custodian.department }}
+                    Matrícula: <strong>{{ custodian.registration_code }}</strong>{% if is_provisional(custodian.registration_code) %} <span class="badge badge-soft-gray" title="Identificador provisório gerado automaticamente pelo sistema">provisória</span>{% endif %} • {{ custodian.role }} • {{ custodian.department }}
                 </div>
                 <div class="text-muted small"><i class="bi bi-envelope me-1"></i>{{ custodian.email }} {% if custodian.cpf %}• CPF: {{ custodian.cpf }}{% endif %}</div>
             </div>

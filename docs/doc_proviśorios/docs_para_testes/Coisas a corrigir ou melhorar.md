@@ -30,7 +30,7 @@ Fluxo de movimentações:
 | estoque   | nenhum      | depende da operação; não deve ser uma alocação concluída sem responsável |
 2.1 Atuzalizar "Ajuda/Manual" + docuemntação
 
-3 - Problema das matrículas:
+3 - Problema das matrículas: ---> OK
 Para o SisPatrimônio, há uma alternativa melhor: gerar um identificador provisório claramente marcado, por exemplo:
 
 PROV-000001
@@ -105,5 +105,6 @@ Ata final continua imutável após o encerramento
 
 11 - Campo para pesqusia de local ---> OK
 
+12 - Ajustar a cor do check da tela de conferência.
 
-Ajustar a cor do check da tela de conferência.
+13 - Colocar 'Departamento / Setor' exibindo a lista

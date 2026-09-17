@@ -13,8 +13,21 @@ class CustodianBase(BaseModel):
     is_active: bool = True
 
 
-class CustodianCreate(CustodianBase):
-    pass
+class CustodianCreate(BaseModel):
+    """Criação de colaborador.
+
+    Feature 010: `registration_code` é opcional — quando não informado (ou
+    vazio), o service gera automaticamente um identificador provisório
+    `PROV-000001` (prefixo exclusivo do sistema; não pode ser digitado).
+    """
+
+    registration_code: Optional[str] = None
+    name: str
+    email: str
+    cpf: Optional[str] = None
+    role: str
+    department: str
+    is_active: bool = True
 
 
 class CustodianUpdate(BaseModel):

@@ -49,12 +49,18 @@
         {% endif %}
             <div class="row g-3">
                 <div class="col-12 col-md-6">
-                    <label class="form-label">Matrícula / Código Funcional <span class="text-danger">*</span></label>
-                    {% if is_edit %}
+                    <label class="form-label">Matrícula / Código Funcional {% if not is_edit %}<span class="text-muted small fw-normal">(opcional)</span>{% else %}<span class="text-danger">*</span>{% endif %}</label>
+                    {% if is_edit and is_provisional(custodian.registration_code) %}
+                    <!-- Feature 010: substituição do identificador provisório pela matrícula oficial -->
+                    <input type="text" name="registration_code" class="form-control font-monospace" value="{{ custodian.registration_code }}" required>
+                    <div class="form-text"><i class="bi bi-info-circle me-1"></i>Matrícula provisória — informe a matrícula funcional oficial para substituí-la. Os bens e o histórico permanecem vinculados a este colaborador.</div>
+                    {% elif is_edit %}
                     <input type="text" name="registration_code_disabled" class="form-control font-monospace" value="{{ custodian.registration_code }}" readonly>
                     <div class="form-text">A matrícula identifica o colaborador no sistema e não pode ser alterada. Os bens permanecem vinculados a ela.</div>
                     {% else %}
-                    <input type="text" name="registration_code" class="form-control font-monospace" placeholder="Ex: MAT-1045" required>
+                    <!-- Feature 010: opcional — se não informada, o sistema gera um identificador provisório PROV-* -->
+                    <input type="text" name="registration_code" class="form-control font-monospace" placeholder="Ex: MAT-1045 (vazio = provisória automática)">
+                    <div class="form-text">Sem matrícula no momento? Deixe em branco — o sistema gerará um identificador provisório (PROV-*) que poderá ser substituído depois pela matrícula oficial.</div>
                     {% endif %}
                 </div>
                 <div class="col-12 col-md-6">

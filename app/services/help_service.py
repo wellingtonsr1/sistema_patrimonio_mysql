@@ -659,16 +659,38 @@ ARTICLES: List[Dict] = [
         "icon": "bi-people",
         "audience": "user",
         "summary": "Cadastro de colaboradores, importação em massa e consulta de bens sob custódia.",
-        "keywords": ["colaborador", "funcionário", "custodiante", "responsável", "matrícula", "cadastrar"],
+        "keywords": ["colaborador", "funcionário", "custodiante", "responsável", "matrícula", "cadastrar", "provisória", "PROV"],
         "sections": [
             {
                 "heading": "Passo a passo",
                 "steps": [
                     "Acesse Colaboradores e clique em Cadastrar Colaborador.",
-                    "Informe matrícula, nome, e-mail e CPF.",
+                    "Informe nome, e-mail e CPF. A matrícula é opcional (veja abaixo).",
                     "Informe o cargo e o departamento/setor.",
                     "Clique em Salvar.",
                 ],
+            },
+            {
+                "heading": "Colaborador sem matrícula: identificador provisório",
+                "body": (
+                    "Se a matrícula funcional ainda não estiver disponível, deixe o campo em branco: "
+                    "o sistema gera automaticamente um identificador provisório no formato PROV-000001 "
+                    "(sequencial, exclusivo do sistema — não pode ser digitado pelo usuário). Na listagem, "
+                    "nos detalhes e nos termos de responsabilidade, o número aparece com a marcação \"provisória\". "
+                    "O colaborador provisório participa normalmente de todas as operações patrimoniais: "
+                    "alocação/cautela, transferência, devolução, inventário e emissão de termos."
+                ),
+            },
+            {
+                "heading": "Informar a matrícula oficial depois",
+                "body": (
+                    "Quando a matrícula funcional for conhecida, abra a edição do colaborador: se a "
+                    "identificação atual for provisória, o campo de matrícula fica editável — informe a "
+                    "matrícula oficial e salve. O colaborador permanece o mesmo (os bens, movimentações, "
+                    "termos e o histórico ficam vinculados a ele, sem quebrar nada); os registros antigos "
+                    "mantêm a identificação da época, e as emissões futuras já exibem a matrícula oficial. "
+                    "Colaboradores que já possuem matrícula oficial continuam com ela inalterável pela interface."
+                ),
             },
             {
                 "heading": "Pesquisar colaboradores",

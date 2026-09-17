@@ -53,7 +53,7 @@
                     <td class="bg-light fw-semibold" style="width: 25%;">Nome Completo:</td>
                     <td style="width: 45%;">{{ term.custodian.name }}</td>
                     <td class="bg-light fw-semibold" style="width: 15%;">Matrícula:</td>
-                    <td>{{ term.custodian.registration_code }}</td>
+                    <td>{{ term.custodian.registration_code }}{% if is_provisional(term.custodian.registration_code) %} <em>(provisória)</em>{% endif %}</td>
                 </tr>
                 <tr>
                     <td class="bg-light fw-semibold">Cargo / Função:</td>

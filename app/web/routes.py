@@ -108,6 +108,8 @@ def _inject_current_user(request: Request) -> dict:
         "user_permissions": permissions,
         "user_roles": roles,
         "can": lambda perm: perm in permissions,
+        # Feature 010: delega ao serviço (fonte única: ^PROV-\d{6}$)
+        "is_provisional": CustodianService.is_provisional,
     }
 
 
@@ -894,7 +896,7 @@ def form_new_custodian(request: Request, error: Optional[str] = None):
 @web_router.post("/custodians/new", dependencies=[Depends(require_permission("colaboradores.criar"))])
 def create_custodian_form(
     request: Request,
-    registration_code: str = Form(...),
+    registration_code: Optional[str] = Form(None),
     name: str = Form(...),
     email: str = Form(...),
     cpf: Optional[str] = Form(None),
@@ -902,8 +904,10 @@ def create_custodian_form(
     department: str = Form(...),
     db: Session = Depends(get_db)
 ):
+    """Feature 010: matrícula opcional — deixada em branco, o service gera
+    automaticamente um identificador provisório PROV-*."""
     custodian_data = CustodianCreate(
-        registration_code=registration_code,
+        registration_code=(registration_code or None),
         name=name,
         email=email,
         cpf=cpf or None,
@@ -962,20 +966,31 @@ def update_custodian_form(
     cpf: Optional[str] = Form(None),
     role: str = Form(...),
     department: str = Form(...),
+    registration_code: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """Salva a edição de um colaborador existente.
 
-    Recebe apenas os campos editáveis (nome, e-mail, CPF, cargo e
-    departamento). O identificador (id/matrícula) NÃO é aceito do formulário,
-    portanto nunca pode ser alterado pela interface. A atualização é feita
-    in-place pelo ID, preservando os relacionamentos de custódia dos bens.
+    Recebe os campos editáveis (nome, e-mail, CPF, cargo e departamento).
+    Feature 010: a matrícula é aceita do formulário SOMENTE quando a atual é
+    um identificador provisório PROV-* (substituição pela matrícula oficial,
+    preservando o mesmo colaborador e os vínculos por FK). Colaboradores com
+    matrícula oficial continuam com a matrícula inalterável pela interface.
+    A atualização é feita in-place pelo ID, preservando os relacionamentos
+    de custódia dos bens.
     """
     before_c = CustodianService.get_by_id(db, custodian_id)
     if not before_c:
         raise HTTPException(status_code=404, detail="Colaborador não encontrado")
     before = _custodian_audit_snapshot(before_c)
+    new_code: Optional[str] = None
+    # Guard da feature 010: só aplica matrícula informada quando a atual é PROV-*.
+    if CustodianService.is_provisional(before_c.registration_code):
+        candidate = (registration_code or "").strip()
+        if candidate and candidate != before_c.registration_code:
+            new_code = candidate
     update_data = CustodianUpdate(
+        registration_code=new_code,
         name=name,
         email=email,
         cpf=cpf or None,
