@@ -72,10 +72,10 @@ Matrícula: PROV-000123 (provisória)
 4 - Decidir se coloca exporta pdf. cvs, excel ou Ajusta a impressão
 4.1 Atuzalizar "Ajuda/Manual" + docuemntação
 
-5 - ajustar impressão em Trilha de Auditoria & Fluxo, Relação de Colaboradores & Custodiantes
+5 - ajustar impressão em Trilha de Auditoria & Fluxo, Relação de Colaboradores & Custodiantes ---> OK
 5.1 Atuzalizar "Ajuda/Manual" + docuemntação
 
-6 - Ajustar impressão em relatórios
+6 - Ajustar impressão em relatórios ---> OK
 6.1 Atuzalizar "Ajuda/Manual" + docuemntação
 
 7 - risco de sobrescrita silenciosa: ---> OK
@@ -107,4 +107,4 @@ Ata final continua imutável após o encerramento
 
 12 - Ajustar a cor do check da tela de conferência.
 
-13 - Colocar 'Departamento / Setor' exibindo a lista
+13 - Colocar 'Departamento / Setor' exibindo a lista ---> OK
