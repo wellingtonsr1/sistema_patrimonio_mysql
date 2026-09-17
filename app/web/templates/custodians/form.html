@@ -81,7 +81,22 @@
                 </div>
                 <div class="col-12 col-md-6">
                     <label class="form-label">Departamento / Setor <span class="text-danger">*</span></label>
-                    <input type="text" name="department" class="form-control" placeholder="Ex: Engenharia de Software" value="{{ custodian.department if is_edit else '' }}" required>
+                    <!-- Feature 012: campo de seleção (dropdown) da lista oficial de Departamentos/Setores,
+                         derivada ao vivo dos departamentos dos locais — nunca lista fixa no HTML.
+                         A obrigatoriedade é garantida no backend (department_source=official). -->
+                    <select name="department" class="form-select" required>
+                        <option value="">— Selecione —</option>
+                        {% for department_option in departments %}
+                        <option value="{{ department_option }}" {% if is_edit and custodian.department == department_option %}selected{% endif %}>{{ department_option }}</option>
+                        {% endfor %}
+                        {% if is_edit and custodian.department and custodian.department not in departments %}
+                        <!-- Valor vigente fora da lista (grafia herdada): permanece visível/selecionado;
+                             a submissão idêntica ao vigente é aceita sem re-normalização (FR-014/I2-b). -->
+                        <option value="{{ custodian.department }}" selected>{{ custodian.department }}</option>
+                        {% endif %}
+                    </select>
+                    <input type="hidden" name="department_source" value="official">
+                    <div class="form-text"><i class="bi bi-info-circle me-1"></i>Selecione um Departamento/Setor da lista oficial (derivada dos locais cadastrados).</div>
                 </div>
             </div>
 

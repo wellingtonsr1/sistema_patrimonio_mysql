@@ -30,6 +30,7 @@ from app.services.custodian_import_service import parse_custodian_csv, preview_c
 from app.services.location_import_service import parse_locations_csv, preview_locations_import, execute_locations_import
 from app.services.custodian_service import CustodianService
 from app.services.location_service import LocationService
+from app.services.department_service import DepartmentService
 from app.services.maintenance_service import MaintenanceService
 from app.services.dashboard_service import DashboardService
 from app.services.report_service import ReportService
@@ -885,11 +886,12 @@ def list_custodians_view(request: Request, search: Optional[str] = None, db: Ses
 
 
 @web_router.get("/custodians/new", response_class=HTMLResponse, dependencies=[Depends(require_permission("colaboradores.criar"))])
-def form_new_custodian(request: Request, error: Optional[str] = None):
+def form_new_custodian(request: Request, error: Optional[str] = None, db: Session = Depends(get_db)):
+    # Feature 012: lista oficial de Departamentos/Setores derivada ao vivo dos locais.
     return templates.TemplateResponse(
         request=request,
         name="custodians/form.html",
-        context={"error": error or "", "active_tab": "custodians"}
+        context={"error": error or "", "departments": DepartmentService.list_official(db), "active_tab": "custodians"}
     )
 
 
@@ -902,10 +904,20 @@ def create_custodian_form(
     cpf: Optional[str] = Form(None),
     role: str = Form(...),
     department: str = Form(...),
+    department_source: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """Feature 010: matrícula opcional — deixada em branco, o service gera
-    automaticamente um identificador provisório PROV-*."""
+    automaticamente um identificador provisório PROV-*.
+    Feature 012: com o marcador department_source=official (formulário da
+    seleção oficial), o Departamento/Setor é validado/canonizado contra a
+    lista oficial (derivada de locations.department) antes de gravar; sem o
+    marcador, o comportamento atual é preservado integralmente."""
+    if department_source == "official":
+        try:
+            department = DepartmentService.ensure_official(db, department)
+        except ValueError as err:
+            return RedirectResponse(url=f"/custodians/new?error={quote(str(err))}", status_code=status.HTTP_303_SEE_OTHER)
     custodian_data = CustodianCreate(
         registration_code=(registration_code or None),
         name=name,
@@ -945,11 +957,13 @@ def form_edit_custodian(request: Request, custodian_id: int, error: Optional[str
     custodian = CustodianService.get_by_id(db, custodian_id)
     if not custodian:
         raise HTTPException(status_code=404, detail="Colaborador não encontrado")
+    # Feature 012: mesma lista oficial do cadastro (derivada de locations.department).
     return templates.TemplateResponse(
         request=request,
         name="custodians/form.html",
         context={
             "custodian": custodian,
+            "departments": DepartmentService.list_official(db),
             "error": error or "",
             "success": success or "",
             "active_tab": "custodians"
@@ -966,6 +980,7 @@ def update_custodian_form(
     cpf: Optional[str] = Form(None),
     role: str = Form(...),
     department: str = Form(...),
+    department_source: Optional[str] = Form(None),
     registration_code: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
@@ -989,6 +1004,14 @@ def update_custodian_form(
         candidate = (registration_code or "").strip()
         if candidate and candidate != before_c.registration_code:
             new_code = candidate
+    # Feature 012: validação oficial apenas para valor DIFERENTE do vigente —
+    # a submissão idêntica ao valor atual (mesmo fora da lista) é aceita sem
+    # re-normalização (FR-014; remediação I2 opção b).
+    if department_source == "official" and (department or "").strip() != (before_c.department or "").strip():
+        try:
+            department = DepartmentService.ensure_official(db, department)
+        except ValueError as err:
+            return RedirectResponse(url=f"/custodians/{custodian_id}/edit?error={quote(str(err))}", status_code=status.HTTP_303_SEE_OTHER)
     update_data = CustodianUpdate(
         registration_code=new_code,
         name=name,

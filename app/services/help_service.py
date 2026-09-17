@@ -659,14 +659,14 @@ ARTICLES: List[Dict] = [
         "icon": "bi-people",
         "audience": "user",
         "summary": "Cadastro de colaboradores, importação em massa e consulta de bens sob custódia.",
-        "keywords": ["colaborador", "funcionário", "custodiante", "responsável", "matrícula", "cadastrar", "provisória", "PROV"],
+        "keywords": ["colaborador", "funcionário", "custodiante", "responsável", "matrícula", "cadastrar", "provisória", "PROV", "departamento", "setor"],
         "sections": [
             {
                 "heading": "Passo a passo",
                 "steps": [
                     "Acesse Colaboradores e clique em Cadastrar Colaborador.",
                     "Informe nome, e-mail e CPF. A matrícula é opcional (veja abaixo).",
-                    "Informe o cargo e o departamento/setor.",
+                    "Informe o cargo e selecione o departamento/setor no campo de seleção (lista oficial, derivada dos locais cadastrados).",
                     "Clique em Salvar.",
                 ],
             },
@@ -690,6 +690,16 @@ ARTICLES: List[Dict] = [
                     "termos e o histórico ficam vinculados a ele, sem quebrar nada); os registros antigos "
                     "mantêm a identificação da época, e as emissões futuras já exibem a matrícula oficial. "
                     "Colaboradores que já possuem matrícula oficial continuam com ela inalterável pela interface."
+                ),
+            },
+            {
+                "heading": "Departamento/Setor: campo de seleção da lista oficial",
+                "body": (
+                    "O campo \"Departamento / Setor\" não aceita mais texto livre: é um dropdown que apresenta "
+                    "a lista oficial de setores, derivada dos departamentos dos locais cadastrados. Novos valores "
+                    "oficiais surgem ao cadastrar ou editar locais; não é possível criar um setor digitando um "
+                    "nome novo no campo. A obrigatoriedade do campo é validada no servidor ao salvar. Na edição, "
+                    "o setor atual já vem selecionado, e salvar sem alterá-lo é sempre permitido."
                 ),
             },
             {

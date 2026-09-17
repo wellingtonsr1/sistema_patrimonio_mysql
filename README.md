@@ -45,6 +45,7 @@
 ### 4. 👥 Gestão de Colaboradores & Departamentos
 - Cadastro de colaboradores com visão instantânea de todos os equipamentos sob a custódia de cada um.
 - **Identificador provisório de colaborador**: a matrícula é opcional no cadastro — sem ela, o sistema gera automaticamente um identificador sequencial `PROV-000001`, exibido com a marcação "provisória" na listagem, nos detalhes e nos termos. O colaborador provisório participa normalmente das operações patrimoniais; a matrícula oficial pode ser informada depois na edição (mesmo colaborador, vínculos e histórico preservados — registros antigos mantêm a identificação da época). Colaboradores com matrícula oficial continuam com ela inalterável pela interface.
+- **Departamento/Setor como campo de seleção (dropdown)**: no cadastro e na edição de colaborador, o campo "Departamento / Setor" é um dropdown com a lista oficial — derivada ao vivo dos departamentos dos **locais** cadastrados (novos valores oficiais surgem do fluxo de locais). Não é possível criar um setor digitando um nome novo; a obrigatoriedade é validada no servidor.
 - **Pesquisa na listagem de colaboradores**: um único termo é comparado com matrícula, nome, cargo, departamento e e-mail (correspondência parcial, sem diferenciar maiúsculas de minúsculas).
 - Cadastro de unidades físicas, prédios, andares, salas e departamentos.
 - **Pesquisa de locais** pelo Nome / Identificação e **exportação CSV de locais** (`locais.csv`) pelo botão Exportar CSV do cabeçalho da tela.
