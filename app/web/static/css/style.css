@@ -511,6 +511,12 @@ border-info { border-color: var(--color-info) !important; }
 .badge-soft-red { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
 .badge-soft-gray { background: var(--gray-bg); color: var(--gray); border: 1px solid var(--gray-border); }
 
+/* Feature 011 — opções de "Resultado da conferência": borda com contraste nos
+   dois temas via token existente (--c-border: #C8C2C0 claro / #3A3335 escuro).
+   Não altera a utilitária .border global do Bootstrap; o !important é necessário
+   porque a própria utilitária é !important (style.css carrega depois dela). */
+.result-option { border: 1px solid var(--c-border) !important; }
+
 /* ==========================================================================
    BUTTONS
    ========================================================================== */
