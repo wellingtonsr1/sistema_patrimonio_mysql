@@ -515,7 +515,7 @@ ARTICLES: List[Dict] = [
                 "heading": "Passo a passo",
                 "steps": [
                     "Na lista de Manutenções, localize a OS em andamento.",
-                    "Clique em Concluir.",
+                    "Clique em Finalizar Manutenção.",
                     "Descreva a solução aplicada e os custos finais.",
                     "Confirme a finalização.",
                 ],
@@ -525,6 +525,117 @@ ARTICLES: List[Dict] = [
                 "body": (
                     "A OS é marcada como concluída, o status do equipamento retorna para Disponível e o "
                     "retorno da manutenção é registrado no histórico do bem."
+                ),
+            },
+        ],
+    },
+
+    # ------------------------------------------------------------------ #
+    # INVENTÁRIOS
+    # ------------------------------------------------------------------ #
+    {
+        "id": "inventarios-overview",
+        "title": "Inventário patrimonial (visão geral)",
+        "module": "Inventários",
+        "icon": "bi-clipboard-check",
+        "audience": "user",
+        "summary": "O que é o inventário, ciclo de vida, resultados possíveis e o que ele nunca altera.",
+        "keywords": ["inventário", "inventários", "conferência", "conferir", "acervo", "ata", "ciclo de vida"],
+        "sections": [
+            {
+                "heading": "O que é",
+                "body": (
+                    "O inventário é a conferência física do acervo. No menu Inventários você cria um "
+                    "inventário com nome, escopo opcional por local e/ou setor/departamento (vazio = "
+                    "todo o acervo) e observações. Ao criar, o sistema gera a lista de bens esperados "
+                    "(foto do cadastro naquele momento, imune a edições posteriores)."
+                ),
+            },
+            {
+                "heading": "Ciclo de vida",
+                "steps": [
+                    "PLANEJADO — criado, lista de bens esperados gerada; conferências ainda não são aceitas.",
+                    "EM_ANDAMENTO — conferência liberada após Iniciar Inventário; itens podem ser conferidos e re-conferidos.",
+                    "ENCERRADO — Encerrar Inventário exige todos os bens esperados conferidos; os itens ficam travados.",
+                ],
+            },
+            {
+                "heading": "Resultados possíveis de um item",
+                "steps": [
+                    "PENDENTE — ainda sem conferência.",
+                    "ENCONTRADO — bem conferido no local previsto.",
+                    "LOCAL_DIFERENTE — bem encontrado em outro local (registra-se onde foi encontrado).",
+                    "NAO_ENCONTRADO — bem não localizado na conferência.",
+                    "SEM_IDENTIFICACAO — item sem identificação legível (ex.: sem etiqueta/tombamento).",
+                ],
+            },
+            {
+                "heading": "O que o inventário NÃO faz",
+                "note": (
+                    "O inventário nunca altera o cadastro: bens, movimentações e locais não são "
+                    "modificados pela conferência. Divergências (local diferente, não encontrado) ficam "
+                    "apenas registradas para tratamento pelos fluxos próprios (movimentações, manutenção)."
+                ),
+            },
+            {
+                "heading": "Permissões",
+                "note": (
+                    "Visualizar, criar, conferir e encerrar inventários são permissões separadas "
+                    "(inventario.visualizar, inventario.criar, inventario.conferir, inventario.encerrar). "
+                    "Se um botão não aparece, seu perfil não possui a permissão correspondente."
+                ),
+            },
+        ],
+    },
+    {
+        "id": "conferir-inventario",
+        "title": "Como conferir bens em um inventário",
+        "module": "Inventários",
+        "icon": "bi-ui-checks",
+        "audience": "user",
+        "summary": "Conferência em campo por bem, re-conferência com confirmação, bens não previstos e ata.",
+        "keywords": ["conferir", "conferência", "re-conferência", "não previsto", "ata", "qrcode", "qr", "buscar"],
+        "sections": [
+            {
+                "heading": "Iniciar a conferência",
+                "steps": [
+                    "No inventário (status PLANEJADO), clique em Iniciar Inventário — isso libera as conferências.",
+                    "Na página do inventário, use o campo Buscar para localizar um bem da lista.",
+                ],
+            },
+            {
+                "heading": "Conferir um bem",
+                "steps": [
+                    "Abra a conferência pelo item (ou pela ficha do bem, via QR Code/busca).",
+                    "Escolha o Resultado da conferência: Encontrado, Local diferente, Não encontrado ou Sem identificação.",
+                    "Se for local diferente, informe o Local onde foi encontrado.",
+                    "Escreva uma Observação, se necessário (opcional).",
+                    "Clique em Registrar conferência.",
+                ],
+            },
+            {
+                "heading": "Re-conferência de item já conferido",
+                "body": (
+                    "Enquanto o inventário estiver EM_ANDAMENTO, um item já conferido pode ser conferido "
+                    "novamente: a página mostra quem conferiu antes, quando e o resultado anterior, e pede "
+                    "confirmação antes de substituir o registro. Itens PENDENTE registram diretamente; após "
+                    "o encerramento, nenhum item aceita nova conferência."
+                ),
+            },
+            {
+                "heading": "Bem não previsto na lista",
+                "steps": [
+                    "Na página do inventário, use Registrar como não previsto.",
+                    "Informe a identificação do bem encontrado em campo (ex.: tombamento lido na etiqueta).",
+                    "O item entra na lista como não previsto, com o resultado registrado.",
+                ],
+            },
+            {
+                "heading": "Encerrar e ata",
+                "body": (
+                    "Encerrar Inventário exige que todos os bens esperados estejam conferidos; depois disso "
+                    "os itens ficam travados. A ata comprobatória do inventário pode ser exportada (CSV, "
+                    "Excel e PDF) pela página do inventário."
                 ),
             },
         ],
@@ -672,14 +783,20 @@ ARTICLES: List[Dict] = [
         "module": "Relatórios & Exportações",
         "icon": "bi-download",
         "audience": "user",
-        "summary": "Baixar inventário, movimentações e colaboradores em arquivo CSV.",
-        "keywords": ["exportar", "csv", "baixar", "download", "planilha", "dados"],
+        "summary": "Baixar inventário, movimentações, colaboradores e locais em arquivo CSV.",
+        "keywords": ["exportar", "csv", "baixar", "download", "planilha", "dados", "locais", "excel"],
         "sections": [
             {
                 "heading": "Onde exportar",
                 "body": (
                     "Os relatórios Relatório Contábil-Físico, Trilha de Auditoria e Relação de Colaboradores "
-                    "possuem o botão Baixar CSV. Os arquivos são compatíveis com planilhas eletrônicas."
+                    "possuem o botão Baixar CSV.\n\n"
+                    "Além dos relatórios, as telas Colaboradores, Dashboard (Relatório Contábil-Físico), "
+                    "Movimentações e Locais possuem o botão Exportar CSV, que baixa o arquivo direto do "
+                    "cabeçalho da tela — incluindo a exportação de todos os locais (arquivo locais.csv, "
+                    "com os dados cadastrais da tabela, sem as colunas de interface). Os arquivos são "
+                    "compatíveis com planilhas eletrônicas (separador ; e codificação UTF-8 com BOM, "
+                    "abrindo direto no Excel)."
                 ),
             },
             {
@@ -879,7 +996,8 @@ FAQ: List[Dict] = [
         "question": "Como exportar os dados?",
         "answer": (
             "Os relatórios possuem o botão Baixar CSV, que gera um arquivo compatível com planilhas. "
-            "A exportação exige permissão específica no seu perfil."
+            "As telas Colaboradores, Dashboard, Movimentações e Locais também têm o botão Exportar CSV, "
+            "que baixa o arquivo direto. A exportação exige permissão específica no seu perfil."
         ),
     },
     {
@@ -912,6 +1030,15 @@ FAQ: List[Dict] = [
             "O menu e os botões são exibidos conforme o seu perfil de permissões. Se uma ação não "
             "aparece, seu perfil não possui a permissão correspondente. Solicite a atribuição do "
             "perfil adequado ao administrador."
+        ),
+    },
+    {
+        "question": "Como o inventário é concluído?",
+        "answer": (
+            "Após conferir todos os bens esperados, use Encerrar Inventário: os itens ficam travados e "
+            "a ata comprobatória pode ser exportada em CSV, Excel e PDF. Divergências (local diferente ou "
+            "bem não encontrado) devem ser tratadas depois pelos fluxos de movimentação e manutenção — "
+            "o inventário não altera o cadastro."
         ),
     },
     {
@@ -960,6 +1087,14 @@ CATEGORIES: List[Dict] = [
         "description": "Ordens de serviço e reparos de equipamentos.",
         "audience": "user",
         "article_ids": ["abrir-ordem-servico", "finalizar-manutencao"],
+    },
+    {
+        "key": "inventarios",
+        "title": "Inventários",
+        "icon": "bi-clipboard-check",
+        "description": "Conferência física do acervo, com ata comprobatória.",
+        "audience": "user",
+        "article_ids": ["inventarios-overview", "conferir-inventario"],
     },
     {
         "key": "colaboradores",

@@ -2,7 +2,7 @@
 
 **SisPatrimônio Pro** é um sistema completo e moderno de **Gestão Patrimonial (Controle de Ativo Fixo e Equipamentos)** desenvolvido em **Python** com **FastAPI**, **SQLAlchemy** e **Bootstrap 5**, focado no **rastreamento auditável e gravação detalhada do fluxo de movimentação de cada equipamento**.
 
-**Status:** Em desenvolvimento ativo · Suite com **154 testes automatizados** (`pytest`; no estado atual, 153 passando e 1 falhando — detalhes na seção de testes).
+**Status:** Em desenvolvimento ativo · Suite com **282 testes automatizados** (`pytest`; no estado atual, 281 passando e 1 falhando — detalhes na seção de testes; execute `pytest -q` para ver o número atual).
 
 ---
 
@@ -24,6 +24,7 @@
 
 ### 2. 💻 Gestão de Bens & Equipamentos
 - Tombamento / Tag única com geração dinâmica de etiquetas QR Code.
+- **Etiquetas patrimoniais em lote** (tela Etiquetas, `/assets/labels`): seleção de bens e folha de impressão A4 com QR Code.
 - Ficha técnica completa (marca, modelo, número de série, especificações).
 - Gestão fiscal e financeira (Nota Fiscal, fornecedor, garantia, data e valor de compra).
 - **Cálculo de Depreciação Linear Contábil** automática (20% ao ano sobre o valor de aquisição).
@@ -43,7 +44,9 @@
 
 ### 4. 👥 Gestão de Colaboradores & Departamentos
 - Cadastro de colaboradores com visão instantânea de todos os equipamentos sob a custódia de cada um.
+- **Pesquisa na listagem de colaboradores**: um único termo é comparado com matrícula, nome, cargo, departamento e e-mail (correspondência parcial, sem diferenciar maiúsculas de minúsculas).
 - Cadastro de unidades físicas, prédios, andares, salas e departamentos.
+- **Pesquisa de locais** pelo Nome / Identificação e **exportação CSV de locais** (`locais.csv`) pelo botão Exportar CSV do cabeçalho da tela.
 - **Importação em massa de locais via CSV** (obrigatórios: nome, filial e departamento; opcionais: prédio, andar, sala, gestor e descrição) com pré-visualização, alias de colunas e detecção de duplicatas.
 
 ### 5. 🔧 Gestão de Manutenções
@@ -53,7 +56,7 @@
 
 ### 6. 📊 Dashboard, Relatórios & Exportações
 - Dashboard com KPIs operacionais, gráficos de pizza e barras (Chart.js).
-- Exportação de inventário, movimentações e colaboradores em **CSV** (UTF-8 com BOM, abre direto no Excel), **Excel (.xlsx via OpenPyXL)** e **PDF (ReportLab)** — incluindo a ata comprobatória de cada inventário.
+- Exportação de inventário, movimentações, colaboradores e **locais** em **CSV** (UTF-8 com BOM, abre direto no Excel) e dos relatórios também em **Excel (.xlsx via OpenPyXL)** e **PDF (ReportLab)** — incluindo a ata comprobatória de cada inventário. Além dos relatórios, as telas Colaboradores, Dashboard, Movimentações e Locais possuem o botão **Exportar CSV** para download direto.
 - Documentação interativa da **API REST via Swagger UI** (`/docs`).
 
 ### 7. 🧭 Central de Ajuda Integrada
@@ -111,7 +114,7 @@ Interface Web (Jinja2)          API REST (/api/v1)
 ## 🚀 Como Executar o Sistema
 
 ### Pré-requisitos
-- Python 3.10 ou superior instalado.
+- Python 3.10 ou superior instalado e um banco **MariaDB/MySQL** acessível (guia completo: seção **Instalação em uma máquina nova** mais abaixo).
 
 ### 1. Instalar as dependências
 ```bash
@@ -131,10 +134,126 @@ python run.py
 ```
 
 Acesse no seu navegador — o endereço depende das variáveis `APP_HOST` e `APP_PORT`
-(padrões do projeto: `APP_HOST=127.0.0.1` e `APP_PORT=8000`; ajuste conforme o seu ambiente):
+(padrões definidos em `app/config.py` — configuráveis por `APP_HOST`/`APP_PORT` no `.env`; ajuste conforme o seu ambiente):
 - **Interface Web**: [http://localhost:8000](http://localhost:8000)
 - **API REST (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Health check**: [http://localhost:8000/health](http://localhost:8000/health)
+
+---
+
+## 🖥️ Instalação em uma máquina nova
+
+Guia completo para instalar o sistema do zero em um servidor novo, usando apenas este documento. Os comandos de exemplo usam Linux; as diferenças do Windows são indicadas onde existem. Todos os valores de exemplo (usuário, senha, banco) são **fictícios** — use credenciais próprias e mantenha o `.env` fora do versionamento.
+
+### 1. Pré-requisitos
+
+- Linux ou Windows com acesso ao servidor onde ficará o banco.
+- **Python 3.10 ou superior** (`python3 --version`).
+- **Git** (para obter o projeto).
+- **MariaDB ou MySQL** instalado e em execução (pode ser na própria máquina).
+
+### 2. Obter o projeto
+
+```bash
+git clone <url-do-repositorio>
+cd sistema_patrimonio_mysql
+```
+
+### 3. Ambiente virtual Python
+
+Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Windows (PowerShell):
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+### 4. Dependências
+
+```bash
+pip install -r requirements.txt
+```
+
+### 5. Instalar e iniciar o MariaDB
+
+- **Linux (Debian/Ubuntu)**: `sudo apt install mariadb-server` e `sudo systemctl enable --now mariadb`.
+- **Windows**: instale pelo instalador oficial do MariaDB (ou MySQL) e deixe o serviço iniciado.
+
+### 6. Criar banco, usuário e permissões
+
+Conecte ao MariaDB como root/administrador e execute (valores de exemplo):
+
+```sql
+CREATE DATABASE sispatrimonio CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'sispat'@'%' IDENTIFIED BY 'SenhaForte@123';
+GRANT ALL PRIVILEGES ON sispatrimonio.* TO 'sispat'@'%';
+FLUSH PRIVILEGES;
+```
+
+### 7. Criar o arquivo `.env`
+
+Não existe arquivo de exemplo no repositório: crie o `.env` na raiz do projeto. A variável **obrigatória** é a `DATABASE_URL` — sem ela a aplicação não inicia (não há fallback para SQLite na aplicação; SQLite é usado apenas pela suíte de testes):
+
+```env
+DATABASE_URL=mariadb+pymysql://sispat:SenhaForte@123@localhost:3306/sispatrimonio
+
+# Opcionais:
+# APP_HOST=0.0.0.0        # interface de escuta (padrão atual do código: ver app/config.py)
+# APP_PORT=8000
+# AUTH_ADMIN_USERNAME=admin
+# AUTH_ADMIN_PASSWORD=SenhaForte@123   # use SOMENTE no primeiro start (passo 9)
+
+# Para integrar o Active Directory, veja a seção de AD (AD_SERVER, AD_BASE_DN,
+# AD_BIND_USER, AD_BIND_PASSWORD etc.) — o bind pode ser feito também pela tela.
+```
+
+### 8. Estrutura do banco
+
+Nada a fazer manualmente: ao iniciar, o `run.py` executa o `init_db()`, que cria as tabelas e aplica a migração leve e idempotente de colunas novas. **Não existe comando de migração manual** — se alguém indicar um, está desatualizado.
+
+### 9. Primeiro administrador (3 caminhos)
+
+- **Opção A — variável de ambiente**: defina `AUTH_ADMIN_USERNAME` e `AUTH_ADMIN_PASSWORD` no `.env`/shell apenas para o primeiro start; o admin é criado automaticamente.
+- **Opção B — tela de Primeiro Acesso**: com o banco **sem usuários** e sem `AUTH_ADMIN_PASSWORD`, a tela de login exibe o link **"Primeiro acesso"**, que leva a `/setup` para criar o admin pelo navegador.
+- **Opção C — CLI**:
+
+```bash
+python -m app.cli create-user --username admin --password 'SenhaForte@123' --name "Administrador" --admin
+```
+
+### 10. Iniciar e acessar
+
+```bash
+python run.py
+```
+
+O servidor escuta na interface/porta definidas por `APP_HOST`/`APP_PORT` (padrões atuais em `app/config.py`; ajuste no `.env` para o IP da sua máquina — `0.0.0.0` escuta em todas as interfaces). Com um navegador, acesse `http://<host>:<porta>/`:
+
+- **Interface Web**: página de login do sistema.
+- **API REST (Swagger)**: `http://<host>:<porta>/docs`.
+- **Health check**: `http://<host>:<porta>/health`.
+
+### 11. Validação da instalação
+
+- **Health check**: `curl http://localhost:8000/health` (rota pública) deve responder com status saudável.
+- **Acesso web**: login com o administrador criado no passo 9.
+- **Suíte de testes** (opcional, não exige o MariaDB — usa SQLite em memória): `pytest`.
+
+**Problemas comuns**:
+
+| Sintoma | Causa provável |
+|---|---|
+| A aplicação não inicia citando `DATABASE_URL` | Variável ausente no `.env` (ou `.env` fora da raiz do projeto) |
+| `Can't connect to MySQL server` | MariaDB parado, host/porta errados ou credenciais inválidas na `DATABASE_URL` |
+| Não acessa de outra máquina | `APP_HOST` restrito a uma interface — use o IP da máquina ou `0.0.0.0` |
+| Porta ocupada | Ajuste `APP_PORT` no `.env` |
 
 ---
 
@@ -436,6 +555,8 @@ Todas as permissões seguem o padrão `modulo.acao`:
 | Inventário | `inventario.visualizar`, `inventario.criar`, `inventario.conferir`, `inventario.encerrar` |
 | Auditoria | `auditoria.visualizar` |
 
+> `movimentacao.cancelar` consta no catálogo, porém é **reservada**: não há tela ou endpoint que a utilize atualmente.
+
 ### Endpoints protegidos (API)
 
 | Método | Endpoint | Permissão |
@@ -454,7 +575,7 @@ Todas as permissões seguem o padrão `modulo.acao`:
 | `GET` | `/api/v1/reports/dashboard-stats` | `relatorios.visualizar` |
 | `GET` | `/api/v1/reports/inventory/{csv,excel,pdf}` | `relatorios.exportar` |
 | `GET` | `/api/v1/reports/inventarios/{id}/{csv,excel,pdf}` | `inventario.visualizar` + `relatorios.exportar` |
-| `GET` | `/api/v1/reports/movements/csv` e `/api/v1/reports/custodians/csv` | `relatorios.exportar` |
+| `GET` | `/api/v1/reports/movements/csv`, `/api/v1/reports/custodians/csv` e `/api/v1/reports/locations/csv` | `relatorios.exportar` |
 | `GET` | `/api/v1/auth/me`, login/logout | Autenticado (público) |
 
 **Status HTTP:** `401` não autenticado · `403` autenticado sem permissão ·
@@ -612,7 +733,7 @@ botão ❓ no cabeçalho ou pelo item "Ajuda e Manual" no menu.
 
 - **Pesquisa** no manual (artigos e FAQ por texto completo).
 - **Artigos** por módulo (primeiros passos, patrimônio, movimentação, manutenção,
-  colaboradores/locais, relatórios, administração) com passos a passo.
+  inventários, colaboradores/locais, relatórios, administração) com passos a passo.
 - **FAQ** (perguntas frequentes) em acordeão.
 - **Ajuda contextual**: tooltips em campos de formulários e botões
   "Como faço isso?" em telas-chave.
@@ -641,7 +762,7 @@ Para rodar a suite de testes unitários e de integração:
 pytest -v
 ```
 
-A suite tem **154 testes** e cobre: **controle de acesso** (`tests/test_rbac.py`):
+A suite tem **282 testes** e cobre: **controle de acesso** (`tests/test_rbac.py`):
 autorização por perfil em APIs e páginas, deny by default, menu dinâmico,
 bloqueio/desbloqueio de usuário, lockout por tentativas, auditoria,
 proteção do último administrador e tentativas de escalação de privilégios;
@@ -652,7 +773,7 @@ patrimonial** (`tests/test_inventario.py` — fluxo completo via web, RBAC e
 exportações CSV/Excel/PDF); movimentações, bens, importações (equipamentos,
 colaboradores e locais), navegação/menu, primeiro acesso e central de ajuda.
 
-> ⚠️ Estado atual: 153 testes passam e **1 falha**
+> ⚠️ Estado atual: 281 testes passam e **1 falha**
 > (`tests/test_rbac.py::test_lockout_after_failed_attempts`) — o teste ainda
 > espera bloqueio após **5** tentativas, enquanto o padrão de
 > `AUTH_MAX_FAILED_ATTEMPTS` em `app/config.py` passou a ser **10**.
