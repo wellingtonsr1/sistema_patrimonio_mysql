@@ -1,5 +1,5 @@
 1 - Implementar o reset de senha do admin ---> OK
-1.1 Atuzalizar "Ajuda/Manual" + docuemntação
+1.1 Atuzalizar "Ajuda/Manual" + docuemntação ---> OK
 
 2 - Na conferência do inventário: "Resultado da conferência: LOCAL DIFERENTE de: Situação da divergência: PENDENTE DE REGULARIZAÇÃO" ---> OK
 Depois poderia evoluir para:
