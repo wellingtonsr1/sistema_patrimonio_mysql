@@ -1615,3 +1615,87 @@ html[data-theme="light"] #select-all-page:not(:checked) {
   }
 
 }
+
+
+/* ==========================================================================
+   PRINT — RELATÓRIOS (feature 013): Trilha de Auditoria, Colaboradores e
+   Relatório Contábil-Físco.
+   Bloco 100% ADITIVO ancorado na classe de escopo .report-print (css-contract
+   C1–C10): nenhuma regra @media print existente é editada — as sobrecargas
+   valem APENAS dentro das páginas dos relatórios. Etiquetas (#labels-print-area,
+   .label-card) e Termo (.term-paper, .term-container) não casam com estes seletores.
+   Causas corrigidas: (A) tabela inquebrável empurrada para a página 2 → página
+   em branco (C3); (B) table-layout:fixed + truncate-2/nowrap truncando colunas
+   (C6–C8); (C) cabeçalho não repetido, linhas divididas e papel instável (C1, C4, C5).
+   ========================================================================== */
+@media print {
+
+  /* C1 — margens fixas; tamanho e ORIENTAÇÃO ficam selecionáveis no diálogo de
+     impressão (decisão do usuário 2026-09-17): A4 retrato como padrão do sistema,
+     paisagem liberada. O layout fluido (C3: width 100% + table-layout auto) se
+     adapta à orientação escolhida. */
+  @page {
+    margin: 10mm;
+  }
+
+  /* C2 — o card do relatório volta a poder atravessar páginas */
+  .report-print {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  /* C3 — CAUSA RAIZ: a tabela deixa de ser bloco inquebrável e as colunas
+     dimensionam por conteúdo (fim da página em branco e do espremimento) */
+  .report-print table {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    width: 100% !important;
+    table-layout: auto !important;
+  }
+
+  /* C4 — o cabeçalho das colunas repete em todas as páginas */
+  .report-print thead {
+    display: table-header-group !important;
+  }
+
+  /* C5 — linha indivisível: a quebra ocorre ENTRE linhas */
+  .report-print tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* C6 — contêiner de rolagem vira contêiner estático de largura integral */
+  .report-print .table-responsive {
+    overflow: visible !important;
+    min-width: 0 !important;
+  }
+
+  /* C7 — revoga text-nowrap e max-width inline; textos longos quebram */
+  .report-print td,
+  .report-print th {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    max-width: none !important;
+  }
+
+  /* C8 — clamp de tela desligado: motivo completo impresso */
+  .report-print .truncate-2 {
+    display: block !important;
+    overflow: visible !important;
+    -webkit-line-clamp: unset;
+  }
+
+  /* C9 — escala compacta para 8–10 colunas em A4 retrato */
+  .report-print,
+  .report-print table {
+    font-size: 8.5pt;
+  }
+
+  /* C10 — borda de contraste nos selos; cores semânticas preservadas
+     (fallback natural em impressão P&B; legível com tema escuro ativo) */
+  .report-print .badge,
+  .report-print .status-pill {
+    border: 1px solid #d1d5db;
+  }
+
+}
