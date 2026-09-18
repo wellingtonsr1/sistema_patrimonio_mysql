@@ -49,6 +49,36 @@ MYSQLDUMP_PATH = os.getenv("MYSQLDUMP_PATH") or None
 # (guarda da 018 contra o bug de posicionamento).
 BACKUP_IMPORT_TIMEOUT = float(os.getenv("BACKUP_IMPORT_TIMEOUT", "900"))
 
+# ============================================================================
+# BACKUP AUTOMÁTICO E RETENÇÃO (feature 020) — NÃO são segredos (apenas
+# parâmetros operacionais). Defaults seguros; validação de faixas no serviço
+# (backup_scheduler — valores fora de faixa caem no default com log).
+# NOTA: DEVE ficar APÓS load_dotenv() — as variáveis vivem no .env do servidor.
+# ============================================================================
+
+# Backup automático ativado? Default DESATIVADO (conservador — spec FR-005).
+BACKUP_AUTO_ENABLED = os.getenv("BACKUP_AUTO_ENABLED", "false").strip().lower() == "true"
+
+# Frequência do disparo: "daily" | "weekly" (default diário).
+BACKUP_AUTO_SCHEDULE = os.getenv("BACKUP_AUTO_SCHEDULE", "daily").strip().lower()
+
+# Horário do disparo em America/Recife, formato HH:MM (apresentação/operação
+# seguem a política da feature 004 — horário local ao operador, UTC na máquina).
+BACKUP_AUTO_TIME = os.getenv("BACKUP_AUTO_TIME", "02:00").strip()
+
+# Dia da semana para schedule "weekly": 0=domingo .. 6=sábado (default domingo).
+BACKUP_AUTO_WEEKDAY = int(os.getenv("BACKUP_AUTO_WEEKDAY", "0"))
+
+# Política de retenção GFS (valores iniciais do briefing §21 — configuráveis;
+# NÃO alteram a política em si, que vive no serviço).
+BACKUP_RETENTION_DAILY_DAYS = int(os.getenv("BACKUP_RETENTION_DAILY_DAYS", "30"))
+BACKUP_RETENTION_WEEKLY_WEEKS = int(os.getenv("BACKUP_RETENTION_WEEKLY_WEEKS", "12"))
+BACKUP_RETENTION_MONTHLY_MONTHS = int(os.getenv("BACKUP_RETENTION_MONTHLY_MONTHS", "12"))
+
+# Pré-restauração: 0 = preservar TODOS (default conservador — spec FR-025);
+# N > 0 = preservar apenas os N mais recentes.
+BACKUP_RETENTION_KEEP_PRE_RESTORE = int(os.getenv("BACKUP_RETENTION_KEEP_PRE_RESTORE", "0"))
+
 # Configurações da Aplicação
 APP_NAME = "SisPatrimônio Pro"
 APP_DESCRIPTION = "Sistema Integrado de Gestão Patrimonial e Fluxo de Movimentação de Equipamentos"

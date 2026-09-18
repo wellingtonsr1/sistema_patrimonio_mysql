@@ -324,7 +324,15 @@ def test_cannot_block_self(client):
 # LOCKOUT POR TENTATIVAS EXCESSIVAS
 # ============================================================================
 
-def test_lockout_after_failed_attempts(db_session, unauth_client):
+def test_lockout_after_failed_attempts(db_session, unauth_client, monkeypatch):
+    """Após atingir o limite configurado de falhas, a conta bloqueia (423).
+
+    Hermeticidade: o limite é fixado em 5 via monkeypatch — o teste não depende
+    do default do ambiente (AUTH_MAX_FAILED_ATTEMPTS pode ser 5 ou 10).
+    """
+    from app.services import auth_service
+
+    monkeypatch.setattr(auth_service, "AUTH_MAX_FAILED_ATTEMPTS", 5)
     _make_user(db_session, "alvo", role_names=["Consulta"])
 
     # 5 tentativas erradas → conta bloqueada

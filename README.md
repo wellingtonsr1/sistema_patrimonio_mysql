@@ -815,7 +815,42 @@ Usuários com a permissão `backup.gerenciar` (concedida ao perfil Administrador
 - Backups do formato anterior (`.sql`, sem checksum) continuam listados e baixáveis (Integridade "—");
 - Cada operação (geração, falha e download) é registrada na trilha de auditoria — a geração como `Backup Gerado`/`Backup Falhou`; diagnóstico técnico no log rotativo do sistema, sem credenciais;
 - **Requisito do servidor (feature 018)**: o utilitário nativo de dump (`mysqldump`) deve estar no PATH do processo — ou ter seu caminho indicado na variável `MYSQLDUMP_PATH` do `.env` (ex.: `MYSQLDUMP_PATH=C:\xampp\mysql\bin\mysqldump.exe` no Windows/XAMPP). Sem isso, a geração falha com a mensagem "utilitário não foi encontrado" e o diagnóstico completo vai ao log técnico (etapa, código de retorno e saída de erro sanitizada — nunca credenciais).
-Limitações: o backup é **manual** (sem agendamento, sem política de retenção) e cobre o banco de dados; a **restauração** executada pela interface está descrita na próxima seção (feature 017, com correções da feature 019).
+### Backup automático e política de retenção (feature 020)
+
+O backup automático **reutiliza o mesmo mecanismo do backup manual** (mesmo dump, mesma compressão, mesma validação, mesmo diretório e formato de arquivo) — é apenas uma nova forma de disparo. A tela **Administração → Backups** passa a exibir o card "Backup Automático" (estado, horário configurado, próxima execução, último resultado) e a coluna **Tipo** na listagem (MANUAL / AUTOMÁTICO / PRÉ-RESTAURAÇÃO / — para arquivos legados).
+
+**Configuração via `.env` (todas opcionais; defaults conservadores):**
+
+| Variável | Default | Descrição |
+|---|---|---|
+| `BACKUP_AUTO_ENABLED` | `false` | Ativa (**`true`**) ou desativa o disparo automático — o sistema nasce **desativado**; |
+| `BACKUP_AUTO_SCHEDULE` | `daily` | Frequência: `daily` ou `weekly`; |
+| `BACKUP_AUTO_TIME` | `02:00` | Horário do disparo no fuso **America/Recife** (HH:MM); |
+| `BACKUP_AUTO_WEEKDAY` | `0` | Dia da semana para `weekly` (0=domingo … 6=sábado); |
+| `BACKUP_RETENTION_DAILY_DAYS` | `30` | Dias da janela de retenção diária; |
+| `BACKUP_RETENTION_WEEKLY_WEEKS` | `12` | Semanas da retenção semanal (âncora: automático mais recente de cada semana ISO); |
+| `BACKUP_RETENTION_MONTHLY_MONTHS` | `12` | Meses da retenção mensal (âncora: automático mais recente de cada mês); |
+| `BACKUP_RETENTION_KEEP_PRE_RESTORE` | `0` | 0 = preserva **todos** os backups pré-restauração; N>0 = preserva apenas os N mais recentes. |
+
+Valores inválidos não derrubam o sistema: caem no default seguro com registro no log técnico.
+
+**Comportamento:**
+
+- O agendador roda em uma **thread interna do próprio processo** (sem Celery/Redis/APScheduler — nada novo para instalar ou operar); a cada 30 s verifica se chegou o horário; em `weekly`, dispara no `BACKUP_AUTO_WEEKDAY` configurado;
+- **Após reinicialização** (do servidor, da aplicação ou do processo), se o horário do ciclo corrente já passou e **nenhum backup automático bem-sucedido existe** no ciclo corrente (diário = dia calendário local; semanal = semana iniciando 00:00 local no dia configurado), um **catch-up único e determinístico** executa ~60 s após o start;
+- **Sem execução simultânea**: um disparo enquanto outro automático está em andamento é **descartado** (registrado no log); durante uma **restauração**, o disparo é **adiado** para o próximo ciclo;
+- Um backup automático só é considerado concluído quando o arquivo existe, tem conteúdo e valida a integridade; falhas registram diagnóstico técnico no log (etapa, exit code, stderr sanitizado — **nunca credenciais**) e evento de auditoria `BACKUP_AUTOMATICO_FALHA`;
+- Os metadados (tipo, status, checksum, remoção pela retenção) ficam na tabela nova `backup_records` (criada automaticamente; **nenhum arquivo ou formato existente é alterado**) — o restore existente funciona igualmente com backups manuais e automáticos.
+
+**Política de retenção (executada após cada ciclo automático):**
+
+- Atua **somente sobre backups automáticos** com sucesso, fora da janela diária, com integridade OK — os **backups manuais e pré-restauração são preservados por padrão** (pré-restauração só com `BACKUP_RETENTION_KEEP_PRE_RESTORE` > 0, política explícita do operador);
+- Seleção determinística GFS (grandfather-father-son): preserva o automático mais recente de cada semana ISO e de cada mês dentro dos limites configurados;
+- **Nunca deixa o sistema sem backup válido**: se uma remoção deixaria 0 backups válidos no disco, o candidato é preservado com motivo `ULTIMO_BACKUP_VALIDO`;
+- Cada remoção marca o **registro histórico** (`removed_at`) — o histórico é preservado mesmo após a remoção física do arquivo (rastreabilidade);
+- Toda execução registra eventos de auditoria (`BACKUP_RETENCAO_EXECUTADA`, `BACKUP_REMOVIDO_RETENCAO`); falha parcial na remoção → resultado **PARCIAL**, nunca "concluída".
+
+Limitações anteriores (backup manual sem agendamento) ficam resolvidas por esta feature; a **restauração** executada pela interface está descrita na próxima seção (feature 017, com correções da feature 019).
 
 ### Restauração de backup pela interface (feature 017)
 

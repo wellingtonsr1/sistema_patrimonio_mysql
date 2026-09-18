@@ -94,9 +94,9 @@ sistema_patrimonio/
 │   │   ├── custodians_api.py  # Colaboradores (CRUD, bens sob custódia, import CSV)
 │   │   ├── locations_api.py   # Locais (CRUD)
 │   │   └── reports_api.py     # dashboard-stats + 3 exportações CSV
-│   ├── models/                # 16 modelos SQLAlchemy + enums.py (fonte de verdade das tabelas)
+│   ├── models/                # 17 modelos SQLAlchemy + enums.py (fonte de verdade das tabelas; 020: + backup_records)
 │   ├── schemas/               # Schemas Pydantic v2 (Create/Update/Read por entidade; user.py para /auth/me)
-│   ├── services/              # 17 módulos de regra de negócio (ver §8 e INVENTARIO_TECNICO.md)
+│   ├── services/              # 18 módulos de regra de negócio (ver §8 e INVENTARIO_TECNICO.md; 020: + backup_scheduler)
 │   └── web/
 │       ├── routes.py          # Páginas de negócio + login/logout + configuração Jinja2Templates (context processor _inject_current_user, função can())
 │       ├── admin_routes.py    # /admin/users*, /admin/roles*, /admin/audit, /profile/password, /admin/ad*
@@ -217,7 +217,7 @@ Observações factuais sobre a arquitetura:
 | Item | Valor |
 |---|---|
 | Banco | MariaDB/MySQL (configurável via `DATABASE_URL` em `app/config.py`) |
-| Backup/restauração | Utilitários nativos do SGBD via subprocesso; caminho do dump opcionalmente configurável por `MYSQLDUMP_PATH` em `app/config.py` (feature 018 — necessário no Windows/XAMPP quando o `mysqldump` não está no PATH do processo; fallback: busca no PATH do sistema). Falhas de dump/import registram diagnóstico técnico no log (etapa, exit code, stderr sanitizado — sem credenciais). **Feature 019**: o restore roda em worker thread com o pool de conexões drenado durante o import (elimina auto-deadlock de metadata lock do incidente de 2026-09-18 — ver `docs/AVISO_RESTORE_DEADLOCK.md`); deadline de relógio na importação via `BACKUP_IMPORT_TIMEOUT` (default 900 s) cobrindo o feed no stdin (o ponto onde o bloqueio real ocorreu); modo de manutenção em memória (`maintenance_mode` no `backup_service`) servido por middleware no `app/main.py` antes de qualquer acesso ao banco; rota `GET /admin/backups/restaurar/status` para polling |
+| Backup/restauração | Utilitários nativos do SGBD via subprocesso; caminho do dump opcionalmente configurável por `MYSQLDUMP_PATH` em `app/config.py` (feature 018 — necessário no Windows/XAMPP quando o `mysqldump` não está no PATH do processo; fallback: busca no PATH do sistema). Falhas de dump/import registram diagnóstico técnico no log (etapa, exit code, stderr sanitizado — sem credenciais). **Feature 019**: o restore roda em worker thread com o pool de conexões drenado durante o import (elimina auto-deadlock de metadata lock do incidente de 2026-09-18 — ver `docs/AVISO_RESTORE_DEADLOCK.md`); deadline de relógio na importação via `BACKUP_IMPORT_TIMEOUT` (default 900 s) cobrindo o feed no stdin (o ponto onde o bloqueio real ocorreu); modo de manutenção em memória (`maintenance_mode` no `backup_service`) servido por middleware no `app/main.py` antes de qualquer acesso ao banco; rota `GET /admin/backups/restaurar/status` para polling. **Feature 020**: backup automático reutiliza o MESMO `generate_backup` (novo parâmetro `backup_type` — MANUAL/AUTOMATICO/PRE_RESTAURACAO gravado na tabela nova `backup_records`, criada por `create_all`); agendador em thread interna do processo (`app/services/backup_scheduler.py`, iniciado no lifespan do `app/main.py`, tick 30 s, sem dependências novas); horário em America/Recife com conversões via `app/utils/time_utils`; catch-up único pós-restart quando o ciclo corrente não tem sucesso; guardas de concorrência (automático simultâneo descartado; durante restore, adiado); retenção GFS determinística pós-ciclo (somente AUTOMATICO elegível; manuais e pré-restauração preservados; guarda do último backup válido; histórico preservado via `removed_at`); 5 eventos de auditoria novos (`BACKUP_AUTOMATICO_SUCESSO/FALHA`, `BACKUP_RETENCAO_EXECUTADA`, `BACKUP_REMOVIDO_RETENCAO`, `BACKUP_RETENCAO_FALHA`); indicadores no card "Backup Automático" de `/admin/backups` |
 | Acesso | SQLAlchemy 2 (`create_engine` + `sessionmaker`); pool QueuePool para concorrência |
 | Sessão por request | `app.database.get_db` (dependency FastAPI) |
 | Migrações | `Base.metadata.create_all` + `_ensure_schema_migrations()` (ALTER TABLE condicional; sem Alembic) |
@@ -260,6 +260,7 @@ Patrimônio
 | `audit_logs` | `AuditLog` | índices em `timestamp`, `user_id`, `action`, `module`; `previous_data`/`new_data` JSON em TEXT |
 | `ad_settings` | `ADSettings` | singleton `id=1` |
 | `ad_group_roles` | `ADGroupRole` | `group_name` unique `uq_ad_group_role_group`; `priority` (menor vence); `is_active` |
+| `backup_records` | `BackupRecord` (feature 020) | `filename` unique (nome final projetado, regex `_BACKUP_NAME_RE`); `backup_type` MANUAL/AUTOMATICO/PRE_RESTAURACAO; `status` SUCCESS/FAILURE; `size_bytes`, `sha256`, `error_description`, `timestamp` (UTC) índice; `removed_at`/`removed_reason` (retenção — histórico preservado) |
 | `assets` | `Asset` | `tag` unique+índice; `serial_number` unique (nullable); FKs `locations.id`, `custodians.id` |
 | `movements` | `Movement` | `movement_uuid` unique; FK `assets.id` CASCADE; snapshots origem/destino; `term_code` índice |
 | `custodians` | `Custodian` | `registration_code` unique (matrícula); `email` unique |
@@ -1209,6 +1210,7 @@ app.cli ──► services/* (mesma camada de negócio das rotas)
 | Colaboradores | `app/services/custodian_service.py`; Locais: `location_service.py` |
 | Manutenção | `app/services/maintenance_service.py` |
 | Dashboard/Relatórios | `dashboard_service.py`, `report_service.py`, `app/api/reports_api.py` |
+| Backup automático/retenção | `app/services/backup_scheduler.py` (agendador + retenção GFS), `app/services/backup_service.py` (`generate_backup` com `backup_type`), `app/models/backup_record.py`, env vars em `app/config.py` (§6), tela `/admin/backups` |
 | Auditoria | `app/services/audit_service.py`, `app/web/admin_routes.py` (seção AUDITORIA) |
 | Ajuda/Manual | `app/services/help_service.py` (conteúdo) |
 | Etiquetas | `app/web/routes.py::assets_labels`, template `assets/labels.html`, CSS de impressão em `style.css` |

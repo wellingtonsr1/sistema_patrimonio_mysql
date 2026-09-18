@@ -81,6 +81,63 @@
     <span id="restore-indicator-text">Restauração em andamento — sistema em modo de manutenção.</span>
 </div>
 
+<!-- Feature 020: monitoramento do Backup Automático e da Retenção (contract §7) -->
+<div class="card p-3 mb-4">
+    <h6 class="fw-semibold mb-2"><i class="bi bi-clock-history me-1"></i>Backup Automático</h6>
+    <dl class="row mb-0">
+        <dt class="col-sm-4 col-lg-2 small">Agendamento</dt>
+        <dd class="col-sm-8 col-lg-4 small mb-1">
+            {% if auto_status and auto_status.enabled %}
+                <span class="badge bg-success-subtle text-success">Ativado</span>
+                {{ auto_status.schedule }} às {{ auto_status.time_local }}
+            {% else %}
+                <span class="badge bg-secondary-subtle text-secondary">Desativado</span>
+            {% endif %}
+        </dd>
+        <dt class="col-sm-4 col-lg-2 small">Próxima execução</dt>
+        <dd class="col-sm-8 col-lg-4 small mb-1">
+            {% if auto_status and auto_status.next_run_local %}{{ (auto_status.next_run_local | localtime).strftime('%d/%m/%Y %H:%M') }}{% else %}—{% endif %}
+        </dd>
+        {% if auto_status and auto_status.last_result %}
+        <dt class="col-sm-4 col-lg-2 small">Último disparo</dt>
+        <dd class="col-sm-8 col-lg-4 small mb-1">
+            {% if auto_status.last_result.ok %}<span class="badge bg-success-subtle text-success">SUCESSO</span>{% else %}<span class="badge bg-danger-subtle text-danger">FALHA</span>{% endif %}
+        </dd>
+        {% endif %}
+        <dt class="col-sm-4 col-lg-2 small">Último automático</dt>
+        <dd class="col-sm-8 col-lg-4 small mb-1">
+            {% if retention_summary and retention_summary.last_auto %}
+                {{ (retention_summary.last_auto.timestamp | localtime).strftime('%d/%m/%Y %H:%M') }}
+                {% if retention_summary.last_auto.status == 'SUCCESS' %}
+                <span class="badge bg-success-subtle text-success">SUCESSO</span>
+                {% else %}
+                <span class="badge bg-danger-subtle text-danger">FALHA</span>
+                {% endif %}
+            {% else %}—{% endif %}
+        </dd>
+        <dt class="col-sm-4 col-lg-2 small">Último backup válido</dt>
+        <dd class="col-sm-8 col-lg-4 small mb-1">
+            {% if retention_summary and retention_summary.last_valid %}{{ (retention_summary.last_valid.timestamp | localtime).strftime('%d/%m/%Y %H:%M') }} ({{ retention_summary.last_valid.backup_type | lower }}){% else %}—{% endif %}
+        </dd>
+        <dt class="col-sm-4 col-lg-2 small">Backups válidos</dt>
+        <dd class="col-sm-8 col-lg-4 small mb-1">{{ retention_summary.valid_count if retention_summary else 0 }}</dd>
+        <dt class="col-sm-4 col-lg-2 small">Última falha</dt>
+        <dd class="col-sm-8 col-lg-4 small mb-1">
+            {% if retention_summary and retention_summary.last_failure %}{{ (retention_summary.last_failure.timestamp | localtime).strftime('%d/%m/%Y %H:%M') }}{% if retention_summary.last_failure.error_description %} <span class="text-muted">— {{ retention_summary.last_failure.error_description }}</span>{% endif %}{% else %}<span class="text-muted">NENHUMA</span>{% endif %}
+        </dd>
+        <dt class="col-sm-4 col-lg-2 small">Última retenção</dt>
+        <dd class="col-sm-8 col-lg-4 small mb-1">
+            {% if retention_summary and retention_summary.last_retention %}
+                {{ (retention_summary.last_retention.timestamp | localtime).strftime('%d/%m/%Y %H:%M') }}
+                {% if retention_summary.last_retention.result %} — {{ retention_summary.last_retention.result }}{% endif %}
+                {% if retention_summary.last_retention.removidos is not none %} ({{ retention_summary.last_retention.removidos }} removido(s)){% endif %}
+            {% else %}<span class="text-muted">NENHUMA</span>{% endif %}
+        </dd>
+        <dt class="col-sm-4 col-lg-2 small">Removidos pela retenção</dt>
+        <dd class="col-sm-8 col-lg-4 small mb-0">{{ retention_summary.removed_count if retention_summary else 0 }}</dd>
+    </dl>
+</div>
+
 <!-- Gerar -->
 <div class="card p-3 mb-4">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -112,6 +169,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Arquivo</th>
+                    <th>Tipo</th>
                     <th>Data/Hora</th>
                     <th class="text-end">Tamanho</th>
                     <th class="text-center">Integridade</th>
@@ -123,6 +181,18 @@
                 {% for b in backups %}
                 <tr>
                     <td class="font-monospace small">{{ b.filename }}</td>
+                    {% set b_type = types_by_filename.get(b.filename) if types_by_filename else none %}
+                    <td class="small">
+                        {% if b_type == 'MANUAL' %}
+                        <span class="badge bg-primary-subtle text-primary">MANUAL</span>
+                        {% elif b_type == 'AUTOMATICO' %}
+                        <span class="badge bg-info-subtle text-info">AUTOMÁTICO</span>
+                        {% elif b_type == 'PRE_RESTAURACAO' %}
+                        <span class="badge bg-warning-subtle text-warning">PRÉ-RESTAURAÇÃO</span>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
                     <td class="small">{{ (b.timestamp | localtime).strftime('%d/%m/%Y %H:%M:%S') }}</td>
                     <td class="text-end small">{{ (b.size_bytes / 1024) | round(1) }} KB</td>
                     {% if b.integrity == 'OK' %}

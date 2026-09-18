@@ -31,7 +31,15 @@ async def lifespan(app: FastAPI):
         ensure_default_roles(db)
     finally:
         db.close()
-    yield
+    # Feature 020 (contract §8): inicia o agendador de backup automático/
+    # retenção (thread daemon, idempotente; inativo se BACKUP_AUTO_ENABLED
+    # for false — a thread apenas não dispara). Encerramento limpo no shutdown.
+    from app.services.backup_scheduler import start_scheduler, stop_scheduler
+    start_scheduler()
+    try:
+        yield
+    finally:
+        stop_scheduler()
 
 
 app = FastAPI(

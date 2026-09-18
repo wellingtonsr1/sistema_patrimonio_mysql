@@ -1064,8 +1064,8 @@ ARTICLES: List[Dict] = [
         "module": "Administração",
         "icon": "bi-archive",
         "audience": "admin",
-        "summary": "Gerar um backup manual do banco de dados, consultar os backups disponíveis e baixá-los.",
-        "keywords": ["backup", "cópia", "segurança", "dump", "restauração", "admin"],
+        "summary": "Gerar um backup manual do banco de dados, consultar os backups disponíveis e baixá-los; backup automático agendado com política de retenção.",
+        "keywords": ["backup", "cópia", "segurança", "dump", "restauração", "admin", "automático", "agendamento", "retenção", "limpeza"],
         "sections": [
             {
                 "heading": "O que o backup contém",
@@ -1083,14 +1083,31 @@ ARTICLES: List[Dict] = [
                 "steps": [
                     "Acesse Administração → Backups.",
                     "Clique em Gerar backup e aguarde a confirmação (pode levar alguns instantes).",
-                    "A listagem mostra os backups disponíveis, do mais recente para o mais antigo, com data/hora, tamanho, Integridade e SHA-256.",
+                    "A listagem mostra os backups disponíveis, do mais recente para o mais antigo, com Tipo (MANUAL, AUTOMÁTICO, PRÉ-RESTAURAÇÃO ou — para arquivos antigos), data/hora, tamanho, Integridade e SHA-256.",
                     "Use Baixar para salvar o arquivo em seu computador; o SHA-256 exibido deve bater com o sha256sum do arquivo baixado.",
                 ],
             },
             {
+                "heading": "Backup automático e retenção",
+                "body": (
+                    "O sistema pode gerar backups automaticamente (desativado por padrão; ativado "
+                    "apenas pelo administrador no arquivo .env do servidor, nas variáveis "
+                    "BACKUP_AUTO_*). O card Backup Automático na tela de Backups mostra se está "
+                    "ativado, o horário configurado (fuso America/Recife), a próxima execução e o "
+                    "resultado do último disparo. A política de retenção apaga, após cada ciclo "
+                    "automático, apenas backups AUTOMÁTICOS antigos e íntegros: são preservados os "
+                    "backups MANUAIS, os PRÉ-RESTAURAÇÃO e o backup válido mais recente de cada "
+                    "semana e de cada mês dentro das janelas configuradas; o sistema nunca se "
+                    "deixa sem nenhum backup válido. Quando um arquivo é removido pela retenção, o "
+                    "registro histórico permanece (coluna de data mantida na auditoria), indicando "
+                    "a remoção. Os indicadores do card (último automático, último backup válido, "
+                    "última falha, última retenção, quantidades) ajudam a acompanhar a saúde dos "
+                    "backups. Toda execução e remoção é registrada na trilha de auditoria."
+                ),
+            },
+            {
                 "heading": "Importante",
                 "note": (
-                    "O backup é manual (sem agendamento e sem exclusão automática) e cobre o banco de dados. "
                     "A geração é atômica: só aparecem na lista arquivos completos e verificados. Toda operação é "
                     "registrada na trilha de auditoria. A restauração de backups pela interface exige a permissão "
                     "backup.restaurar (veja o artigo Restauração de backup). A função de geração exige a "

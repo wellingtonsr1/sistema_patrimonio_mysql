@@ -34,6 +34,7 @@ import shutil
 from app.config import BACKUP_DIR, DATABASE_URL, MYSQLDUMP_PATH
 from app.database import SessionLocal
 from app.database import drain_engine
+from app.models.backup_record import BackupRecord
 from app.models.user import User
 from app.services.audit_service import (
     ACTION_BACKUP_CREATED,
@@ -64,6 +65,20 @@ _DUMP_TIMEOUT_SECONDS = 600
 # que impedia o Windows de resolver o executável).
 _DUMP_TOOL_NAME = "mysqldump"
 _IMPORT_TOOL_NAME = "mysql"
+
+# ============================================================================
+# FEATURE 020 — tipos de backup (metadados determinísticos; spec FR-013)
+# Vocabulário controlado persistido em backup_records.backup_type. Os rótulos
+# conceituais do briefing (BACKUP_*) não são valores de banco.
+# ============================================================================
+BACKUP_TYPE_MANUAL = "MANUAL"
+BACKUP_TYPE_AUTOMATICO = "AUTOMATICO"
+BACKUP_TYPE_PRE_RESTAURACAO = "PRE_RESTAURACAO"
+_VALID_BACKUP_TYPES = (
+    BACKUP_TYPE_MANUAL,
+    BACKUP_TYPE_AUTOMATICO,
+    BACKUP_TYPE_PRE_RESTAURACAO,
+)
 
 
 def _dump_env(password: str) -> Dict[str, str]:
@@ -320,6 +335,88 @@ class _restore_slot:
         return False
 
 
+# ============================================================================
+# FEATURE 020 — gravação de metadados (BackupRecord)
+#
+# Estratégia de sessão (data-model/contract §3): os helpers aceitam a SESSÃO
+# DO FLUXO quando ela existe (request manual, ciclo do restore, worker do
+# scheduler) — abertura/fechamento no ponto de uso sem reter conexão extra;
+# quando nenhuma sessão é passada (fluxos sem sessão), abrem uma PRÓPRIA E
+# CURTA (padrão _worker_audit da 019). Erro de metadados NUNCA invalida o
+# backup físico (só loga — data-model §1).
+# ============================================================================
+
+def _write_backup_record(db: Optional[Session], record: BackupRecord) -> None:
+    """Persiste o registro usando a sessão fornecida ou uma própria e curta."""
+    own_session = db is None
+    session = SessionLocal() if own_session else db
+    try:
+        session.add(record)
+        session.commit()
+    finally:
+        if own_session:
+            session.close()
+
+
+def _record_backup_success(
+    filename: str, backup_type: str, size_bytes: int, sha256: str, db: Optional[Session] = None
+) -> None:
+    """Registra tentativa bem-sucedida em backup_records (contract §3)."""
+    try:
+        if not _BACKUP_NAME_RE.match(filename):
+            logger.error(
+                "Registro de backup ignorado: filename fora do padrão (%s).", filename
+            )
+            return
+        _write_backup_record(
+            db,
+            BackupRecord(
+                filename=filename,
+                backup_type=backup_type,
+                status="SUCCESS",
+                timestamp=_filename_to_datetime(filename),
+                size_bytes=size_bytes,
+                sha256=sha256,
+            ),
+        )
+    except Exception as exc:  # metadados nunca invalidam o backup físico
+        logger.error(
+            "Falha ao gravar BackupRecord de sucesso para %s (tipo=%s): %s",
+            filename,
+            type(exc).__name__,
+            exc,
+        )
+
+
+def _record_backup_failure(
+    filename: str, backup_type: str, error_description: str, db: Optional[Session] = None
+) -> None:
+    """Registra tentativa FALHA em backup_records (contract §3; sem segredos)."""
+    try:
+        if not _BACKUP_NAME_RE.match(filename):
+            logger.error(
+                "Registro de falha de backup ignorado: filename fora do padrão (%s).",
+                filename,
+            )
+            return
+        _write_backup_record(
+            db,
+            BackupRecord(
+                filename=filename,
+                backup_type=backup_type,
+                status="FAILURE",
+                error_description=(error_description or "")[:255],
+            ),
+        )
+    except Exception as exc:  # idem — loga e segue
+        logger.error(
+            "Falha ao gravar BackupRecord de falha para %s (tipo=%s): %s",
+            filename,
+            type(exc).__name__,
+            exc,
+        )
+
+
 def _sanitize_stderr(stderr_text: str, password: str) -> str:
     """Sanitiza o stderr do cliente para o log técnico (Princípio VI).
 
@@ -552,6 +649,7 @@ class BackupService:
         *,
         dump_executor: Optional[Callable[[Path], None]] = None,
         _allow_during_restore: bool = False,
+        backup_type: str = BACKUP_TYPE_MANUAL,
     ) -> Dict:
         """Gera um backup do estado atual do sistema (contract §1.1).
 
@@ -561,7 +659,23 @@ class BackupService:
           {filename, timestamp, size_bytes}.
         - Em falha: remove artefato parcial (BV-4), grava ACTION_BACKUP_CREATED/
           FAILURE com descrição controlada e propaga BackupError.
+
+        Feature 020 (contract §3, aditivo):
+        - `backup_type` ∈ {MANUAL, AUTOMATICO, PRE_RESTAURACAO} (default MANUAL
+          — retrocompatível com todos os chamadores existentes); valor inválido
+          → ValueError ANTES de qualquer dump;
+        - Grava `BackupRecord` (sucesso e falha) com SESSÃO PRÓPRIA E CURTA;
+          erro de metadados NUNCA invalida o backup físico (só loga — data-model);
+        - Arquivo parcial: o cleanup de `.part*` no except registra no log
+          técnico qualquer falha de remoção (F5), sem propagar.
         """
+        # 020 (contract §3): validação do tipo ANTES de qualquer dump/disco
+        if backup_type not in _VALID_BACKUP_TYPES:
+            raise ValueError(
+                f"Tipo de backup inválido: {backup_type!r}. "
+                f"Esperado um de: {', '.join(_VALID_BACKUP_TYPES)}."
+            )
+
         executor: Callable[[Path], None] = dump_executor or _run_mysqldump
 
         # 017 (FR-17, BV-R2): durante uma restauração, geração de backup é
@@ -656,6 +770,11 @@ class BackupService:
                 digest,
                 duration,
             )
+            # 020 (contract §3): metadados determinísticos do backup gerado.
+            # Sessão PRÓPRIA e curta (padrão _worker_audit da 019) — a sessão
+            # do chamador não é retida; erro de metadados NUNCA invalida o
+            # arquivo físico válido (data-model: registro é aditivo).
+            _record_backup_success(final_path.name, backup_type, size_bytes, digest, db=db)
             return {
                 "filename": final_path.name,
                 "timestamp": _filename_to_datetime(final_path.name),
@@ -663,13 +782,21 @@ class BackupService:
                 "sha256": digest,
             }
         except Exception as exc:
-            # Remove temporários .part* (BV-8): parcial nunca fica disponível
+            # Remove temporários .part* (BV-8): parcial nunca fica disponível.
+            # 020 (F5): falha de remoção é REGISTRADA no log técnico (a exceção
+            # não propaga — o fluxo de falha original continua).
             for leftover in (part_path, part_gz_path):
                 try:
                     if leftover.exists():
                         leftover.unlink()
-                except OSError:
-                    pass
+                except OSError as cleanup_exc:
+                    logger.error(
+                        "Falha ao remover artefato parcial %s após erro de "
+                        "geração (tipo=%s): %s",
+                        leftover.name,
+                        type(cleanup_exc).__name__,
+                        cleanup_exc,
+                    )
 
             description = "Falha na geração do backup manual."
             if isinstance(exc, BackupError):
@@ -677,6 +804,10 @@ class BackupService:
             elif isinstance(exc, (OSError, subprocess.SubprocessError)):
                 description = "Falha na geração do backup manual (erro de disco/subprocesso)."
 
+            # 020 (contract §3): metadados da tentativa FALHA — filename é o
+            # nome FINAL projetado (casa com a regex; NÃO indica arquivo
+            # disponível — data-model §1/BV-4).
+            _record_backup_failure(f"{base}.sql.gz", backup_type, description, db=db)
             write_audit(
                 db,
                 user=user,
@@ -1008,6 +1139,7 @@ def _execute_restore_cycle(
                 ip_address,
                 dump_executor=security_backup_executor,
                 _allow_during_restore=True,
+                backup_type=BACKUP_TYPE_PRE_RESTAURACAO,  # 020 (BV-3): marca o tipo
             )
         finally:
             db.close()

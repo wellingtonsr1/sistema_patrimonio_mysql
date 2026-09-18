@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
+from app.models.backup_record import BackupRecord
 from app.api.deps import _client_ip, require_permission
 from app.services import permission_service
 from app.services.audit_service import (
@@ -800,11 +801,25 @@ def admin_ad_delete_mapping(request: Request, mapping_id: int, db: Session = Dep
 @admin_router.get("/admin/backups", response_class=HTMLResponse, dependencies=[Depends(require_permission("backup.gerenciar"))])
 def admin_backups(
     request: Request,
+    db: Session = Depends(get_db),
     success: Optional[str] = None,
     error: Optional[str] = None,
     info: Optional[str] = None,
 ):
     backups = BackupService.list_backups()
+    # 020 (US7, contract §7): indicadores aditivos — reutiliza permissão e
+    # template existentes; rotas POST/manual/download intocadas.
+    from app.services.backup_scheduler import (
+        retention_monitoring_summary,
+        scheduler_status,
+    )
+
+    types_by_filename = {
+        r.filename: r.backup_type
+        for r in db.query(BackupRecord)
+        .filter(BackupRecord.filename.in_([b["filename"] for b in backups]))
+        .all()
+    }
     return templates.TemplateResponse(
         request=request,
         name="admin/backups.html",
@@ -814,6 +829,9 @@ def admin_backups(
             "error": error,
             "info": info,
             "restore_status": backup_service.restore_status(),
+            "auto_status": scheduler_status(),
+            "retention_summary": retention_monitoring_summary(db),
+            "types_by_filename": types_by_filename,
             "active_tab": "admin",
         },
     )

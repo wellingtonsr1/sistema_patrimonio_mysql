@@ -1118,7 +1118,12 @@ def test_018_us3_import_env_herdado_com_mysql_pwd(monkeypatch, tmp_path):
 
 
 def test_018_us3_import_executavel_ausente_mensagem_clara(monkeypatch, tmp_path):
-    """Import sem executável em lugar nenhum → BackupError 'não encontrado' (R4/R6)."""
+    """Import sem executável em lugar nenhum → BackupError 'não encontrado' (R4/R6).
+
+    Hermeticidade: mesmo que um cliente 'mysql' real exista no PATH da máquina
+    (ex.: /usr/bin/mysql no dev), o Popen é fakeado para levantar
+    FileNotFoundError — exatamente o que o SO faria com o executável ausente.
+    """
     import pytest
 
     from app.services import backup_service
@@ -1126,6 +1131,13 @@ def test_018_us3_import_executavel_ausente_mensagem_clara(monkeypatch, tmp_path)
 
     monkeypatch.setattr(backup_service, "MYSQLDUMP_PATH", None, raising=False)
     monkeypatch.setattr(backup_service.shutil, "which", lambda name: None)
+
+    def _popen_sem_executavel(cmd, **kwargs):
+        raise FileNotFoundError(2, "No such file or directory")
+
+    monkeypatch.setattr(
+        backup_service.subprocess, "Popen", _popen_sem_executavel
+    )
 
     dump = tmp_path / "dump.sql"
     dump.write_bytes(b"-- conteudo\n")

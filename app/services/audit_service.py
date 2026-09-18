@@ -65,6 +65,12 @@ ACTION_BACKUP_RESTORE_STARTED = "BACKUP_RESTORE_INICIADO"
 ACTION_BACKUP_PRE_RESTORE = "BACKUP_PRE_RESTORE_CRIADO"
 ACTION_BACKUP_RESTORE_SUCCESS = "BACKUP_RESTORE_SUCESSO"
 ACTION_BACKUP_RESTORE_FAILED = "BACKUP_RESTORE_FALHA"
+# 020 — backup automático e retenção (aditivo; briefing §36)
+ACTION_BACKUP_AUTO_SUCCESS = "BACKUP_AUTOMATICO_SUCESSO"
+ACTION_BACKUP_AUTO_FAILED = "BACKUP_AUTOMATICO_FALHA"
+ACTION_RETENTION_EXECUTED = "BACKUP_RETENCAO_EXECUTADA"
+ACTION_BACKUP_REMOVED_RETENTION = "BACKUP_REMOVIDO_RETENCAO"
+ACTION_RETENTION_FAILED = "BACKUP_RETENCAO_FALHA"
 
 # Rótulos em linguagem natural exibidos na interface.
 # A ação gravada na trilha continua sendo o identificador (ex.: "RESET_SENHA").
@@ -79,6 +85,12 @@ ACTION_LABELS: Dict[str, str] = {
     ACTION_BACKUP_PRE_RESTORE: "Backup Pré-Restore Criado",
     ACTION_BACKUP_RESTORE_SUCCESS: "Restauração Concluída",
     ACTION_BACKUP_RESTORE_FAILED: "Restauração Falhou",
+    # Backup automático e retenção (020)
+    ACTION_BACKUP_AUTO_SUCCESS: "Backup Automático Sucesso",
+    ACTION_BACKUP_AUTO_FAILED: "Backup Automático Falhou",
+    ACTION_RETENTION_EXECUTED: "Retenção de Backups Executada",
+    ACTION_BACKUP_REMOVED_RETENTION: "Backup Removido pela Retenção",
+    ACTION_RETENTION_FAILED: "Retenção de Backups Falhou",
     ACTION_LOGIN: "Login",
     ACTION_LOGIN_FAILED: "Falha de Login",
     ACTION_LOGIN_LOCKED: "Login Bloqueado",
