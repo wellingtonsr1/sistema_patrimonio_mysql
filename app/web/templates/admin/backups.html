@@ -27,8 +27,8 @@
         <div>
             <h6 class="fw-semibold mb-1"><i class="bi bi-database-add me-1"></i>Gerar backup agora</h6>
             <p class="text-muted small mb-0">
-                Cria um backup consistente do banco de dados (pode levar alguns instantes).
-                O arquivo é armazenado no servidor e registrado na trilha de auditoria.
+                Cria um backup consistente do banco de dados (arquivo <code>.sql.gz</code> comprimido, com checksum SHA-256;
+                pode levar alguns instantes). O arquivo é armazenado no servidor e registrado na trilha de auditoria.
             </p>
         </div>
         <form method="post" action="/admin/backups/gerar" onsubmit="return confirm('Gerar um backup agora?');">
@@ -54,6 +54,8 @@
                     <th>Arquivo</th>
                     <th>Data/Hora (UTC)</th>
                     <th class="text-end">Tamanho</th>
+                    <th class="text-center">Integridade</th>
+                    <th>SHA-256</th>
                     <th class="text-end">Ações</th>
                 </tr>
             </thead>
@@ -63,6 +65,14 @@
                     <td class="font-monospace small">{{ b.filename }}</td>
                     <td class="small">{{ b.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</td>
                     <td class="text-end small">{{ (b.size_bytes / 1024) | round(1) }} KB</td>
+                    {% if b.integrity == 'OK' %}
+                    <td class="text-center"><span class="badge bg-success-subtle text-success" title="Arquivo legível e verificado">OK</span></td>
+                    {% elif b.integrity == 'CORROMPIDO' %}
+                    <td class="text-center"><span class="badge bg-danger-subtle text-danger" title="Arquivo não pôde ser lido por completo">CORROMPIDO</span></td>
+                    {% else %}
+                    <td class="text-center"><span class="badge bg-secondary-subtle text-secondary" title="Formato antigo, sem verificação de checksum">—</span></td>
+                    {% endif %}
+                    <td class="font-monospace small text-truncate" style="max-width: 14ch;" {% if b.sha256 %}title="{{ b.sha256 }}"{% else %}title="Sem checksum (formato antigo)"{% endif %}>{{ b.sha256[:12] if b.sha256 else '—' }}</td>
                     <td class="text-end">
                         <a class="btn btn-sm btn-outline-secondary" href="/admin/backups/{{ b.filename }}/download" title="Baixar backup">
                             <i class="bi bi-download me-1"></i>Baixar

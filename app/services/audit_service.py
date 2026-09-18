@@ -56,16 +56,19 @@ ACTION_AD_UNAVAILABLE = "FALHA_COMUNICACAO_AD"
 ACTION_AD_SETTINGS_UPDATED = "ALTERACAO_CONFIG_AD"
 ACTION_AD_CONNECTION_TESTED = "TESTE_CONEXAO_AD"
 
-# Backup manual (feature 015)
+# Backup manual (features 015 e 016)
 ACTION_BACKUP_CREATED = "BACKUP_CRIADO"
 ACTION_BACKUP_DOWNLOAD = "BACKUP_DOWNLOAD"
+ACTION_BACKUP_FAILED = "BACKUP_FALHA"  # 016: falha literal (briefing §25, remediação I1)
 
 # Rótulos em linguagem natural exibidos na interface.
 # A ação gravada na trilha continua sendo o identificador (ex.: "RESET_SENHA").
 ACTION_LABELS: Dict[str, str] = {
     # Ações gerais
+    # Backup
     ACTION_BACKUP_CREATED: "Backup Gerado",
     ACTION_BACKUP_DOWNLOAD: "Download de Backup",
+    ACTION_BACKUP_FAILED: "Backup Falhou",
     ACTION_LOGIN: "Login",
     ACTION_LOGIN_FAILED: "Falha de Login",
     ACTION_LOGIN_LOCKED: "Login Bloqueado",

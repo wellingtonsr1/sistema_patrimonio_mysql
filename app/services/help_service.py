@@ -1071,9 +1071,11 @@ ARTICLES: List[Dict] = [
                 "heading": "O que o backup contém",
                 "body": (
                     "O backup é um dump SQL consistente do banco de dados do sistema, gerado pelo "
-                    "utilitário nativo do MariaDB/MySQL. O arquivo é armazenado no servidor, no "
-                    "diretório data/backups/, identificado por data/hora em UTC "
-                    "(backup_AAAAMMDD_HHMMSS_micros.sql)."
+                    "utilitário nativo do MariaDB/MySQL e comprimido em gzip (.sql.gz). Ele contém "
+                    "todos os dados persistidos do sistema (patrimônio, colaboradores, usuários, "
+                    "perfis, movimentações, manutenção, inventário e auditoria). O arquivo é "
+                    "armazenado no servidor, no diretório data/backups/, identificado por data/hora "
+                    "em UTC (backup_AAAAMMDD_HHMMSS_micros.sql.gz)."
                 ),
             },
             {
@@ -1081,14 +1083,15 @@ ARTICLES: List[Dict] = [
                 "steps": [
                     "Acesse Administração → Backups.",
                     "Clique em Gerar backup e aguarde a confirmação (pode levar alguns instantes).",
-                    "A listagem mostra os backups disponíveis, do mais recente para o mais antigo, com data/hora e tamanho.",
-                    "Use Baixar para salvar o arquivo em seu computador.",
+                    "A listagem mostra os backups disponíveis, do mais recente para o mais antigo, com data/hora, tamanho, Integridade e SHA-256.",
+                    "Use Baixar para salvar o arquivo em seu computador; o SHA-256 exibido deve bater com o sha256sum do arquivo baixado.",
                 ],
             },
             {
                 "heading": "Importante",
                 "note": (
-                    "O backup é manual (sem agendamento) e cobre o banco de dados. Toda operação é "
+                    "O backup é manual (sem agendamento e sem exclusão automática) e cobre o banco de dados. "
+                    "A geração é atômica: só aparecem na lista arquivos completos e verificados. Toda operação é "
                     "registrada na trilha de auditoria. A restauração não é executada pelo sistema: "
                     "continua sendo política operacional do servidor. A função exige a permissão "
                     "backup.gerenciar."

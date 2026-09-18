@@ -846,4 +846,6 @@ def admin_backup_download(request: Request, filename: str, db: Session = Depends
         description="Download de backup manual.",
         new_data={"arquivo": filename},
     )
-    return FileResponse(path, media_type="application/sql", filename=filename)
+    # 016: media type coerente com o sufixo (.sql.gz → gzip; .sql → sql)
+    media_type = "application/gzip" if filename.endswith(".gz") else "application/sql"
+    return FileResponse(path, media_type=media_type, filename=filename)

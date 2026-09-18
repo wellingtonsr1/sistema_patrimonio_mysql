@@ -803,16 +803,19 @@ Práticas atualmente implementadas:
 
 ## 💾 Backup
 
-### Backup manual pela interface (feature 015)
+### Backup manual pela interface (features 015 e 016)
 
 Usuários com a permissão `backup.gerenciar` (concedida ao perfil Administrador) podem gerar um backup do banco de dados em **Administração → Backups**:
 
 - O backup é um dump SQL consistente do banco (`mysqldump --single-transaction`), gerado pelo utilitário nativo do MariaDB/MySQL;
-- O arquivo é armazenado no servidor em `data/backups/`, nomeado `backup_AAAAMMDD_HHMMSS_micros.sql` com **data/hora em UTC**;
-- A tela lista os backups disponíveis (data/hora e tamanho) e permite baixá-los;
-- Cada operação (geração, falha e download) é registrada na trilha de auditoria.
+- **Conteúdo**: o dump contém todos os dados persistidos do sistema (17 tabelas — patrimônio, colaboradores, usuários/perfis/permissões, movimentações, manutenção, inventário e auditoria). Nenhum dado da aplicação vive fora do banco, portanto o dump é o estado completo; arquivos de log, cache e artefatos de desenvolvimento são deliberadamente excluídos;
+- O arquivo é comprimido em **gzip** (`.sql.gz`) e gerado **atomicamente**: um temporário `.part` é gravado primeiro e só é renomeado para o nome final após validação (dump íntegro + gzip legível) — nunca há arquivo parcial listável;
+- O arquivo é armazenado no servidor em `data/backups/`, nomeado `backup_AAAAMMDD_HHMMSS_micros.sql.gz` com **data/hora em UTC**;
+- A tela lista os backups disponíveis (data/hora, tamanho, **Integridade** OK/—/CORROMPIDO e **SHA-256** — o mesmo valor do `sha256sum` do arquivo, útil para conferir o download) e permite baixá-los;
+- Backups do formato anterior (`.sql`, sem checksum) continuam listados e baixáveis (Integridade "—");
+- Cada operação (geração, falha e download) é registrada na trilha de auditoria — a geração como `Backup Gerado`/`Backup Falhou`; diagnóstico técnico no log rotativo do sistema, sem credenciais.
 
-Limitações: o backup é **manual** (sem agendamento) e cobre o banco de dados; a **restauração** não é executada pelo sistema — continua sendo política operacional do servidor.
+Limitações: o backup é **manual** (sem agendamento, sem política de retenção) e cobre o banco de dados; a **restauração** não é executada pelo sistema — continua sendo política operacional do servidor.
 
 ### Backup operacional (servidor)
 
