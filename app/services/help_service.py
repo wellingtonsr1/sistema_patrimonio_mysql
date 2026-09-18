@@ -1058,6 +1058,44 @@ ARTICLES: List[Dict] = [
             },
         ],
     },
+    {
+        "id": "backups",
+        "title": "Como gerar e baixar backups (administração)",
+        "module": "Administração",
+        "icon": "bi-archive",
+        "audience": "admin",
+        "summary": "Gerar um backup manual do banco de dados, consultar os backups disponíveis e baixá-los.",
+        "keywords": ["backup", "cópia", "segurança", "dump", "restauração", "admin"],
+        "sections": [
+            {
+                "heading": "O que o backup contém",
+                "body": (
+                    "O backup é um dump SQL consistente do banco de dados do sistema, gerado pelo "
+                    "utilitário nativo do MariaDB/MySQL. O arquivo é armazenado no servidor, no "
+                    "diretório data/backups/, identificado por data/hora em UTC "
+                    "(backup_AAAAMMDD_HHMMSS_micros.sql)."
+                ),
+            },
+            {
+                "heading": "Como gerar e baixar",
+                "steps": [
+                    "Acesse Administração → Backups.",
+                    "Clique em Gerar backup e aguarde a confirmação (pode levar alguns instantes).",
+                    "A listagem mostra os backups disponíveis, do mais recente para o mais antigo, com data/hora e tamanho.",
+                    "Use Baixar para salvar o arquivo em seu computador.",
+                ],
+            },
+            {
+                "heading": "Importante",
+                "note": (
+                    "O backup é manual (sem agendamento) e cobre o banco de dados. Toda operação é "
+                    "registrada na trilha de auditoria. A restauração não é executada pelo sistema: "
+                    "continua sendo política operacional do servidor. A função exige a permissão "
+                    "backup.gerenciar."
+                ),
+            },
+        ],
+    },
 ]
 
 # ============================================================================

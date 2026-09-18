@@ -9,6 +9,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
+# Repositório de backups manuais (feature 015) — criado on-demand pelo service
+BACKUP_DIR = DATA_DIR / "backups"
+
 # Configurações do Banco de Dados
 # O sistema utiliza exclusivamente MariaDB/MySQL.
 # A URL de conexão deve ser fornecida via variável de ambiente DATABASE_URL.

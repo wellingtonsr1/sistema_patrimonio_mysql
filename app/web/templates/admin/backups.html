@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Backups | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">Backups</h3>
+        <p class="page-header-subtitle">Backups manuais do banco de dados do sistema, identificados por data/hora (UTC).</p>
+    </div>
+</div>
+
+{% if success %}
+<div class="alert alert-success d-flex align-items-center" role="alert">
+    <i class="bi bi-check-circle me-2"></i>{{ success }}
+</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger d-flex align-items-center" role="alert">
+    <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+</div>
+{% endif %}
+
+<!-- Gerar -->
+<div class="card p-3 mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h6 class="fw-semibold mb-1"><i class="bi bi-database-add me-1"></i>Gerar backup agora</h6>
+            <p class="text-muted small mb-0">
+                Cria um backup consistente do banco de dados (pode levar alguns instantes).
+                O arquivo é armazenado no servidor e registrado na trilha de auditoria.
+            </p>
+        </div>
+        <form method="post" action="/admin/backups/gerar" onsubmit="return confirm('Gerar um backup agora?');">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-cloud-arrow-down me-1"></i>Gerar backup
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Listagem -->
+<div class="card p-3">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-archive me-1"></i>Backups disponíveis</h6>
+        <span class="badge bg-secondary-subtle text-secondary">{{ backups | length }}</span>
+    </div>
+
+    {% if backups %}
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Arquivo</th>
+                    <th>Data/Hora (UTC)</th>
+                    <th class="text-end">Tamanho</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in backups %}
+                <tr>
+                    <td class="font-monospace small">{{ b.filename }}</td>
+                    <td class="small">{{ b.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                    <td class="text-end small">{{ (b.size_bytes / 1024) | round(1) }} KB</td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-secondary" href="/admin/backups/{{ b.filename }}/download" title="Baixar backup">
+                            <i class="bi bi-download me-1"></i>Baixar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-archive fs-1 d-block mb-2"></i>
+        Nenhum backup gerado ainda.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

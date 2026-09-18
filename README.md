@@ -803,7 +803,20 @@ Práticas atualmente implementadas:
 
 ## 💾 Backup
 
-Utilize ferramentas nativas do MariaDB/MySQL, como:
+### Backup manual pela interface (feature 015)
+
+Usuários com a permissão `backup.gerenciar` (concedida ao perfil Administrador) podem gerar um backup do banco de dados em **Administração → Backups**:
+
+- O backup é um dump SQL consistente do banco (`mysqldump --single-transaction`), gerado pelo utilitário nativo do MariaDB/MySQL;
+- O arquivo é armazenado no servidor em `data/backups/`, nomeado `backup_AAAAMMDD_HHMMSS_micros.sql` com **data/hora em UTC**;
+- A tela lista os backups disponíveis (data/hora e tamanho) e permite baixá-los;
+- Cada operação (geração, falha e download) é registrada na trilha de auditoria.
+
+Limitações: o backup é **manual** (sem agendamento) e cobre o banco de dados; a **restauração** não é executada pelo sistema — continua sendo política operacional do servidor.
+
+### Backup operacional (servidor)
+
+Além do backup manual da interface, utilize ferramentas nativas do MariaDB/MySQL, como:
 
 ```bash
 mysqldump

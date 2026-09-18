@@ -80,6 +80,9 @@ PERMISSION_CATALOG: List[dict] = [
 
     # --- Auditoria ---
     {"name": "auditoria.visualizar", "module": "Auditoria", "label": "Visualizar auditoria", "description": "Consultar a trilha de auditoria do sistema."},
+
+    # --- Backup (feature 015) ---
+    {"name": "backup.gerenciar", "module": "Backup", "label": "Gerenciar backups", "description": "Gerar, listar e baixar backups manuais do sistema."},
 ]
 
 # Perfis padrão (seed idempotente). Cada perfil referencia permissões pelo nome.

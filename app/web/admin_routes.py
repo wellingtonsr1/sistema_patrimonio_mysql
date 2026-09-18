@@ -16,7 +16,7 @@ import os
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -24,6 +24,8 @@ from app.models.user import User
 from app.api.deps import _client_ip, require_permission
 from app.services import permission_service
 from app.services.audit_service import (
+    ACTION_BACKUP_CREATED,
+    ACTION_BACKUP_DOWNLOAD,
     ACTION_BLOCK,
     ACTION_UNBLOCK,
     ACTION_CREATE,
@@ -43,6 +45,8 @@ from app.services.audit_service import (
     write_change_audit,
 )
 from app.services.auth_service import change_password, create_user, reset_password
+from app.services import backup_service
+from app.services.backup_service import BackupService
 from app.services import ad_service
 from app.services import ad_ldap
 from app.services.audit_service import (
@@ -787,3 +791,59 @@ def admin_ad_delete_mapping(request: Request, mapping_id: int, db: Session = Dep
             description=f"Mapeamento Grupo AD removido: '{group_name}'",
         )
     return RedirectResponse(url="/admin/ad?success=" + _quote("Mapeamento removido."), status_code=303)
+
+
+# ============================================================================
+# BACKUPS (feature 015) — backup.gerenciar
+# ============================================================================
+
+@admin_router.get("/admin/backups", response_class=HTMLResponse, dependencies=[Depends(require_permission("backup.gerenciar"))])
+def admin_backups(
+    request: Request,
+    success: Optional[str] = None,
+    error: Optional[str] = None,
+):
+    backups = BackupService.list_backups()
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/backups.html",
+        context={
+            "backups": backups,
+            "success": success,
+            "error": error,
+            "active_tab": "admin",
+        },
+    )
+
+
+@admin_router.post("/admin/backups/gerar", dependencies=[Depends(require_permission("backup.gerenciar"))])
+def admin_backup_gerar(request: Request, db: Session = Depends(get_db)):
+    actor = request.state.user
+    try:
+        result = BackupService.generate_backup(db, actor, _client_ip(request))
+        msg = f"Backup gerado com sucesso: {result['filename']}"
+        return RedirectResponse(url=f"/admin/backups?success={_quote(msg)}", status_code=303)
+    except backup_service.BackupError as err:
+        return RedirectResponse(url=f"/admin/backups?error={_quote(str(err))}", status_code=303)
+
+
+@admin_router.get("/admin/backups/{filename}/download", dependencies=[Depends(require_permission("backup.gerenciar"))])
+def admin_backup_download(request: Request, filename: str, db: Session = Depends(get_db)):
+    try:
+        path = BackupService.get_backup_path(filename)  # 404 antes de qualquer evento (contract §1.4)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Backup não encontrado")
+
+    write_audit(
+        db,
+        user=request.state.user,
+        action=ACTION_BACKUP_DOWNLOAD,
+        module="Backup",
+        resource="backup",
+        resource_ref=filename,
+        ip_address=_client_ip(request),
+        result=RESULT_SUCCESS,
+        description="Download de backup manual.",
+        new_data={"arquivo": filename},
+    )
+    return FileResponse(path, media_type="application/sql", filename=filename)
