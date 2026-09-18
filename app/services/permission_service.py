@@ -83,6 +83,7 @@ PERMISSION_CATALOG: List[dict] = [
 
     # --- Backup (feature 015) ---
     {"name": "backup.gerenciar", "module": "Backup", "label": "Gerenciar backups", "description": "Gerar, listar e baixar backups manuais do sistema."},
+    {"name": "backup.restaurar", "module": "Backup", "label": "Restaurar backups", "description": "Restaurar backups manuais do sistema (operação destrutiva com backup de segurança automático)."},
 ]
 
 # Perfis padrão (seed idempotente). Cada perfil referencia permissões pelo nome.

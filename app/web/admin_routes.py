@@ -849,3 +849,57 @@ def admin_backup_download(request: Request, filename: str, db: Session = Depends
     # 016: media type coerente com o sufixo (.sql.gz → gzip; .sql → sql)
     media_type = "application/gzip" if filename.endswith(".gz") else "application/sql"
     return FileResponse(path, media_type=media_type, filename=filename)
+
+
+# ============================================================================
+# RESTAURAÇÃO SEGURA (feature 017) — backup.restaurar
+# ============================================================================
+
+@admin_router.get("/admin/backups/{filename}/restaurar", response_class=HTMLResponse, dependencies=[Depends(require_permission("backup.restaurar"))])
+def admin_backup_restore_form(
+    request: Request,
+    filename: str,
+):
+    """Tela de informações/confirmação — NÃO executa nada (ui-contract §2)."""
+    # 404 antes de qualquer outra validação (nome fora do padrão/inexistente)
+    try:
+        BackupService.get_backup_path(filename)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Backup não encontrado")
+    try:
+        info = BackupService.validate_restore_source(filename)
+    except backup_service.BackupError as err:
+        return RedirectResponse(
+            url=f"/admin/backups?error={_quote(str(err))}", status_code=303
+        )
+
+    backups = {b["filename"]: b for b in BackupService.list_backups()}
+    meta = backups.get(filename, {})
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/backups.html",
+        context={
+            "restore_target": {
+                "filename": filename,
+                "timestamp": meta.get("timestamp"),
+                "size_bytes": meta.get("size_bytes", info["size_bytes"]),
+                "integrity": meta.get("integrity", "—"),
+            },
+            "active_tab": "admin",
+        },
+    )
+
+
+@admin_router.post("/admin/backups/{filename}/restaurar", dependencies=[Depends(require_permission("backup.restaurar"))])
+def admin_backup_restore_exec(request: Request, filename: str, db: Session = Depends(get_db)):
+    """Executa o ciclo completo do restore (POST — nunca GET; FR-08)."""
+    actor = request.state.user
+    try:
+        result = BackupService.restore_backup(db, actor, _client_ip(request), filename)
+        msg = (
+            f"Restauração concluída com sucesso. Backup restaurado: {result['restaurado']}. "
+            f"Backup de segurança criado antes da restauração: {result['backup_seguranca']}."
+        )
+        return RedirectResponse(url=f"/admin/backups?success={_quote(msg)}", status_code=303)
+    except backup_service.BackupError as err:
+        return RedirectResponse(url=f"/admin/backups?error={_quote(str(err))}", status_code=303)

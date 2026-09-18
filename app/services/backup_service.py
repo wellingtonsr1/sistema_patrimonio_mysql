@@ -20,6 +20,7 @@ import hashlib
 import logging
 import re
 import subprocess
+import threading
 import time
 import zlib
 from datetime import datetime
@@ -33,6 +34,10 @@ from app.services.audit_service import (
     ACTION_BACKUP_CREATED,
     ACTION_BACKUP_DOWNLOAD,
     ACTION_BACKUP_FAILED,
+    ACTION_BACKUP_PRE_RESTORE,
+    ACTION_BACKUP_RESTORE_FAILED,
+    ACTION_BACKUP_RESTORE_STARTED,
+    ACTION_BACKUP_RESTORE_SUCCESS,
     RESULT_FAILURE,
     RESULT_SUCCESS,
     write_audit,
@@ -55,6 +60,24 @@ logger = logging.getLogger(__name__)
 
 # Compressão/leitura em blocos de 1 MB — memória constante (research R2/R4)
 _CHUNK_SIZE = 1024 * 1024
+
+# Restauração segura (feature 017, research R6): bloqueio de concorrência em
+# memória do processo (uvicorn único — data-model BV-R2). Durante um restore:
+# novo restore e geração de backup manual são rejeitados (FR-16/FR-17).
+_RESTORE_LOCK = threading.Lock()
+_RESTORE_IN_PROGRESS = False
+_IMPORT_TIMEOUT_SECONDS = 900
+
+# Tabelas essenciais para validação pós-restore (contract §4, remediação A1:
+# nomes dos __tablename__ reais dos models)
+_ESSENTIAL_TABLES = frozenset(
+    {
+        "users", "user_roles", "user_sessions", "roles", "role_permissions",
+        "permissions", "custodians", "locations", "assets", "movements",
+        "maintenances", "inventarios", "inventario_itens", "audit_logs",
+        "ad_settings", "ad_group_roles", "setup_claims",
+    }
+)
 
 
 def _timestamp_suffix() -> str:
@@ -122,6 +145,126 @@ class BackupError(Exception):
     """Falha controlada de backup (mensagem segura para o usuário/auditoria)."""
 
 
+def restore_in_progress() -> bool:
+    """Indica se há uma restauração em andamento (contract §1)."""
+    with _RESTORE_LOCK:
+        return _RESTORE_IN_PROGRESS
+
+
+class _restore_slot:
+    """Context manager do slot de concorrência (BV-R2): marca o restore em
+    andamento e libera em `finally` (sucesso ou falha)."""
+
+    def __enter__(self):
+        global _RESTORE_IN_PROGRESS
+        with _RESTORE_LOCK:
+            if _RESTORE_IN_PROGRESS:
+                raise BackupError(
+                    "Já existe uma restauração em andamento. Aguarde a conclusão antes de iniciar outra."
+                )
+            _RESTORE_IN_PROGRESS = True
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        global _RESTORE_IN_PROGRESS
+        with _RESTORE_LOCK:
+            _RESTORE_IN_PROGRESS = False
+        return False
+
+
+def _sanitize_stderr(stderr_text: str, password: str) -> str:
+    """Sanitiza o stderr do cliente para o log técnico (Princípio VI).
+
+    Remove a senha do banco (caso apareça em alguma mensagem) e limita o
+    tamanho, preservando o diagnóstico (código de erro, sintaxe, linha).
+    """
+    if not stderr_text:
+        return "(sem saída de erro)"
+    text = stderr_text.strip()
+    if password:
+        text = text.replace(password, "***")
+    if len(text) > 500:
+        text = text[:500] + "…"
+    return text
+
+
+def _run_mysql_import(path: Path, *, is_gzip: bool) -> None:
+    """Importa o dump com o cliente nativo do SGBD (contract §3, research R1).
+
+    Função de MÓDULO com implementação real (remediação I1) — fake apenas nos
+    testes via monkeypatch (research R2).
+
+    - O Python abre o dump (gzip streaming ou direto) e alimenta o stdin do
+      subprocesso — sem pipelines de shell (briefing §18).
+    - Credenciais derivadas de DATABASE_URL em memória; a senha vai
+      EXCLUSIVAMENTE no ambiente do subprocesso (MYSQL_PWD) — nunca em
+      argv, logs, erros ou auditoria (Princípio VI).
+    - stderr capturado e NUNCA propagado (pode conter host/credenciais).
+    """
+    parsed = urlparse(DATABASE_URL)
+    user = unquote(parsed.username or "")
+    password = unquote(parsed.password or "")
+    host = parsed.hostname or "localhost"
+    port = parsed.port or 3306
+    database = unquote((parsed.path or "").lstrip("/"))
+
+    if not database:
+        raise BackupError("DATABASE_URL não contém o nome do banco de dados.")
+
+    env = {"MYSQL_PWD": password, "PATH": "/usr/local/bin:/usr/bin:/bin"}
+
+    try:
+        # Streaming: o Python alimenta o stdin do cliente bloco a bloco
+        # (memória constante; sem pipelines de shell — briefing §18).
+        # stderr é capturado para diagnóstico no log técnico (sanitizado —
+        # §31: nunca credenciais) e NUNCA vai ao usuário/auditoria.
+        proc = subprocess.Popen(
+            ["mysql", f"--host={host}", f"--port={port}", f"--user={user}", database],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            env=env,
+        )
+        try:
+            for chunk in _iter_dump_chunks(path, is_gzip):
+                proc.stdin.write(chunk)
+            proc.stdin.close()
+            proc.wait(timeout=_IMPORT_TIMEOUT_SECONDS)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+            raise BackupError("O utilitário de importação excedeu o tempo limite.")
+        stderr_text = ""
+        if proc.stderr is not None:
+            stderr_text = proc.stderr.read().decode("utf-8", "replace")
+            proc.stderr.close()
+        if proc.returncode != 0:
+            # Diagnóstico técnico no log (sanitizado); usuário/auditoria
+            # recebem apenas a mensagem controlada (§26/§31)
+            logger.error(
+                "Importação de dump falhou (exit=%s). stderr do cliente: %s",
+                proc.returncode,
+                _sanitize_stderr(stderr_text, password),
+            )
+            raise subprocess.CalledProcessError(proc.returncode, proc.args)
+    except subprocess.CalledProcessError:
+        # stderr pode conter host/comando — NUNCA propagar (Princípio VI)
+        raise BackupError("O utilitário de importação retornou erro.")
+    except subprocess.TimeoutExpired:
+        raise BackupError("O utilitário de importação excedeu o tempo limite.")
+
+
+def _iter_dump_chunks(path: Path, is_gzip: bool):
+    """Gera o conteúdo do dump em blocos (gzip streaming ou direto — R1)."""
+    opener = gzip.open if is_gzip else open
+    with opener(path, "rb") as src:
+        while True:
+            chunk = src.read(_CHUNK_SIZE)
+            if not chunk:
+                break
+            yield chunk
+
+
 class BackupService:
     # =========================================================================
     # GERAÇÃO (US1)
@@ -134,6 +277,7 @@ class BackupService:
         ip_address: Optional[str] = None,
         *,
         dump_executor: Optional[Callable[[Path], None]] = None,
+        _allow_during_restore: bool = False,
     ) -> Dict:
         """Gera um backup do estado atual do sistema (contract §1.1).
 
@@ -145,6 +289,15 @@ class BackupService:
           FAILURE com descrição controlada e propaga BackupError.
         """
         executor: Callable[[Path], None] = dump_executor or _run_mysqldump
+
+        # 017 (FR-17, BV-R2): durante uma restauração, geração de backup é
+        # rejeitada — evita subprocessos de dump/import simultâneos no banco.
+        # O próprio restore_backup gera o backup de segurança com a flag
+        # `_allow_during_restore` (chamada interna, dentro do slot).
+        if not _allow_during_restore and restore_in_progress():
+            raise BackupError(
+                "Não é possível gerar backup durante uma restauração em andamento."
+            )
 
         base = f"backup_{_timestamp_suffix()}"
         part_path = BACKUP_DIR / f"{base}.part"
@@ -337,6 +490,296 @@ class BackupService:
 
         backups.sort(key=lambda b: b["filename"], reverse=True)
         return backups
+
+    # =========================================================================
+    # RESTAURAÇÃO SEGURA (feature 017)
+    # =========================================================================
+
+    @staticmethod
+    def validate_restore_source(filename: str) -> Dict:
+        """Valida o backup selecionado antes de restaurar (contract §2, FR-09).
+
+        Reusa `get_backup_path` (regex/existência/path traversal) + integridade
+        da listagem (CORROMPIDO rejeita) + leitura de teste. Falha → BackupError
+        com motivo seguro; restauração não inicia (Testes D/E/F).
+        """
+        try:
+            path = BackupService.get_backup_path(filename)
+        except FileNotFoundError as exc:
+            raise BackupError("Backup não encontrado ou fora do padrão.") from exc
+
+        size_bytes = path.stat().st_size
+        if size_bytes <= 0:
+            raise BackupError("O arquivo de backup está vazio.")
+
+        is_gzip = filename.endswith(".gz")
+        if is_gzip:
+            # Integridade já calculada pela 016 (gzip legível integralmente)
+            integrity = next(
+                (
+                    b["integrity"]
+                    for b in BackupService.list_backups()
+                    if b["filename"] == filename
+                ),
+                None,
+            )
+            if integrity == "CORROMPIDO":
+                raise BackupError(
+                    "O arquivo de backup está corrompido e não pode ser restaurado."
+                )
+            if integrity not in ("OK", "—", None):
+                raise BackupError("Integridade do backup não pôde ser verificada.")
+            # Leitura de teste adicional (defesa em profundidade)
+            readable, _ = BackupService._gzip_read_status(path)
+            if not readable:
+                raise BackupError(
+                    "O arquivo de backup está corrompido e não pode ser restaurado."
+                )
+        else:
+            # .sql legado (sem checksum — Assumption 4): valida conteúdo não vazio
+            with open(path, "rb") as f:
+                if not f.read(1024):
+                    raise BackupError("O arquivo de backup está vazio.")
+
+        return {"path": path, "is_gzip": is_gzip, "size_bytes": size_bytes}
+
+    @staticmethod
+    def validate_post_restore(db: Session) -> None:
+        """Validação pós-restore real (contract §4, FR-20/FR-21 — somente leitura).
+
+        1) SELECT 1 executável; 2) presença das 17 tabelas essenciais
+        (remediação A1); 3) contagens somente-leitura executáveis.
+        Qualquer falha → BackupError com motivo seguro (nunca sucesso
+        apenas porque o import retornou 0 — briefing §24).
+        """
+        from sqlalchemy import inspect, text
+
+        try:
+            db.execute(text("SELECT 1"))
+        except Exception as exc:
+            raise BackupError("Falha ao conectar ao banco após a restauração.") from exc
+
+        try:
+            inspector = inspect(db.bind)
+            present = set(inspector.get_table_names())
+        except Exception as exc:
+            raise BackupError(
+                "Falha ao inspecionar o banco após a restauração."
+            ) from exc
+
+        missing = sorted(_ESSENTIAL_TABLES - present)
+        if missing:
+            raise BackupError(
+                "Tabelas essenciais ausentes após a restauração: " + ", ".join(missing)
+            )
+
+        try:
+            for table in ("users", "assets", "custodians"):
+                db.execute(text(f"SELECT COUNT(*) FROM {table}"))
+        except Exception as exc:
+            raise BackupError(
+                "Dados essenciais inacessíveis após a restauração."
+            ) from exc
+
+    @staticmethod
+    def restore_backup(
+        db: Session,
+        user: User,
+        ip_address: Optional[str],
+        filename: str,
+        *,
+        import_executor: Optional[Callable[[Path, bool], None]] = None,
+        security_backup_executor: Optional[Callable[[Path], None]] = None,
+    ) -> Dict:
+        """Restaura um backup com o ciclo seguro completo (contract §5).
+
+        Ordem invariável (BV-R1..R4): valida fonte → INICIADO → backup de
+        segurança (generate_backup, com security_backup_executor delegado
+        como dump_executor — remediação U1) → valida segurança →
+        PRE_RESTORE_CRIADO → import → validação pós-restore → SUCCESS.
+
+        Falha em qualquer etapa → BACKUP_RESTORE_FALHA com motivo seguro +
+        BackupError (nunca falso sucesso; backup de segurança preservado).
+        Slot de concorrência ocupado durante todo o ciclo, liberado em finally.
+        """
+        do_import = import_executor or _run_mysql_import
+
+        try:
+            source = BackupService.validate_restore_source(filename)
+        except BackupError as exc:
+            write_audit(
+                db,
+                user=user,
+                action=ACTION_BACKUP_RESTORE_FAILED,
+                module="Backup",
+                resource="backup",
+                resource_ref=filename,
+                ip_address=ip_address,
+                result=RESULT_FAILURE,
+                description=f"Restauração não iniciada: {exc}",
+            )
+            raise
+
+        try:
+            with _restore_slot():
+                write_audit(
+                    db,
+                    user=user,
+                    action=ACTION_BACKUP_RESTORE_STARTED,
+                    module="Backup",
+                    resource="backup",
+                    resource_ref=filename,
+                    ip_address=ip_address,
+                    result=RESULT_SUCCESS,
+                    description="Restauração de backup iniciada.",
+                    new_data={"backup": filename},
+                )
+
+                # Backup de segurança OBRIGATÓRIO (FR-11) — mecanismo da Feature 1.
+                # Chamada interna dentro do slot: bypass da guarda de concorrência.
+                try:
+                    security = BackupService.generate_backup(
+                        db,
+                        user,
+                        ip_address,
+                        dump_executor=security_backup_executor,
+                        _allow_during_restore=True,
+                    )
+                except Exception as exc:
+                    description = (
+                        "Restauração não iniciada: falha ao criar o backup de segurança."
+                    )
+                    write_audit(
+                        db,
+                        user=user,
+                        action=ACTION_BACKUP_RESTORE_FAILED,
+                        module="Backup",
+                        resource="backup",
+                        resource_ref=filename,
+                        ip_address=ip_address,
+                        result=RESULT_FAILURE,
+                        description=description,
+                    )
+                    logger.error("%s", description)
+                    raise BackupError(
+                        "Não foi possível criar o backup de segurança; a restauração não foi iniciada."
+                    ) from exc
+
+                security_name = security["filename"]
+                try:
+                    sec_info = BackupService.validate_restore_source(security_name)
+                except BackupError as exc:
+                    description = (
+                        "Restauração não iniciada: backup de segurança inválido."
+                    )
+                    write_audit(
+                        db,
+                        user=user,
+                        action=ACTION_BACKUP_RESTORE_FAILED,
+                        module="Backup",
+                        resource="backup",
+                        resource_ref=filename,
+                        ip_address=ip_address,
+                        result=RESULT_FAILURE,
+                        description=description,
+                    )
+                    logger.error("%s", description)
+                    raise BackupError(description) from exc
+
+                write_audit(
+                    db,
+                    user=user,
+                    action=ACTION_BACKUP_PRE_RESTORE,
+                    module="Backup",
+                    resource="backup",
+                    resource_ref=security_name,
+                    ip_address=ip_address,
+                    result=RESULT_SUCCESS,
+                    description="Backup de segurança pré-restauração criado.",
+                    new_data={"backup": filename, "backup_seguranca": security_name},
+                )
+
+                # Import (cliente nativo em produção; fake nos testes)
+                try:
+                    do_import(source["path"], is_gzip=source["is_gzip"])
+                except Exception as exc:
+                    description = (
+                        "Restauração não concluída: falha na importação do dump. "
+                        "O backup de segurança permanece disponível para restauração manual."
+                    )
+                    write_audit(
+                        db,
+                        user=user,
+                        action=ACTION_BACKUP_RESTORE_FAILED,
+                        module="Backup",
+                        resource="backup",
+                        resource_ref=filename,
+                        ip_address=ip_address,
+                        result=RESULT_FAILURE,
+                        description=description,
+                    )
+                    logger.error("%s", description)
+                    raise BackupError(description) from exc
+
+                # Validação pós-restore real (nunca sucesso só por retorno 0)
+                try:
+                    BackupService.validate_post_restore(db)
+                except BackupError as exc:
+                    description = (
+                        f"Restauração não concluída: {exc} "
+                        "O backup de segurança permanece disponível para restauração manual."
+                    )
+                    write_audit(
+                        db,
+                        user=user,
+                        action=ACTION_BACKUP_RESTORE_FAILED,
+                        module="Backup",
+                        resource="backup",
+                        resource_ref=filename,
+                        ip_address=ip_address,
+                        result=RESULT_FAILURE,
+                        description=description,
+                    )
+                    logger.error("%s", description)
+                    raise BackupError(description) from exc
+
+                write_audit(
+                    db,
+                    user=user,
+                    action=ACTION_BACKUP_RESTORE_SUCCESS,
+                    module="Backup",
+                    resource="backup",
+                    resource_ref=filename,
+                    ip_address=ip_address,
+                    result=RESULT_SUCCESS,
+                    description="Backup restaurado com sucesso.",
+                    new_data={
+                        "backup": filename,
+                        "backup_seguranca": security_name,
+                    },
+                )
+                return {
+                    "restaurado": filename,
+                    "backup_seguranca": security_name,
+                    "size_bytes": sec_info["size_bytes"],
+                }
+        except BackupError:
+            raise
+        except Exception as exc:
+            description = "Restauração não concluída por erro inesperado."
+            write_audit(
+                db,
+                user=user,
+                action=ACTION_BACKUP_RESTORE_FAILED,
+                module="Backup",
+                resource="backup",
+                resource_ref=filename,
+                ip_address=ip_address,
+                result=RESULT_FAILURE,
+                description=description,
+            )
+            logger.error("%s", description)
+            raise BackupError(description) from exc
 
     # =========================================================================
     # DOWNLOAD (US3)

@@ -817,6 +817,23 @@ Usuários com a permissão `backup.gerenciar` (concedida ao perfil Administrador
 
 Limitações: o backup é **manual** (sem agendamento, sem política de retenção) e cobre o banco de dados; a **restauração** não é executada pelo sistema — continua sendo política operacional do servidor.
 
+### Restauração de backup pela interface (feature 017)
+
+Usuários com a permissão `backup.restaurar` (concedida ao perfil Administrador; distinta de `backup.gerenciar`) podem restaurar um backup em **Administração → Backups → Restaurar**:
+
+- A operação é **destrutiva**: substitui todos os dados atuais pelos dados do backup selecionado;
+- Exige **confirmação explícita em duas etapas** (tela de informações com advertência → botão "SIM, RESTAURAR BACKUP" com confirmação adicional do navegador); nunca é executada por GET ou ao abrir a página;
+- Antes de qualquer alteração, o sistema cria automaticamente um **backup de segurança do estado atual** (pelo mesmo mecanismo da feature 016) e o valida; se não for possível criá-lo, a restauração **não inicia**;
+- O backup selecionado é validado (existência, formato, tamanho, integridade — corrompidos são recusados) antes de qualquer alteração;
+- O import é executado pelo cliente nativo do MariaDB/MySQL com as credenciais seguras do ambiente (a senha nunca aparece em logs ou auditoria);
+- Após a importação, o sistema valida o resultado (conexão, tabelas essenciais e dados essenciais) antes de informar sucesso;
+- Em caso de falha, o backup de segurança **permanece disponível** na listagem para restauração manual (política operacional); nunca é excluído automaticamente;
+- **Sessões**: como são registradas no banco, sessões abertas após a data do backup restaurado deixam de ser válidas; sessões existentes na data do backup voltam a valer;
+- Restaurações concorrentes são rejeitadas (uma por vez); durante uma restauração, a geração de backup manual fica temporariamente bloqueada;
+- Todo o ciclo é registrado na trilha de auditoria (Restauração Iniciada, Backup Pré-Restore Criado, Restauração Concluída/Falhou).
+
+Limitações: a restauração é **manual** (sem agendamento); não há rollback automático em caso de falha no meio da importação — o backup de segurança criado antes da operação é o caminho de recuperação (restaurável pela própria interface).
+
 ### Backup operacional (servidor)
 
 Além do backup manual da interface, utilize ferramentas nativas do MariaDB/MySQL, como:

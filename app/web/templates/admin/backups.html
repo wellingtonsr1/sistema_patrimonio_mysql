@@ -3,6 +3,55 @@
 {% block title %}Backups | SisPatrimônio Pro{% endblock %}
 
 {% block content %}
+{% if restore_target %}
+<!-- Tela de informações/confirmação da restauração (feature 017) -->
+<div class="page-header">
+    <div>
+        <h3 class="page-header-title">Restaurar backup</h3>
+        <p class="page-header-subtitle">Confira as informações antes de confirmar a restauração.</p>
+    </div>
+</div>
+
+<div class="card p-3 mb-4">
+    <dl class="row mb-3">
+        <dt class="col-sm-3">Arquivo</dt>
+        <dd class="col-sm-9 font-monospace small">{{ restore_target.filename }}</dd>
+        {% if restore_target.timestamp %}
+        <dt class="col-sm-3">Data/Hora (UTC)</dt>
+        <dd class="col-sm-9 small">{{ restore_target.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</dd>
+        {% endif %}
+        <dt class="col-sm-3">Tamanho</dt>
+        <dd class="col-sm-9 small">{{ (restore_target.size_bytes / 1024) | round(1) }} KB</dd>
+        <dt class="col-sm-3">Integridade</dt>
+        <dd class="col-sm-9">{{ restore_target.integrity }}</dd>
+    </dl>
+
+    {% if restore_target.integrity == 'CORROMPIDO' %}
+    <div class="alert alert-danger" role="alert">
+        <i class="bi bi-x-octagon me-2"></i>Este arquivo está corrompido e <strong>não pode ser restaurado</strong>.
+    </div>
+    {% else %}
+    <div class="alert alert-danger" role="alert">
+        <strong><i class="bi bi-exclamation-octagon me-2"></i>ATENÇÃO</strong><br>
+        A restauração <strong>substituirá todos os dados atuais</strong> pelos dados contidos neste backup.<br>
+        Antes da restauração, o sistema criará automaticamente um <strong>backup de segurança</strong> do estado atual,
+        que permanecerá disponível mesmo em caso de falha.<br>
+        <span class="small">Sessões: após restaurar, sessões abertas após a data deste backup deixam de ser válidas;
+        sessões existentes na data do backup voltam a valer.</span>
+    </div>
+
+    <form method="post" action="/admin/backups/{{ restore_target.filename }}/restaurar"
+          onsubmit="this.querySelector('button[type=submit]').disabled = true; this.querySelector('button[type=submit]').textContent = 'Restaurando…'; return confirm('ATENÇÃO: esta ação substituirá todos os dados atuais. Um backup de segurança será criado antes. Confirmar a restauração?');">
+        <div class="d-flex justify-content-end gap-2">
+            <a class="btn btn-outline-secondary" href="/admin/backups">Cancelar</a>
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>SIM, RESTAURAR BACKUP
+            </button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+{% else %}
 <div class="page-header">
     <div>
         <h3 class="page-header-title">Backups</h3>
@@ -74,6 +123,11 @@
                     {% endif %}
                     <td class="font-monospace small text-truncate" style="max-width: 14ch;" {% if b.sha256 %}title="{{ b.sha256 }}"{% else %}title="Sem checksum (formato antigo)"{% endif %}>{{ b.sha256[:12] if b.sha256 else '—' }}</td>
                     <td class="text-end">
+                        {% if can('backup.restaurar') %}
+                        <a class="btn btn-sm btn-outline-danger me-1" href="/admin/backups/{{ b.filename }}/restaurar" title="Restaurar este backup">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar
+                        </a>
+                        {% endif %}
                         <a class="btn btn-sm btn-outline-secondary" href="/admin/backups/{{ b.filename }}/download" title="Baixar backup">
                             <i class="bi bi-download me-1"></i>Baixar
                         </a>
@@ -90,4 +144,5 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}

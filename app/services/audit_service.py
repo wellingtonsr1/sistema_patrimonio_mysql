@@ -56,10 +56,15 @@ ACTION_AD_UNAVAILABLE = "FALHA_COMUNICACAO_AD"
 ACTION_AD_SETTINGS_UPDATED = "ALTERACAO_CONFIG_AD"
 ACTION_AD_CONNECTION_TESTED = "TESTE_CONEXAO_AD"
 
-# Backup manual (features 015 e 016)
+# Backup manual (features 015, 016 e 017)
 ACTION_BACKUP_CREATED = "BACKUP_CRIADO"
 ACTION_BACKUP_DOWNLOAD = "BACKUP_DOWNLOAD"
 ACTION_BACKUP_FAILED = "BACKUP_FALHA"  # 016: falha literal (briefing §25, remediação I1)
+# 017 — restauração segura
+ACTION_BACKUP_RESTORE_STARTED = "BACKUP_RESTORE_INICIADO"
+ACTION_BACKUP_PRE_RESTORE = "BACKUP_PRE_RESTORE_CRIADO"
+ACTION_BACKUP_RESTORE_SUCCESS = "BACKUP_RESTORE_SUCESSO"
+ACTION_BACKUP_RESTORE_FAILED = "BACKUP_RESTORE_FALHA"
 
 # Rótulos em linguagem natural exibidos na interface.
 # A ação gravada na trilha continua sendo o identificador (ex.: "RESET_SENHA").
@@ -69,6 +74,11 @@ ACTION_LABELS: Dict[str, str] = {
     ACTION_BACKUP_CREATED: "Backup Gerado",
     ACTION_BACKUP_DOWNLOAD: "Download de Backup",
     ACTION_BACKUP_FAILED: "Backup Falhou",
+    # Restauração (017)
+    ACTION_BACKUP_RESTORE_STARTED: "Restauração Iniciada",
+    ACTION_BACKUP_PRE_RESTORE: "Backup Pré-Restore Criado",
+    ACTION_BACKUP_RESTORE_SUCCESS: "Restauração Concluída",
+    ACTION_BACKUP_RESTORE_FAILED: "Restauração Falhou",
     ACTION_LOGIN: "Login",
     ACTION_LOGIN_FAILED: "Falha de Login",
     ACTION_LOGIN_LOCKED: "Login Bloqueado",

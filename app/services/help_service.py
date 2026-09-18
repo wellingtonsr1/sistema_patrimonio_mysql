@@ -1092,9 +1092,53 @@ ARTICLES: List[Dict] = [
                 "note": (
                     "O backup é manual (sem agendamento e sem exclusão automática) e cobre o banco de dados. "
                     "A geração é atômica: só aparecem na lista arquivos completos e verificados. Toda operação é "
-                    "registrada na trilha de auditoria. A restauração não é executada pelo sistema: "
-                    "continua sendo política operacional do servidor. A função exige a permissão "
-                    "backup.gerenciar."
+                    "registrada na trilha de auditoria. A restauração de backups pela interface exige a permissão "
+                    "backup.restaurar (veja o artigo Restauração de backup). A função de geração exige a "
+                    "permissão backup.gerenciar."
+                ),
+            },
+        ],
+    },
+    {
+        "id": "restauracao-de-backup",
+        "title": "Restauração de backup (administração)",
+        "module": "Backup",
+        "icon": "bi-arrow-counterclockwise",
+        "audience": "user",
+        "summary": "Restauração segura de backups com backup de segurança automático e confirmação explícita.",
+        "keywords": ["backup", "restauração", "restore", "segurança", "recuperação", "administração"],
+        "intro": (
+            "Como restaurar um backup do sistema pela interface, com backup de "
+            "segurança automático e confirmação explícita."
+        ),
+        "sections": [
+            {
+                "heading": "O que a restauração faz",
+                "body": (
+                    "A restauração substitui TODOS os dados atuais pelos dados contidos no backup "
+                    "selecionado. É uma operação destrutiva e exige a permissão backup.restaurar. "
+                    "Antes de qualquer alteração, o sistema cria automaticamente um backup de segurança "
+                    "do estado atual e o valida; se não for possível criá-lo, a restauração não inicia."
+                ),
+            },
+            {
+                "heading": "Como restaurar",
+                "steps": [
+                    "Acesse Administração → Backups e clique em Restaurar na linha do backup desejado.",
+                    "Confira as informações (arquivo, data/hora UTC, tamanho, integridade) e as advertências.",
+                    "Clique em SIM, RESTAURAR BACKUP e confirme no diálogo do navegador.",
+                    "Aguarde: o sistema cria o backup de segurança, importa o dump e valida o resultado.",
+                    "A mensagem final mostra o backup restaurado e o backup de segurança criado.",
+                ],
+            },
+            {
+                "heading": "Sessões e falhas",
+                "note": (
+                    "Sessões são registradas no banco: após restaurar, sessões abertas após a data do backup "
+                    "deixam de ser válidas e você precisará entrar novamente. Em caso de falha, o backup de "
+                    "segurança permanece disponível na listagem para restauração manual — nunca é excluído "
+                    "automaticamente. Restaurações concorrentes são rejeitadas. Todo o ciclo é registrado "
+                    "na trilha de auditoria."
                 ),
             },
         ],
