@@ -17,8 +17,8 @@
         <dt class="col-sm-3">Arquivo</dt>
         <dd class="col-sm-9 font-monospace small">{{ restore_target.filename }}</dd>
         {% if restore_target.timestamp %}
-        <dt class="col-sm-3">Data/Hora (UTC)</dt>
-        <dd class="col-sm-9 small">{{ restore_target.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</dd>
+        <dt class="col-sm-3">Data/Hora</dt>
+        <dd class="col-sm-9 small">{{ (restore_target.timestamp | localtime).strftime('%d/%m/%Y %H:%M:%S') }}</dd>
         {% endif %}
         <dt class="col-sm-3">Tamanho</dt>
         <dd class="col-sm-9 small">{{ (restore_target.size_bytes / 1024) | round(1) }} KB</dd>
@@ -55,7 +55,7 @@
 <div class="page-header">
     <div>
         <h3 class="page-header-title">Backups</h3>
-        <p class="page-header-subtitle">Backups manuais do banco de dados do sistema, identificados por data/hora (UTC).</p>
+        <p class="page-header-subtitle">Backups manuais do banco de dados do sistema, identificados por data/hora.</p>
     </div>
 </div>
 
@@ -112,7 +112,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Arquivo</th>
-                    <th>Data/Hora (UTC)</th>
+                    <th>Data/Hora</th>
                     <th class="text-end">Tamanho</th>
                     <th class="text-center">Integridade</th>
                     <th>SHA-256</th>
@@ -123,7 +123,7 @@
                 {% for b in backups %}
                 <tr>
                     <td class="font-monospace small">{{ b.filename }}</td>
-                    <td class="small">{{ b.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                    <td class="small">{{ (b.timestamp | localtime).strftime('%d/%m/%Y %H:%M:%S') }}</td>
                     <td class="text-end small">{{ (b.size_bytes / 1024) | round(1) }} KB</td>
                     {% if b.integrity == 'OK' %}
                     <td class="text-center"><span class="badge bg-success-subtle text-success" title="Arquivo legível e verificado">OK</span></td>
