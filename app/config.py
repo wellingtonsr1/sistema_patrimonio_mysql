@@ -42,6 +42,13 @@ if not DATABASE_URL:
 # NOTA: DEVE ficar APÓS load_dotenv() — a variável vive no .env do servidor.
 MYSQLDUMP_PATH = os.getenv("MYSQLDUMP_PATH") or None
 
+# Deadline de relógio (segundos) da importação do restore (feature 019 — FR-007/FR-008).
+# Opcional: default 900 s. Deve superar com folga a duração normal do import;
+# aumente para bancos maiores. NÃO é segredo (apenas um número de segundos).
+# NOTA: DEVE ficar APÓS load_dotenv() — a variável vive no .env do servidor
+# (guarda da 018 contra o bug de posicionamento).
+BACKUP_IMPORT_TIMEOUT = float(os.getenv("BACKUP_IMPORT_TIMEOUT", "900"))
+
 # Configurações da Aplicação
 APP_NAME = "SisPatrimônio Pro"
 APP_DESCRIPTION = "Sistema Integrado de Gestão Patrimonial e Fluxo de Movimentação de Equipamentos"

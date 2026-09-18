@@ -32,6 +32,8 @@ from urllib.parse import urlparse, unquote
 import shutil
 
 from app.config import BACKUP_DIR, DATABASE_URL, MYSQLDUMP_PATH
+from app.database import SessionLocal
+from app.database import drain_engine
 from app.models.user import User
 from app.services.audit_service import (
     ACTION_BACKUP_CREATED,
@@ -129,6 +131,49 @@ _CHUNK_SIZE = 1024 * 1024
 # novo restore e geração de backup manual são rejeitados (FR-16/FR-17).
 _RESTORE_LOCK = threading.Lock()
 _RESTORE_IN_PROGRESS = False
+
+# ============================================================================
+# FEATURE 019 — deadline do import + modo de manutenção (R2/R3, contract §5)
+# ============================================================================
+
+# Deadline de relógio do import (segundos): cobre TODAS as fases do subprocesso,
+# inclusive o feed no stdin (onde o incidente de 2026-09-18 bloqueou — D2).
+# Configurável via .env; lida APÓS load_dotenv (guarda da 018).
+def _default_import_timeout() -> float:
+    try:
+        from app.config import BACKUP_IMPORT_TIMEOUT
+
+        return float(BACKUP_IMPORT_TIMEOUT)
+    except Exception:  # pragma: no cover — config sempre define (default 900)
+        return 900.0
+
+
+BACKUP_IMPORT_TIMEOUT = _default_import_timeout()
+
+# Modo de manutenção (FR-010..FR-013): flag EM MEMÓRIA (nunca persistida —
+# crash/restart limpa por construção, R3). Gerida pelo ciclo do restore;
+# consultada pelo middleware de app.main ANTES de qualquer dependência de banco.
+maintenance_mode: Dict = {
+    "active": False,
+    "started_at": None,
+    "phase": None,
+    "target_file": None,
+}
+
+
+def _maintenance_set(active: bool, phase: Optional[str] = None) -> None:
+    """Liga/desliga o modo de manutenção (chamado apenas pelo ciclo do restore)."""
+    maintenance_mode["active"] = active
+    if active:
+        # Carimbo do início REAL: só na transição inativo→ativo (trocas de
+        # fase — seguranca/importando/verificando — não resetam o horário).
+        if not maintenance_mode.get("active"):
+            maintenance_mode["started_at"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        maintenance_mode["phase"] = phase
+    else:
+        maintenance_mode["started_at"] = None
+        maintenance_mode["phase"] = None
+        maintenance_mode["target_file"] = None
 _IMPORT_TIMEOUT_SECONDS = 900
 
 # Tabelas essenciais para validação pós-restore (contract §4, remediação A1:
@@ -236,6 +281,24 @@ def restore_in_progress() -> bool:
         return _RESTORE_IN_PROGRESS
 
 
+def restore_status() -> Dict:
+    """Estado da restauração para a rota de polling (019, contract §4).
+
+    Sem segredos: apenas flags/fases/timestamps do ciclo.
+    """
+    with _RESTORE_LOCK:
+        active = _RESTORE_IN_PROGRESS
+    return {
+        "active": active,
+        "phase": maintenance_mode.get("phase"),
+        "started_at": maintenance_mode.get("started_at"),
+        "target_file": maintenance_mode.get("target_file"),
+        "finished": not active and maintenance_mode.get("last_ok") is not None,
+        "ok": bool(maintenance_mode.get("last_ok")),
+        "message": maintenance_mode.get("last_message"),
+    }
+
+
 class _restore_slot:
     """Context manager do slot de concorrência (BV-R2): marca o restore em
     andamento e libera em `finally` (sucesso ou falha)."""
@@ -319,15 +382,15 @@ def _run_mysql_import(path: Path, *, is_gzip: bool) -> None:
             stderr=subprocess.PIPE,
             env=env,
         )
-        try:
-            for chunk in _iter_dump_chunks(path, is_gzip):
-                proc.stdin.write(chunk)
-            proc.stdin.close()
-            proc.wait(timeout=_IMPORT_TIMEOUT_SECONDS)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait()
-            raise BackupError("O utilitário de importação excedeu o tempo limite.")
+        # 019 (R2/D2): deadline de relógio cobrindo TODAS as fases — o feed no
+        # stdin roda em THREAD ESCRITORA dedicada (select() não funciona em
+        # pipes no Windows); o worker espera o término com o prazo configurável.
+        _import_with_deadline(
+            proc,
+            lambda: _iter_dump_chunks(path, is_gzip),
+            password=password,
+            timeout=BACKUP_IMPORT_TIMEOUT,
+        )
         stderr_text = ""
         if proc.stderr is not None:
             stderr_text = proc.stderr.read().decode("utf-8", "replace")
@@ -357,6 +420,112 @@ def _run_mysql_import(path: Path, *, is_gzip: bool) -> None:
             "O utilitário 'mysql' não foi encontrado no servidor. "
             "Instale-o ou configure o caminho correto (variável MYSQLDUMP_PATH)."
         ) from exc
+
+
+def _import_with_deadline(
+    proc: "subprocess.Popen",
+    chunks_factory: Callable[[], object],
+    *,
+    password: str,
+    timeout: Optional[float] = None,
+) -> None:
+    """Feed do dump com DEADLINE DE RELÓGIO (019 — FR-007/R2, Teste B/D).
+
+    O write no stdin roda em thread escritora dedicada; o worker espera o
+    término com o prazo `timeout`. Bloqueou no pipe (caso real do incidente,
+    D2) e estourou o prazo → terminate() no subprocesso: o pipe quebra, a
+    thread escritora desbloqueia (BrokenPipeError é esperado e ignorado).
+    Diagnóstico técnico no log: etapa, tempo decorrido e exit code — stderr
+    NUNCA contém credenciais (sanitizado antes de qualquer log, Princípio VI).
+
+    `proc` é injetável (testes usam fake com terminate/write/wait).
+    """
+    if timeout is None:
+        timeout = BACKUP_IMPORT_TIMEOUT
+    inicio = time.monotonic()
+    erro_feed: list = []
+    concluido = threading.Event()
+
+    def _feeder():
+        try:
+            stdin = getattr(proc, "stdin", None)
+            if stdin is None:
+                # Sem stdin=PIPE não há feed — é falha de configuração do
+                # subprocesso (nunca sucesso silencioso; FR-009).
+                raise BackupError("O processo de importação não possui stdin configurado.")
+            for chunk in chunks_factory():
+                stdin.write(chunk)
+            stdin.close()
+        except BrokenPipeError:
+            # terminate() do deadline quebra o pipe — desbloqueio esperado.
+            pass
+        except Exception as exc:  # qualquer outro erro do feed é registrado
+            erro_feed.append(exc)
+        finally:
+            concluido.set()
+
+    feeder = threading.Thread(target=_feeder, name="import-feeder-019", daemon=True)
+    feeder.start()
+
+    if not concluido.wait(timeout=timeout):
+        decorrido = time.monotonic() - inicio
+        # Estouro do prazo: encerra o subprocesso (hard-kill de segurança)
+        try:
+            proc.terminate()
+            kill = getattr(proc, "kill", None)
+            if callable(kill):
+                kill()
+        except Exception:  # pragma: no cover — processo já pode ter morrido
+            pass
+        concluido.wait(timeout=5.0)
+        logger.error(
+            "Importação excedeu o deadline (etapa=feed no stdin, limite=%ss, "
+            "decorrido=%.1fs, exit=%s) — subprocesso encerrado.",
+            timeout,
+            decorrido,
+            getattr(proc, "returncode", None),
+        )
+        raise BackupError(
+            "A importação do dump excedeu o tempo limite configurado "
+            "(BACKUP_IMPORT_TIMEOUT) e foi interrompida. "
+            "Verifique o log técnico do servidor."
+        )
+
+    if erro_feed:
+        logger.error(
+            "Importação falhou na escrita do dump (etapa=feed no stdin): %s",
+            type(erro_feed[0]).__name__,
+        )
+        raise BackupError(
+            "Falha na escrita dos dados para o utilitário de importação."
+        ) from erro_feed[0]
+
+    # Feed concluído: espera o processo terminar dentro do MESMO prazo global
+    restante = max(1.0, timeout - (time.monotonic() - inicio))
+    try:
+        proc.wait(timeout=restante)
+    except subprocess.TimeoutExpired:
+        decorrido = time.monotonic() - inicio
+        try:
+            proc.terminate()
+            kill = getattr(proc, "kill", None)
+            if callable(kill):
+                kill()
+        except Exception:  # pragma: no cover
+            pass
+        proc.wait(timeout=5.0)
+        logger.error(
+            "Importação excedeu o deadline (etapa=aguardando término, limite=%ss, "
+            "decorrido=%.1fs, exit=%s) — subprocesso encerrado.",
+            timeout,
+            decorrido,
+            getattr(proc, "returncode", None),
+        )
+        raise BackupError(
+            "A importação do dump excedeu o tempo limite configurado "
+            "(BACKUP_IMPORT_TIMEOUT) e foi interrompida. "
+            "Verifique o log técnico do servidor."
+        )
 
 
 def _iter_dump_chunks(path: Path, is_gzip: bool):
@@ -696,19 +865,18 @@ class BackupService:
         import_executor: Optional[Callable[[Path, bool], None]] = None,
         security_backup_executor: Optional[Callable[[Path], None]] = None,
     ) -> Dict:
-        """Restaura um backup com o ciclo seguro completo (contract §5).
+        """Agenda a restauração com o ciclo seguro (feature 019 — contract §1.1).
 
-        Ordem invariável (BV-R1..R4): valida fonte → INICIADO → backup de
-        segurança (generate_backup, com security_backup_executor delegado
-        como dump_executor — remediação U1) → valida segurança →
-        PRE_RESTORE_CRIADO → import → validação pós-restore → SUCCESS.
+        Fluxo 303/R5: valida a fonte, ocupa o slot de concorrência, marca o
+        modo de manutenção e retorna ANTES do import. O ciclo destrutivo
+        (segurança → drenagem do pool → import → validação pós → eventos)
+        roda em WORKER THREAD com sessões próprias e curtas — no momento do
+        import nenhuma transação do processo web está aberta e o pool está
+        sem conexões vivas (elimina o auto-deadlock de metadata lock).
 
-        Falha em qualquer etapa → BACKUP_RESTORE_FALHA com motivo seguro +
-        BackupError (nunca falso sucesso; backup de segurança preservado).
-        Slot de concorrência ocupado durante todo o ciclo, liberado em finally.
+        Falha de validação/concorrência → fluxo de hoje (audit + BackupError).
+        Ordem invariável do worker (BV-R1..R4 da 017 preservada — FR-004).
         """
-        do_import = import_executor or _run_mysql_import
-
         try:
             source = BackupService.validate_restore_source(filename)
         except BackupError as exc:
@@ -725,183 +893,234 @@ class BackupService:
             )
             raise
 
+        # Slot de concorrência da 017 + manutenção: marcados ANTES da thread
+        # (nenhuma janela sem manutenção — contract §1.1/FR-011).
+        global _RESTORE_IN_PROGRESS
+        with _RESTORE_LOCK:
+            if _RESTORE_IN_PROGRESS:
+                raise BackupError(
+                    "Já existe uma restauração em andamento. Aguarde a conclusão antes de iniciar outra."
+                )
+            _RESTORE_IN_PROGRESS = True
+
+        _maintenance_set(True, phase="validando")
+        maintenance_mode["target_file"] = filename
+        maintenance_mode.pop("last_ok", None)
+        maintenance_mode.pop("last_message", None)
+
+        worker = threading.Thread(
+            target=_execute_restore_cycle,
+            kwargs={
+                "filename": filename,
+                "ip_address": ip_address,
+                "source": source,
+                "user_id": getattr(user, "id", None),
+                "import_executor": import_executor,
+                "security_backup_executor": security_backup_executor,
+            },
+            name="restore-worker-019",
+            daemon=False,
+        )
+        worker.start()
+        return {
+            "agendado": True,
+            "restaurado": filename,
+            "status_url": "/admin/backups/restaurar/status",
+        }
+
+
+def _worker_audit(*, action: str, ip_address: Optional[str], result: str,
+                  description: str, resource_ref: Optional[str] = None,
+                  new_data: Optional[Dict] = None,
+                  user_id: Optional[int] = None) -> None:
+    """Evento de auditoria do worker com SESSÃO PRÓPRIA E CURTA (R5/D4).
+
+    O write_audit comita na sessão recebida (audit_service L186) — com sessão
+    própria, a transação abre e fecha no ponto de uso: nenhuma conexão do
+    worker permanece checked-out durante o import. O ator é recarregado por
+    id na sessão do evento (trilha preserva o operador — FR-017).
+    """
+    db = SessionLocal()
+    try:
+        actor: Optional[User] = None
+        if user_id is not None:
+            actor = db.query(User).filter(User.id == user_id).first()
+        write_audit(
+            db,
+            user=actor,
+            action=action,
+            module="Backup",
+            resource="backup",
+            resource_ref=resource_ref,
+            ip_address=ip_address,
+            result=result,
+            description=description,
+            new_data=new_data,
+        )
+    finally:
+        db.close()
+
+
+def _execute_restore_cycle(
+    filename: str,
+    ip_address: Optional[str],
+    source: Dict,
+    *,
+    user_id: Optional[int] = None,
+    import_executor: Optional[Callable[[Path, bool], None]] = None,
+    security_backup_executor: Optional[Callable[[Path], None]] = None,
+) -> None:
+    """Worker thread do ciclo destrutivo (019 — contract §1.2).
+
+    Sessões SEMPRE próprias e curtas (nunca a do request). Ordem 017:
+    INICIADO → backup de segurança → valida segurança → PRE_RESTORE →
+    DRENAGEM DO POOL (FR-003) → import (deadline — US2) → validação pós
+    (sessão nova) → SUCCESS/FAILURE. finally SEMPRE libera slot + manutenção
+    (FR-009/FR-011/FR-012 — crash-safety).
+    """
+    global _RESTORE_IN_PROGRESS
+    do_import = import_executor or _run_mysql_import
+    security_name: Optional[str] = None
+    try:
+        _worker_audit(
+            action=ACTION_BACKUP_RESTORE_STARTED,
+            ip_address=ip_address,
+            result=RESULT_SUCCESS,
+            description="Restauração de backup iniciada.",
+            resource_ref=filename,
+            new_data={"backup": filename},
+            user_id=user_id,
+        )
+
+        # Backup de segurança OBRIGATÓRIO (FR-11 017/FR-005) — worker usa
+        # sessão própria e bypass da guarda (chamada interna ao ciclo).
+        _maintenance_set(True, phase="seguranca")
+        db = SessionLocal()
         try:
-            with _restore_slot():
-                write_audit(
-                    db,
-                    user=user,
-                    action=ACTION_BACKUP_RESTORE_STARTED,
-                    module="Backup",
-                    resource="backup",
-                    resource_ref=filename,
-                    ip_address=ip_address,
-                    result=RESULT_SUCCESS,
-                    description="Restauração de backup iniciada.",
-                    new_data={"backup": filename},
-                )
-
-                # Backup de segurança OBRIGATÓRIO (FR-11) — mecanismo da Feature 1.
-                # Chamada interna dentro do slot: bypass da guarda de concorrência.
-                try:
-                    security = BackupService.generate_backup(
-                        db,
-                        user,
-                        ip_address,
-                        dump_executor=security_backup_executor,
-                        _allow_during_restore=True,
-                    )
-                except Exception as exc:
-                    description = (
-                        "Restauração não iniciada: falha ao criar o backup de segurança."
-                    )
-                    write_audit(
-                        db,
-                        user=user,
-                        action=ACTION_BACKUP_RESTORE_FAILED,
-                        module="Backup",
-                        resource="backup",
-                        resource_ref=filename,
-                        ip_address=ip_address,
-                        result=RESULT_FAILURE,
-                        description=description,
-                    )
-                    logger.error("%s", description)
-                    raise BackupError(
-                        "Não foi possível criar o backup de segurança; a restauração não foi iniciada."
-                    ) from exc
-
-                security_name = security["filename"]
-                try:
-                    sec_info = BackupService.validate_restore_source(security_name)
-                except BackupError as exc:
-                    description = (
-                        "Restauração não iniciada: backup de segurança inválido."
-                    )
-                    write_audit(
-                        db,
-                        user=user,
-                        action=ACTION_BACKUP_RESTORE_FAILED,
-                        module="Backup",
-                        resource="backup",
-                        resource_ref=filename,
-                        ip_address=ip_address,
-                        result=RESULT_FAILURE,
-                        description=description,
-                    )
-                    logger.error("%s", description)
-                    raise BackupError(description) from exc
-
-                write_audit(
-                    db,
-                    user=user,
-                    action=ACTION_BACKUP_PRE_RESTORE,
-                    module="Backup",
-                    resource="backup",
-                    resource_ref=security_name,
-                    ip_address=ip_address,
-                    result=RESULT_SUCCESS,
-                    description="Backup de segurança pré-restauração criado.",
-                    new_data={"backup": filename, "backup_seguranca": security_name},
-                )
-
-                # Import (cliente nativo em produção; fake nos testes)
-                try:
-                    do_import(source["path"], is_gzip=source["is_gzip"])
-                except Exception as exc:
-                    description = (
-                        "Restauração não concluída: falha na importação do dump. "
-                        "O backup de segurança permanece disponível para restauração manual."
-                    )
-                    write_audit(
-                        db,
-                        user=user,
-                        action=ACTION_BACKUP_RESTORE_FAILED,
-                        module="Backup",
-                        resource="backup",
-                        resource_ref=filename,
-                        ip_address=ip_address,
-                        result=RESULT_FAILURE,
-                        description=description,
-                    )
-                    logger.error("%s", description)
-                    raise BackupError(description) from exc
-
-                # Validação pós-restore real (nunca sucesso só por retorno 0)
-                try:
-                    BackupService.validate_post_restore(db)
-                except BackupError as exc:
-                    description = (
-                        f"Restauração não concluída: {exc} "
-                        "O backup de segurança permanece disponível para restauração manual."
-                    )
-                    write_audit(
-                        db,
-                        user=user,
-                        action=ACTION_BACKUP_RESTORE_FAILED,
-                        module="Backup",
-                        resource="backup",
-                        resource_ref=filename,
-                        ip_address=ip_address,
-                        result=RESULT_FAILURE,
-                        description=description,
-                    )
-                    logger.error("%s", description)
-                    raise BackupError(description) from exc
-
-                write_audit(
-                    db,
-                    user=user,
-                    action=ACTION_BACKUP_RESTORE_SUCCESS,
-                    module="Backup",
-                    resource="backup",
-                    resource_ref=filename,
-                    ip_address=ip_address,
-                    result=RESULT_SUCCESS,
-                    description="Backup restaurado com sucesso.",
-                    new_data={
-                        "backup": filename,
-                        "backup_seguranca": security_name,
-                    },
-                )
-                return {
-                    "restaurado": filename,
-                    "backup_seguranca": security_name,
-                    "size_bytes": sec_info["size_bytes"],
-                }
-        except BackupError:
-            raise
-        except Exception as exc:
-            description = "Restauração não concluída por erro inesperado."
-            write_audit(
+            actor = (
+                db.query(User).filter(User.id == user_id).first()
+                if user_id is not None
+                else None
+            )
+            security = BackupService.generate_backup(
                 db,
-                user=user,
+                actor,
+                ip_address,
+                dump_executor=security_backup_executor,
+                _allow_during_restore=True,
+            )
+        finally:
+            db.close()
+
+        security_name = security["filename"]
+        BackupService.validate_restore_source(security_name)
+
+        _worker_audit(
+            action=ACTION_BACKUP_PRE_RESTORE,
+            ip_address=ip_address,
+            result=RESULT_SUCCESS,
+            description="Backup de segurança pré-restauração criado.",
+            resource_ref=security_name,
+            new_data={"backup": filename, "backup_seguranca": security_name},
+            user_id=user_id,
+        )
+
+        # DRENAGEM DO POOL (FR-003/R1): sem conexões vivas do processo web,
+        # os DROP/CREATE do dump não encontram metadata lock da própria app.
+        _maintenance_set(True, phase="importando")
+
+        if not drain_engine(timeout=30.0):
+            raise BackupError(
+                "Restauração não concluída: não foi possível drenar as conexões "
+                "do sistema para executar a importação com segurança. "
+                "O backup de segurança permanece disponível para restauração manual."
+            )
+
+        # Import com deadline de relógio (US2 — cobre o write no stdin, D2)
+        do_import(source["path"], is_gzip=source["is_gzip"])
+
+        # Validação pós-restore real (017): sessão nova (pool reaberto)
+        _maintenance_set(True, phase="verificando")
+        db = SessionLocal()
+        try:
+            BackupService.validate_post_restore(db)
+        finally:
+            db.close()
+
+        _worker_audit(
+            action=ACTION_BACKUP_RESTORE_SUCCESS,
+            ip_address=ip_address,
+            result=RESULT_SUCCESS,
+            description="Backup restaurado com sucesso.",
+            resource_ref=filename,
+            new_data={"backup": filename, "backup_seguranca": security_name},
+            user_id=user_id,
+        )
+        maintenance_mode["last_ok"] = True
+        maintenance_mode["last_message"] = (
+            f"Restauração concluída com sucesso. Backup de segurança: {security_name}."
+        )
+        logger.info("Restauração do backup %s concluída (worker 019).", filename)
+    except BackupError as exc:
+        description = (
+            f"{exc} O backup de segurança permanece disponível para "
+            "restauração manual."
+            if "backup de segurança" not in str(exc)
+            else str(exc)
+        )
+        _worker_audit(
+            action=ACTION_BACKUP_RESTORE_FAILED,
+            ip_address=ip_address,
+            result=RESULT_FAILURE,
+            description=description,
+            resource_ref=filename,
+            user_id=user_id,
+        )
+        logger.error("%s", description)
+        maintenance_mode["last_ok"] = False
+        maintenance_mode["last_message"] = description
+    except Exception as exc:  # crash-safety: nenhuma exceção escapa do worker
+        description = "Restauração não concluída por erro inesperado."
+        logger.exception("Falha inesperada no worker de restauração: %s", exc)
+        try:
+            _worker_audit(
                 action=ACTION_BACKUP_RESTORE_FAILED,
-                module="Backup",
-                resource="backup",
-                resource_ref=filename,
                 ip_address=ip_address,
                 result=RESULT_FAILURE,
                 description=description,
+                resource_ref=filename,
+                user_id=user_id,
             )
-            logger.error("%s", description)
-            raise BackupError(description) from exc
+        except Exception:  # pragma: no cover — auditoria nunca quebra o finally
+            logger.exception("Falha ao auditar o erro inesperado do restore.")
+        maintenance_mode["last_ok"] = False
+        maintenance_mode["last_message"] = description
+    finally:
+        # Liberação GARANTIDA (FR-009/FR-011/FR-012): slot + manutenção
+        _maintenance_set(False)
+        with _RESTORE_LOCK:
+            _RESTORE_IN_PROGRESS = False
 
-    # =========================================================================
-    # DOWNLOAD (US3)
-    # =========================================================================
 
-    @staticmethod
-    def get_backup_path(filename: str) -> Path:
-        """Valida o nome e retorna o caminho do backup (contract §1.4).
+# ==========================================================================
+# DOWNLOAD (US3 da 015) — valida nome/existência para rota e serviço
+# ==========================================================================
 
-        Levanta FileNotFoundError (→ 404 na rota) se o nome está fora do
-        padrão (path traversal impossível — R8) ou se o arquivo não existe.
-        """
-        if not _BACKUP_NAME_RE.match(filename):
-            raise FileNotFoundError(f"Nome de backup inválido: {filename!r}")
 
-        path = BACKUP_DIR / filename
-        if not path.is_file():
-            raise FileNotFoundError(f"Backup não encontrado: {filename}")
+def get_backup_path(filename: str) -> Path:
+    """Valida o nome e retorna o caminho do backup (contract 015 §1.4).
 
-        return path
+    Levanta FileNotFoundError (→ 404 na rota) se o nome está fora do
+    padrão (path traversal impossível — R8) ou se o arquivo não existe.
+    """
+    if not _BACKUP_NAME_RE.match(filename):
+        raise FileNotFoundError(f"Nome de backup inválido: {filename!r}")
+
+    path = BACKUP_DIR / filename
+    if not path.is_file():
+        raise FileNotFoundError(f"Backup não encontrado: {filename}")
+
+    return path
+
+
+BackupService.get_backup_path = staticmethod(get_backup_path)  # API da classe preservada (015/016/017)

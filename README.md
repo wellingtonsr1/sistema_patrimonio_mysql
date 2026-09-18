@@ -815,7 +815,7 @@ Usuários com a permissão `backup.gerenciar` (concedida ao perfil Administrador
 - Backups do formato anterior (`.sql`, sem checksum) continuam listados e baixáveis (Integridade "—");
 - Cada operação (geração, falha e download) é registrada na trilha de auditoria — a geração como `Backup Gerado`/`Backup Falhou`; diagnóstico técnico no log rotativo do sistema, sem credenciais;
 - **Requisito do servidor (feature 018)**: o utilitário nativo de dump (`mysqldump`) deve estar no PATH do processo — ou ter seu caminho indicado na variável `MYSQLDUMP_PATH` do `.env` (ex.: `MYSQLDUMP_PATH=C:\xampp\mysql\bin\mysqldump.exe` no Windows/XAMPP). Sem isso, a geração falha com a mensagem "utilitário não foi encontrado" e o diagnóstico completo vai ao log técnico (etapa, código de retorno e saída de erro sanitizada — nunca credenciais).
-Limitações: o backup é **manual** (sem agendamento, sem política de retenção) e cobre o banco de dados; a **restauração** não é executada pelo sistema — continua sendo política operacional do servidor.
+Limitações: o backup é **manual** (sem agendamento, sem política de retenção) e cobre o banco de dados; a **restauração** executada pela interface está descrita na próxima seção (feature 017, com correções da feature 019).
 
 ### Restauração de backup pela interface (feature 017)
 
@@ -830,7 +830,9 @@ Usuários com a permissão `backup.restaurar` (concedida ao perfil Administrador
 - Em caso de falha, o backup de segurança **permanece disponível** na listagem para restauração manual (política operacional); nunca é excluído automaticamente;
 - **Sessões**: como são registradas no banco, sessões abertas após a data do backup restaurado deixam de ser válidas; sessões existentes na data do backup voltam a valer;
 - Restaurações concorrentes são rejeitadas (uma por vez); durante uma restauração, a geração de backup manual fica temporariamente bloqueada;
-- Todo o ciclo é registrado na trilha de auditoria (Restauração Iniciada, Backup Pré-Restore Criado, Restauração Concluída/Falhou).
+- Todo o ciclo é registrado na trilha de auditoria (Restauração Iniciada, Backup Pré-Restore Criado, Restauração Concluída/Falhou);
+- **Execução em segundo plano (feature 019)**: após a confirmação, a restauração é **agendada** e o sistema entra em **modo de manutenção** — as demais páginas informam a indisponibilidade e o acesso normal retorna automaticamente ao final. O import é executado por um worker interno com o pool de conexões da aplicação drenado (elimina travamento por bloqueio do próprio sistema, corrigido no Windows e preservado no Linux); a tela de Backups acompanha a fase atual e o resultado;
+- **Tempo limite**: a fase de importação tem prazo de relógio configurável via `BACKUP_IMPORT_TIMEOUT` (em segundos, padrão `900`). Estourou o prazo, o import é interrompido e registrado como falha — nunca fica travado indefinidamente.
 
 Limitações: a restauração é **manual** (sem agendamento); não há rollback automático em caso de falha no meio da importação — o backup de segurança criado antes da operação é o caminho de recuperação (restaurável pela própria interface).
 

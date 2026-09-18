@@ -802,6 +802,7 @@ def admin_backups(
     request: Request,
     success: Optional[str] = None,
     error: Optional[str] = None,
+    info: Optional[str] = None,
 ):
     backups = BackupService.list_backups()
     return templates.TemplateResponse(
@@ -811,6 +812,8 @@ def admin_backups(
             "backups": backups,
             "success": success,
             "error": error,
+            "info": info,
+            "restore_status": backup_service.restore_status(),
             "active_tab": "admin",
         },
     )
@@ -892,14 +895,28 @@ def admin_backup_restore_form(
 
 @admin_router.post("/admin/backups/{filename}/restaurar", dependencies=[Depends(require_permission("backup.restaurar"))])
 def admin_backup_restore_exec(request: Request, filename: str, db: Session = Depends(get_db)):
-    """Executa o ciclo completo do restore (POST — nunca GET; FR-08)."""
+    """Agenda a restauração e responde 303 IMEDIATO (019 — contract §4).
+
+    O ciclo destrutivo roda em worker thread com drenagem do pool; o request
+    NÃO espera (nenhuma sessão aberta durante o import). Acompanhamento:
+    tela de backups com polling de /admin/backups/restaurar/status.
+    """
     actor = request.state.user
     try:
-        result = BackupService.restore_backup(db, actor, _client_ip(request), filename)
-        msg = (
-            f"Restauração concluída com sucesso. Backup restaurado: {result['restaurado']}. "
-            f"Backup de segurança criado antes da restauração: {result['backup_seguranca']}."
-        )
-        return RedirectResponse(url=f"/admin/backups?success={_quote(msg)}", status_code=303)
+        BackupService.restore_backup(db, actor, _client_ip(request), filename)
     except backup_service.BackupError as err:
         return RedirectResponse(url=f"/admin/backups?error={_quote(str(err))}", status_code=303)
+    msg = (
+        "Restauração agendada: o ciclo está executando em segundo plano com o "
+        "sistema em modo de manutenção. Acompanhe o resultado nesta tela."
+    )
+    return RedirectResponse(url=f"/admin/backups?info={_quote(msg)}", status_code=303)
+
+
+@admin_router.get("/admin/backups/restaurar/status", dependencies=[Depends(require_permission("backup.restaurar"))])
+def admin_backup_restore_status():
+    """Estado da restauração para o polling da tela (019, contract §4).
+
+    Sem segredos: apenas flags/fases/timestamps do ciclo em memória.
+    """
+    return backup_service.restore_status()

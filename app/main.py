@@ -41,6 +41,48 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+
+# ============================================================================
+# FEATURE 019 — Modo de manutenção durante a restauração (FR-010..FR-013)
+# ============================================================================
+
+# Whitelist MÍNIMA de caminhos acessíveis durante a restauração (contract §3).
+# A página de manutenção e este gate NÃO tocam o banco (F1 da revisão da spec).
+_MAINTENANCE_WHITELIST_PREFIXES = (
+    "/admin/backups/restaurar/status",  # polling do estado (mesma permissão)
+    "/login",                           # autenticação (FR-010)
+    "/logout",                          # encerramento de sessão (FR-010)
+    "/health",                          # healthcheck de infraestrutura
+    "/static/",                         # CSS/JS/imagens do template de manutenção
+)
+
+
+@app.middleware("http")
+async def maintenance_mode_middleware(request: Request, call_next):
+    """Gate em MEMÓRIA, ANTES de qualquer dependência de banco (F1/FR-010).
+
+    Durante a restauração, toda rota fora da whitelist recebe 503 amigável
+    renderizando admin/503.html (zero queries). Flag em memória do service:
+    nunca persistida — crash/restart limpa por construção (FR-011/R3).
+    O middleware NÃO concede acesso: rotas isentas mantêm suas permissões.
+    """
+    from app.services import backup_service
+
+    if backup_service.maintenance_mode.get("active"):
+        path = request.url.path
+        if not any(path.startswith(p) for p in _MAINTENANCE_WHITELIST_PREFIXES):
+            return templates.TemplateResponse(
+                request=request,
+                name="admin/503.html",
+                context={
+                    "maintenance_started_at": backup_service.maintenance_mode.get(
+                        "started_at"
+                    ),
+                },
+                status_code=503,
+            )
+    return await call_next(request)
+
 # Monta arquivos estáticos (CSS, JS, Imagens)
 STATIC_DIR = Path(__file__).parent / "web" / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")

@@ -95,6 +95,52 @@ def _failing_security_backup(path):
     raise RuntimeError("dump de segurança falhou (simulado)")
 
 
+# ============================================================================
+# FEATURE 019 — HELPERS (worker, drenagem, deadline, manutenção)
+# ============================================================================
+
+def _wait_for(predicate, timeout=10.0, interval=0.05):
+    """Aguarda até predicate() ser verdadeiro (worker thread assíncrona)."""
+    import time
+
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if predicate():
+            return True
+        time.sleep(interval)
+    return False
+
+
+def _wait_worker_finished(timeout=10.0):
+    """Aguarda o slot da 017 liberar (worker concluiu, sucesso ou falha)."""
+    from app.services import backup_service
+
+    return _wait_for(
+        lambda: not backup_service.restore_in_progress(), timeout=timeout
+    )
+
+
+def _patch_worker_sessions(monkeypatch):
+    """Padrão 018/I7: sessões do worker apontam para a base de teste.
+
+    O worker roda em thread própria e cria sessões via backup_service.SessionLocal —
+    sem este patch ele conectaria no banco real do DATABASE_URL.
+
+    IMPORTANTE: o conftest é carregado pelo pytest como módulo 'conftest'
+    (sem tests/__init__.py); importar 'tests.conftest' criaria um SEGUNDO
+    módulo com SEGUNDO engine :memory: — a thread veria uma base vazia.
+    Resolvemos o módulo carregado via sys.modules (funciona nos dois casos).
+    """
+    import sys
+
+    from app.services import backup_service
+
+    mod = sys.modules.get("conftest") or sys.modules.get("tests.conftest")
+    TestingSessionLocal = mod.TestingSessionLocal
+
+    monkeypatch.setattr(backup_service, "SessionLocal", TestingSessionLocal)
+
+
 def _cleanup_backups():
     """Remove backups/temporários dos testes (padrão de test_backup_manual.py)."""
     import re
@@ -239,7 +285,8 @@ def test_validate_post_restore_ok(db_session):
 # US1 (T010) — Teste A service-level: ciclo completo
 # ============================================================================
 
-def test_ciclo_completo_service_sucesso(db_session):
+def test_ciclo_completo_service_sucesso(db_session, monkeypatch):
+    """019: ciclo completo agora é AGENDADO (worker) — mesmo contrato de eventos."""
     from app.services.audit_service import (
         ACTION_BACKUP_CREATED,
         ACTION_BACKUP_PRE_RESTORE,
@@ -247,6 +294,8 @@ def test_ciclo_completo_service_sucesso(db_session):
         ACTION_BACKUP_RESTORE_SUCCESS,
         RESULT_SUCCESS,
     )
+
+    _patch_worker_sessions(monkeypatch)
 
     name = _make_backup_file("backup_20260917_120000_001101.sql.gz")
     user = _make_user(db_session, "rstadmin", role_names=["Administrador"])
@@ -259,15 +308,19 @@ def test_ciclo_completo_service_sucesso(db_session):
         import_executor=_fake_import,
     )
 
-    # Retorno com os 3 campos
+    # Retorno agendado (019): confirmação + URL de status
+    assert result["agendado"] is True
     assert result["restaurado"] == name
-    assert result["backup_seguranca"].endswith(".sql.gz")
-    assert result["size_bytes"] > 0
+    assert _wait_worker_finished()
+
+    pre = _audit_entries(db_session, ACTION_BACKUP_PRE_RESTORE)
+    security_name = _new_data(pre[0])["backup_seguranca"]
 
     # Backup de segurança listado e OK
     backups = {b["filename"]: b for b in BackupService.list_backups()}
-    assert result["backup_seguranca"] in backups
-    assert backups[result["backup_seguranca"]]["integrity"] == "OK"
+    assert security_name.endswith(".sql.gz")
+    assert security_name in backups
+    assert backups[security_name]["integrity"] == "OK"
 
     # Eventos na ordem e com resultado SUCCESS
     started = _audit_entries(db_session, ACTION_BACKUP_RESTORE_STARTED)
@@ -279,7 +332,7 @@ def test_ciclo_completo_service_sucesso(db_session):
 
     nd = _new_data(pre[0])
     assert nd["backup"] == name
-    assert nd["backup_seguranca"] == result["backup_seguranca"]
+    assert nd["backup_seguranca"] == security_name
 
     # Slot liberado
     from app.services import backup_service
@@ -320,9 +373,11 @@ def test_web_post_executa_ciclo_completo(client, db_session, monkeypatch):
 
     name = _make_backup_file("backup_20260917_120000_001202.sql.gz")
     monkeypatch.setattr(backup_service, "_run_mysql_import", _fake_import)
+    _patch_worker_sessions(monkeypatch)  # 019: o ciclo roda em worker thread
 
     resp = client.post(f"/admin/backups/{name}/restaurar", follow_redirects=False)
     assert resp.status_code == 303
+    assert _wait_worker_finished()
 
     backups = {b["filename"]: b for b in BackupService.list_backups()}
     assert len(backups) == 2  # restaurado + segurança
@@ -458,13 +513,16 @@ def test_web_path_traversal_bloqueado(client, db_session):
 # US4 (T018) — Testes G/H/J: falhas seguras e concorrência
 # ============================================================================
 
-def test_falha_backup_seguranca_restore_nao_inicia(db_session):
-    """Teste G: dump de segurança falha → restore NÃO inicia, banco preservado."""
+def test_falha_backup_seguranca_restore_nao_inicia(db_session, monkeypatch):
+    """Teste G (019): falha do backup de segurança → FALHA auditada no worker,
+    banco preservado, nenhum backup de segurança."""
     from app.services.audit_service import (
         ACTION_BACKUP_PRE_RESTORE,
         ACTION_BACKUP_RESTORE_FAILED,
         ACTION_BACKUP_RESTORE_STARTED,
     )
+
+    _patch_worker_sessions(monkeypatch)
 
     name = _make_backup_file("backup_20260917_120000_001501.sql.gz")
     user = _make_user(db_session, "rstfail1", role_names=["Administrador"])
@@ -473,15 +531,16 @@ def test_falha_backup_seguranca_restore_nao_inicia(db_session):
 
     antes = db_session.query(Asset).count()
 
-    with pytest.raises(BackupError):
-        BackupService.restore_backup(
-            db_session,
-            user,
-            "127.0.0.1",
-            name,
-            import_executor=_fake_import,
-            security_backup_executor=_failing_security_backup,
-        )
+    result = BackupService.restore_backup(
+        db_session,
+        user,
+        "127.0.0.1",
+        name,
+        import_executor=_fake_import,
+        security_backup_executor=_failing_security_backup,
+    )
+    assert result["agendado"] is True
+    assert _wait_worker_finished()
 
     failed = _audit_entries(db_session, ACTION_BACKUP_RESTORE_FAILED)
     assert len(failed) == 1
@@ -494,25 +553,27 @@ def test_falha_backup_seguranca_restore_nao_inicia(db_session):
     assert names == {name}
 
 
-def test_falha_no_import_sem_falso_sucesso(db_session):
-    """Teste H: import falha → falha registrada, backup de segurança preservado."""
+def test_falha_no_import_sem_falso_sucesso(db_session, monkeypatch):
+    """Teste H (019): import falha no worker → FALHA registrada, segurança preservado."""
     from app.services.audit_service import (
         ACTION_BACKUP_PRE_RESTORE,
         ACTION_BACKUP_RESTORE_FAILED,
         RESULT_FAILURE,
     )
 
+    _patch_worker_sessions(monkeypatch)
+
     name = _make_backup_file("backup_20260917_120000_001502.sql.gz")
     user = _make_user(db_session, "rstfail2", role_names=["Administrador"])
 
-    with pytest.raises(BackupError):
-        BackupService.restore_backup(
-            db_session,
-            user,
-            "127.0.0.1",
-            name,
-            import_executor=_failing_import,
-        )
+    BackupService.restore_backup(
+        db_session,
+        user,
+        "127.0.0.1",
+        name,
+        import_executor=_failing_import,
+    )
+    assert _wait_worker_finished()
 
     failed = _audit_entries(db_session, ACTION_BACKUP_RESTORE_FAILED)
     assert len(failed) == 1
@@ -614,12 +675,14 @@ def test_import_failure_loga_stderr_sanitizado(monkeypatch, caplog, tmp_path):
 
 
 def test_sucesso_somente_apos_validacao(db_session, monkeypatch):
-    """BV-R3: se validate_post_restore falha, SUCESSO nunca é gravado."""
+    """BV-R3 (019): validação pós-restore falha no worker → SUCESSO nunca gravado."""
     from app.services.audit_service import (
         ACTION_BACKUP_RESTORE_FAILED,
         ACTION_BACKUP_RESTORE_SUCCESS,
     )
     from app.services import backup_service
+
+    _patch_worker_sessions(monkeypatch)
 
     name = _make_backup_file("backup_20260917_120000_001601.sql.gz")
     user = _make_user(db_session, "rstfail4", role_names=["Administrador"])
@@ -629,14 +692,480 @@ def test_sucesso_somente_apos_validacao(db_session, monkeypatch):
 
     monkeypatch.setattr(BackupService, "validate_post_restore", _broken_post_restore)
 
-    with pytest.raises(BackupError):
-        BackupService.restore_backup(
-            db_session,
-            user,
-            "127.0.0.1",
-            name,
-            import_executor=_fake_import,
-        )
+    BackupService.restore_backup(
+        db_session,
+        user,
+        "127.0.0.1",
+        name,
+        import_executor=_fake_import,
+    )
+    assert _wait_worker_finished()
 
     assert _audit_entries(db_session, ACTION_BACKUP_RESTORE_SUCCESS) == []
     assert len(_audit_entries(db_session, ACTION_BACKUP_RESTORE_FAILED)) == 1
+
+
+# ============================================================================
+# FEATURE 019 — US1: fluxo agendado + worker + drenagem do pool
+# ============================================================================
+
+
+def test_019_drain_engineFechaOciosasEAguardaQuiescencia(db_session, monkeypatch):
+    """T006 (contract §2): drain_engine retorna True, não altera DATABASE_URL."""
+    from app.database import drain_engine
+
+    assert drain_engine(timeout=5.0) is True
+    from app.config import DATABASE_URL
+
+    assert DATABASE_URL  # intocado (contract §2/FR-006)
+
+
+def test_019_restoreAgendaEWorkerConcluiCiclo(db_session, monkeypatch):
+    """US1 (T004 c/d/e): restore_backup agenda, retorna antes do import;
+    worker executa segurança → drenagem → import → validação → SUCCESS."""
+    from app.services import backup_service
+    from app.services.audit_service import (
+        ACTION_BACKUP_PRE_RESTORE,
+        ACTION_BACKUP_RESTORE_STARTED,
+        ACTION_BACKUP_RESTORE_SUCCESS,
+    )
+
+    _patch_worker_sessions(monkeypatch)
+
+    ordem = []
+
+    def _spy_import(path, *, is_gzip=False):
+        ordem.append("import")
+
+    original_drain = backup_service.drain_engine
+
+    def _spy_drain(**kwargs):
+        ordem.append("drain")
+        return original_drain(**kwargs)
+
+    monkeypatch.setattr(backup_service, "drain_engine", _spy_drain)
+
+    name = _make_backup_file("backup_20260918_090000_001901.sql.gz")
+    user = _make_user(db_session, "rst019a", role_names=["Administrador"])
+
+    result = BackupService.restore_backup(
+        db_session, user, "127.0.0.1", name, import_executor=_spy_import
+    )
+    # Fluxo agendado: retorna ANTES do import (nenhum SUCCESS ainda)
+    assert result["agendado"] is True
+    assert ordem == [] or "import" not in ordem
+    assert _audit_entries(db_session, ACTION_BACKUP_RESTORE_SUCCESS) == []
+
+    # Worker conclui em tempo finito com o ciclo completo na ordem correta
+    assert _wait_worker_finished(), "worker não concluiu o ciclo"
+    assert ordem == ["drain", "import"]  # drenagem ANTES do import (FR-003)
+    started = _audit_entries(db_session, ACTION_BACKUP_RESTORE_STARTED)
+    pre = _audit_entries(db_session, ACTION_BACKUP_PRE_RESTORE)
+    success = _audit_entries(db_session, ACTION_BACKUP_RESTORE_SUCCESS)
+    assert len(started) == 1 and len(pre) == 1 and len(success) == 1
+    security_name = _new_data(pre[0])["backup_seguranca"]
+    backups = {b["filename"]: b for b in BackupService.list_backups()}
+    assert security_name in backups
+    assert backups[security_name]["integrity"] == "OK"
+
+
+def test_019_workerUsaSessoesPropriasNaoAsDoRequest(db_session, monkeypatch):
+    """US1 (T004b/R5): eventos do worker NÃO passam pela sessão do request
+    (a sessão recebida por restore_backup não é usada no ciclo destrutivo)."""
+    from app.services import backup_service
+    from app.services.audit_service import ACTION_BACKUP_RESTORE_SUCCESS
+
+    _patch_worker_sessions(monkeypatch)
+
+    sessoes_usadas = []
+
+    real_write_audit = backup_service.write_audit
+
+    def _spy_write_audit(db, **kwargs):
+        sessoes_usadas.append(db)
+        return real_write_audit(db, **kwargs)
+
+    monkeypatch.setattr(backup_service, "write_audit", _spy_write_audit)
+
+    name = _make_backup_file("backup_20260918_090000_001902.sql.gz")
+    user = _make_user(db_session, "rst019b", role_names=["Administrador"])
+
+    BackupService.restore_backup(
+        db_session, user, "127.0.0.1", name, import_executor=_fake_import
+    )
+    assert _wait_worker_finished()
+    # A sessão do request (db_session) não pode aparecer nos eventos do worker
+    # (somente a do INICIADO, antes da thread, pode ser a do request)
+    assert all(s is not db_session for s in sessoes_usadas[1:])
+    assert len(_audit_entries(db_session, ACTION_BACKUP_RESTORE_SUCCESS)) == 1
+
+
+def test_019_falhaDeQuiescenciaAbortaSemFalsoSucesso(db_session, monkeypatch):
+    """US1 (T004f): drain_engine False → falha honesta, estado liberado,
+    backup de segurança disponível."""
+    from app.services import backup_service
+    from app.services.audit_service import (
+        ACTION_BACKUP_PRE_RESTORE,
+        ACTION_BACKUP_RESTORE_FAILED,
+        RESULT_FAILURE,
+    )
+
+    _patch_worker_sessions(monkeypatch)
+
+    monkeypatch.setattr(backup_service, "drain_engine", lambda **k: False)
+
+    name = _make_backup_file("backup_20260918_090000_001903.sql.gz")
+    user = _make_user(db_session, "rst019c", role_names=["Administrador"])
+
+    BackupService.restore_backup(
+        db_session, user, "127.0.0.1", name, import_executor=_fake_import
+    )
+    assert _wait_worker_finished()
+
+    failed = _audit_entries(db_session, ACTION_BACKUP_RESTORE_FAILED)
+    assert len(failed) == 1 and failed[0].result == RESULT_FAILURE
+    assert len(_audit_entries(db_session, ACTION_BACKUP_PRE_RESTORE)) == 1
+    backups = {b["filename"] for b in BackupService.list_backups()}
+    # Backup de segurança criado antes da falha permanece disponível (FR-005)
+    assert any(".sql" in n for n in backups)
+    with backup_service._RESTORE_LOCK:
+        assert backup_service._RESTORE_IN_PROGRESS is False
+
+
+def test_019_webPostRestaurarResponde303Imediato(client, db_session, monkeypatch):
+    """US1 (T005a/I3): POST /restaurar responde 303 imediato (fluxo web) sem
+    bloquear o request até o fim do import; polling conclui depois."""
+    import threading
+
+    from app.services import backup_service
+
+    _patch_worker_sessions(monkeypatch)
+
+    solta = threading.Event()
+
+    def _slow_import(path, *, is_gzip=False):
+        solta.wait(timeout=10)
+
+    monkeypatch.setattr(backup_service, "_run_mysql_import", _slow_import)
+
+    name = _make_backup_file("backup_20260918_090000_001904.sql.gz")
+
+    resp = client.post(f"/admin/backups/{name}/restaurar", follow_redirects=False)
+    assert resp.status_code == 303  # imediato — request NÃO esperou o import
+
+    status = client.get("/admin/backups/restaurar/status")
+    assert status.status_code == 200
+    dados = status.json()
+    assert dados["active"] is True
+
+    solta.set()
+    assert _wait_worker_finished()
+
+    dados = client.get("/admin/backups/restaurar/status").json()
+    assert dados["finished"] is True and dados["ok"] is True
+    assert "senha" not in status.text.lower() or "password" not in status.text.lower()
+
+
+def test_019_statusExigePermissaoRestaurar(client, db_session, monkeypatch):
+    """US1 (T005b/FR-014): rota de status exige backup.restaurar (403 sem ela)."""
+    from tests.test_rbac import _login
+
+    _make_user(db_session, "rst019d", role_names=["Consulta"])
+    _login(client, "rstConsulta") if False else _login(client, "rst019d")
+
+    resp = client.get("/admin/backups/restaurar/status")
+    assert resp.status_code == 403
+
+
+def test_019_guardaExternaDeGeracaoDuranteRestore(client, db_session, monkeypatch):
+    """US1 (T005e/FR-015): generate_backup SEM _allow_during_restore continua
+    bloqueado durante a restauração em andamento (guarda 017 preservada)."""
+    import threading
+
+    from app.services import backup_service
+
+    _patch_worker_sessions(monkeypatch)
+
+    solta = threading.Event()
+
+    def _slow_import(path, *, is_gzip=False):
+        solta.wait(timeout=10)
+
+    monkeypatch.setattr(backup_service, "_run_mysql_import", _slow_import)
+
+    name = _make_backup_file("backup_20260918_090000_001905.sql.gz")
+
+    resp = client.post(f"/admin/backups/{name}/restaurar", follow_redirects=False)
+    assert resp.status_code == 303
+    try:
+        from app.services.audit_service import ACTION_BACKUP_CREATED
+
+        antes = len(_audit_entries(db_session, ACTION_BACKUP_CREATED))
+        with pytest.raises(BackupError):
+            BackupService.generate_backup(db_session, user=None)
+        depois = len(_audit_entries(db_session, ACTION_BACKUP_CREATED))
+        assert depois == antes  # nenhum backup criado
+    finally:
+        solta.set()
+        assert _wait_worker_finished()
+
+
+# ============================================================================
+# FEATURE 019 — US2: deadline real, diagnóstico sanitizado, liberação
+# ============================================================================
+
+
+def test_019_timeoutDoImportAbortaNoPrazo(db_session, monkeypatch):
+    """US2 (T009a/SC-002): write bloqueante + BACKUP_IMPORT_TIMEOUT baixo →
+    aborta dentro do prazo, FALHA auditada, slot liberado."""
+    import threading
+    import time
+
+    from app.services import backup_service
+    from app.services.audit_service import (
+        ACTION_BACKUP_RESTORE_FAILED,
+        RESULT_FAILURE,
+    )
+
+    _patch_worker_sessions(monkeypatch)
+
+    solta = threading.Event()
+
+    class _ProcBloqueante:
+        def __init__(self):
+            self.returncode = None
+            self.stderr = None
+            self.terminated = False
+            self.stdin = self  # write bloqueante é o próprio stdin (fake)
+
+        def write(self, chunk):
+            solta.wait(timeout=30)  # simula o bloqueio real do incidente (D2)
+            return len(chunk)
+
+        def close(self):
+            pass
+
+        def wait(self, timeout=None):
+            return 0
+
+        def terminate(self):
+            self.terminated = True
+            solta.set()
+
+        kill = terminate
+
+    proc = _ProcBloqueante()
+
+    def _bloqueante(path, *, is_gzip=False):
+        backup_service._import_with_deadline(
+            proc, lambda: iter([b"chunk"]), password="senha_falsa"
+        )
+
+    monkeypatch.setattr(backup_service, "BACKUP_IMPORT_TIMEOUT", 1.5)
+    monkeypatch.setattr(backup_service, "_run_mysql_import", _bloqueante)
+
+    name = _make_backup_file("backup_20260918_090000_001906.sql.gz")
+    user = _make_user(db_session, "rst019e", role_names=["Administrador"])
+
+    inicio = time.monotonic()
+    BackupService.restore_backup(
+        db_session, user, "127.0.0.1", name, import_executor=_bloqueante
+    )
+    assert _wait_worker_finished(timeout=15)
+    decorrido = time.monotonic() - inicio
+
+    assert decorrido < 10, "deadline não abortou em tempo finito"
+    assert proc.terminated, "subprocesso não foi terminado no estouro"
+    failed = _audit_entries(db_session, ACTION_BACKUP_RESTORE_FAILED)
+    assert len(failed) == 1 and failed[0].result == RESULT_FAILURE
+    with backup_service._RESTORE_LOCK:
+        assert backup_service._RESTORE_IN_PROGRESS is False
+
+
+def test_019_diagnosticoDoTimeoutSemCredenciais(db_session, monkeypatch, caplog):
+    """US2 (T009b/H): log técnico do deadline traz etapa/tempo e NUNCA a senha."""
+    import logging
+    import threading
+
+    from app.services import backup_service
+
+    _patch_worker_sessions(monkeypatch)
+
+    solta = threading.Event()
+
+    class _ProcBloqueante:
+        returncode = None
+        stderr = None
+        stdin = None  # definido no __init__ (write bloqueante é o próprio stdin)
+
+        def __init__(self):
+            self.stdin = self
+
+        def write(self, chunk):
+            solta.wait(timeout=30)
+            return len(chunk)
+
+        def close(self):
+            pass
+
+        def wait(self, timeout=None):
+            return 0
+
+        def terminate(self):
+            solta.set()
+
+        kill = terminate
+
+    def _bloqueante(path, *, is_gzip=False):
+        with caplog.at_level(logging.ERROR, logger="app.services.backup_service"):
+            backup_service._import_with_deadline(
+                _ProcBloqueante(), lambda: iter([b"chunk"]), password="senha_falsa"
+            )
+
+    monkeypatch.setattr(backup_service, "BACKUP_IMPORT_TIMEOUT", 1.0)
+    monkeypatch.setattr(backup_service, "_run_mysql_import", _bloqueante)
+
+    name = _make_backup_file("backup_20260918_090000_001907.sql.gz")
+    user = _make_user(db_session, "rst019f", role_names=["Administrador"])
+
+    BackupService.restore_backup(
+        db_session, user, "127.0.0.1", name, import_executor=_bloqueante
+    )
+    assert _wait_worker_finished(timeout=15)
+    solta.set()
+
+    joined = " ".join(r.getMessage() for r in caplog.records)
+    assert "etapa" in joined.lower()
+    assert "senha_falsa" not in joined  # Princípio VI
+
+
+def test_019_returncodeErroMantemFalhaHonestaeEstadoLivre(db_session, monkeypatch):
+    """US2 (T009c/d): fluxo assíncrono preserva a falha honesta da 017."""
+    from app.services import backup_service
+    from app.services.audit_service import ACTION_BACKUP_RESTORE_FAILED
+
+    _patch_worker_sessions(monkeypatch)
+
+    name = _make_backup_file("backup_20260918_090000_001908.sql.gz")
+    user = _make_user(db_session, "rst019g", role_names=["Administrador"])
+
+    BackupService.restore_backup(
+        db_session, user, "127.0.0.1", name, import_executor=_failing_import
+    )
+    assert _wait_worker_finished()
+
+    failed = _audit_entries(db_session, ACTION_BACKUP_RESTORE_FAILED)
+    assert len(failed) == 1
+    backups = {b["filename"] for b in BackupService.list_backups()}
+    assert len(backups) >= 1  # backup de segurança disponível (FR-005)
+    with backup_service._RESTORE_LOCK:
+        assert backup_service._RESTORE_IN_PROGRESS is False
+
+
+# ============================================================================
+# FEATURE 019 — US3: modo de manutenção sem banco
+# ============================================================================
+
+
+def test_019_manutencaoResponde503SemBanco(client, db_session, monkeypatch):
+    """US3 (T012a/FR-010/F1): middleware ativo → 503 amigável mesmo com get_db
+    quebrado (a página de manutenção NÃO depende do banco)."""
+    from app.services import backup_service
+
+    def _broken_get_db():
+        raise RuntimeError("banco indisponível (simulado)")
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(backup_service, "maintenance_mode", {"active": True})
+    from app.database import get_db
+    from app.main import app
+
+    app.dependency_overrides[get_db] = _broken_get_db
+    try:
+        resp = client.get("/admin/users")
+        assert resp.status_code == 503
+        assert "restaura" in resp.text.lower()  # informa a restauração
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+def test_019_manutencaoWhitelistMinima(client, db_session, monkeypatch):
+    """US3 (T012b): status do restore e login/health acessíveis; demais 503."""
+    from app.services import backup_service
+
+    monkeypatch.setattr(backup_service, "maintenance_mode", {"active": True})
+
+    assert client.get("/admin/backups/restaurar/status").status_code == 200
+    assert client.get("/health").status_code == 200
+    assert client.get("/admin/users").status_code == 503
+    assert client.get("/assets").status_code == 503
+
+
+def test_019_manutencaoEncerraAutomaticamente(db_session, monkeypatch):
+    """US3 (T012d/FR-012): worker limpa a manutenção em sucesso e falha."""
+    from app.services import backup_service
+
+    _patch_worker_sessions(monkeypatch)
+
+    name = _make_backup_file("backup_20260918_090000_001909.sql.gz")
+    user = _make_user(db_session, "rst019h", role_names=["Administrador"])
+
+    BackupService.restore_backup(
+        db_session, user, "127.0.0.1", name, import_executor=_fake_import
+    )
+    assert _wait_worker_finished()
+    assert backup_service.maintenance_mode["active"] is False
+
+    # Falha: manutenção também é encerrada
+    name2 = _make_backup_file("backup_20260918_090000_001910.sql.gz")
+    BackupService.restore_backup(
+        db_session, user, "127.0.0.1", name2, import_executor=_failing_import
+    )
+    assert _wait_worker_finished()
+    assert backup_service.maintenance_mode["active"] is False
+
+
+def test_019_crashDaThreadNaoDeixaManutencaoEterna(db_session, monkeypatch):
+    """US3 (T012e/FR-011/FR-009): exceção no worker → manutenção encerrada,
+    slot liberado, falha auditada (crash-safety)."""
+    from app.services import backup_service
+    from app.services.audit_service import ACTION_BACKUP_RESTORE_FAILED
+
+    _patch_worker_sessions(monkeypatch)
+
+    name = _make_backup_file("backup_20260918_090000_001911.sql.gz")
+    user = _make_user(db_session, "rst019i", role_names=["Administrador"])
+
+    def _explode_security(path):
+        raise RuntimeError("boom (crash simulado)")
+
+    BackupService.restore_backup(
+        db_session,
+        user,
+        "127.0.0.1",
+        name,
+        security_backup_executor=_explode_security,
+    )
+    assert _wait_worker_finished()
+
+    assert backup_service.maintenance_mode["active"] is False
+    with backup_service._RESTORE_LOCK:
+        assert backup_service._RESTORE_IN_PROGRESS is False
+    assert len(_audit_entries(db_session, ACTION_BACKUP_RESTORE_FAILED)) == 1
+
+
+def test_019_estadoNaoPersisteEntreProcessos(db_session, monkeypatch):
+    """US3 (T012f/R3): flag de manutenção é em memória — novo import do módulo
+    começa limpo (restart do processo limpa a manutenção)."""
+    import importlib
+
+    from app.services import backup_service
+
+    backup_service.maintenance_mode["active"] = True
+    importlib.reload(backup_service)
+    try:
+        assert backup_service.maintenance_mode["active"] is False
+        assert backup_service.restore_in_progress() is False
+    finally:
+        # reload substituiu símbolos; restaura estado limpo para os próximos testes
+        backup_service.maintenance_mode["active"] = False

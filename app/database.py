@@ -24,6 +24,32 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 
+def drain_engine(timeout: float = 10.0) -> bool:
+    """Drena o pool de conexões da aplicação (feature 019 — FR-003/R1/R5).
+
+    Fecha as conexões OCIOSAS do pool (engine.dispose) e aguarda, até
+    `timeout` segundos, que nenhuma conexão permaneça em uso (checkedout == 0).
+    Não altera DATABASE_URL, nem os parâmetros do engine/pool (contract §2):
+    o SQLAlchemy recria conexões sob demanda após o dispose.
+
+    Retorna True se o pool chegou a zero conexões em uso no prazo;
+    False caso contrário (o chamador deve abortar a operação destrutiva
+    — no restore da 019 isso vira falha honesta auditada).
+    """
+    import time
+
+    global engine
+
+    engine.dispose()  # fecha conexões ociosas do pool
+
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if engine.pool.checkedout() == 0:
+            return True
+        time.sleep(0.1)
+    return False
+
+
 def get_db():
     """Dependency para obter sessão do banco de dados no FastAPI"""
     db = SessionLocal()

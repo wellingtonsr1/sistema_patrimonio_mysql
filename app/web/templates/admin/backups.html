@@ -69,6 +69,17 @@
     <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
 </div>
 {% endif %}
+{% if info %}
+<div class="alert alert-info d-flex align-items-center" role="alert">
+    <i class="bi bi-info-circle me-2"></i>{{ info }}
+</div>
+{% endif %}
+
+<!-- Feature 019: indicador de restauração em andamento (FR-013) -->
+<div id="restore-indicator" class="alert alert-warning d-none align-items-center" role="alert">
+    <i class="bi bi-hourglass-split me-2"></i>
+    <span id="restore-indicator-text">Restauração em andamento — sistema em modo de manutenção.</span>
+</div>
 
 <!-- Gerar -->
 <div class="card p-3 mb-4">
@@ -81,7 +92,7 @@
             </p>
         </div>
         <form method="post" action="/admin/backups/gerar" onsubmit="return confirm('Gerar um backup agora?');">
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" id="btn-gerar-backup" class="btn btn-primary" {% if restore_status and restore_status.active %}disabled{% endif %}>
                 <i class="bi bi-cloud-arrow-down me-1"></i>Gerar backup
             </button>
         </form>
@@ -124,7 +135,7 @@
                     <td class="font-monospace small text-truncate" style="max-width: 14ch;" {% if b.sha256 %}title="{{ b.sha256 }}"{% else %}title="Sem checksum (formato antigo)"{% endif %}>{{ b.sha256[:12] if b.sha256 else '—' }}</td>
                     <td class="text-end">
                         {% if can('backup.restaurar') %}
-                        <a class="btn btn-sm btn-outline-danger me-1" href="/admin/backups/{{ b.filename }}/restaurar" title="Restaurar este backup">
+                        <a class="btn btn-sm btn-outline-danger me-1 {% if restore_status and restore_status.active %}disabled{% endif %}" href="/admin/backups/{{ b.filename }}/restaurar" title="Restaurar este backup">
                             <i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar
                         </a>
                         {% endif %}
@@ -144,5 +155,51 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% if can('backup.restaurar') %}
+<!-- Feature 019: polling leve do estado da restauração (~3 s enquanto ativa) -->
+<script>
+(function () {
+    var indicator = document.getElementById('restore-indicator');
+    var indicatorText = document.getElementById('restore-indicator-text');
+    if (!indicator) return;
+
+    {% if restore_status and restore_status.active %}indicator.classList.remove('d-none');{% endif %}
+
+    var fases = {
+        validando: 'Validando o arquivo de backup…',
+        seguranca: 'Criando backup de segurança…',
+        importando: 'Importando o dump (sistema em manutenção)…',
+        verificando: 'Verificando a integridade pós-restauração…'
+    };
+
+    function atualizar(dados) {
+        if (dados && dados.active) {
+            indicator.classList.remove('d-none');
+            indicatorText.textContent = fases[dados.phase] ||
+                'Restauração em andamento — sistema em modo de manutenção.';
+            setTimeout(poll, 3000);
+        } else if (dados && dados.finished) {
+            if (indicator && !indicator.classList.contains('d-none')) {
+                // Recarrega a listagem para mostrar o resultado final (sucesso/falha)
+                window.location.reload();
+            }
+        }
+    }
+
+    function poll() {
+        fetch('/admin/backups/restaurar/status', { credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(atualizar)
+            .catch(function () { /* próxima tentativa no recarregamento */ });
+    }
+
+    {% if restore_status and restore_status.active %}setTimeout(poll, 3000);{% endif %}
+})();
+</script>
 {% endif %}
 {% endblock %}
