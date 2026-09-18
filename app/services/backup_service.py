@@ -18,6 +18,7 @@ Regras (contracts/service-contract.md, research R1–R8):
 import gzip
 import hashlib
 import logging
+import os
 import re
 import subprocess
 import threading
@@ -28,7 +29,9 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional
 from urllib.parse import urlparse, unquote
 
-from app.config import BACKUP_DIR, DATABASE_URL
+import shutil
+
+from app.config import BACKUP_DIR, DATABASE_URL, MYSQLDUMP_PATH
 from app.models.user import User
 from app.services.audit_service import (
     ACTION_BACKUP_CREATED,
@@ -53,6 +56,66 @@ from sqlalchemy.orm import Session
 _BACKUP_NAME_RE = re.compile(r"^backup_(\d{8})_(\d{6})_(\d{6})\.sql(\.gz)?$")
 
 _DUMP_TIMEOUT_SECONDS = 600
+
+# 018 (research R1): a senha vai EXCLUSIVAMENTE no ambiente do subprocesso
+# (MYSQL_PWD); o ambiente é herdado do processo (nunca mais o PATH fixo Unix
+# que impedia o Windows de resolver o executável).
+_DUMP_TOOL_NAME = "mysqldump"
+_IMPORT_TOOL_NAME = "mysql"
+
+
+def _dump_env(password: str) -> Dict[str, str]:
+    """Ambiente do subprocesso de dump/import: herda o processo + MYSQL_PWD (R1)."""
+    env = os.environ.copy()
+    env["MYSQL_PWD"] = password
+    return env
+
+
+def _resolve_tool_executable(tool_name: str) -> str:
+    """Resolve o executável nativo do SGBD (R3/R6):
+
+    1) MYSQLDUMP_PATH configurada (apontando o mysqldump; o cliente de import
+       é derivado do mesmo bin — R4) — falha CLARA se o caminho não existe;
+    2) fallback: shutil.which no PATH do processo (comportamento Linux atual);
+    3) ausente → BackupError com mensagem distinta de 'não encontrado'
+       (diagnosticável, sem segredos).
+    """
+    if tool_name == _DUMP_TOOL_NAME and MYSQLDUMP_PATH:
+        configured = Path(MYSQLDUMP_PATH)
+        if not configured.is_file():
+            raise BackupError(
+                "O utilitário de dump não foi encontrado no servidor: "
+                "MYSQLDUMP_PATH aponta para um caminho inexistente. "
+                "Verifique a configuração."
+            )
+        return str(configured)
+
+    found = shutil.which(tool_name)
+    if found:
+        return found
+
+    raise BackupError(
+        f"O utilitário '{tool_name}' não foi encontrado no servidor. "
+        "Instale-o ou configure o caminho correto (variável MYSQLDUMP_PATH)."
+    )
+
+
+def _resolve_import_executable() -> str:
+    """Executável do cliente de import (R4, refinado pela suíte 017):
+
+    Nunca falha antecipadamente (os fakes de Popen da suíte precisam ser
+    alcançados em qualquer SO): (1) derivado do MYSQLDUMP_PATH (mesmo bin,
+    sufixo preservado) quando existir; (2) shutil.which no PATH; (3) nome
+    simples — a execução levantará FileNotFoundError, tratado com a
+    mensagem distinta de 'não encontrado'."""
+    if MYSQLDUMP_PATH:
+        configured = Path(MYSQLDUMP_PATH)
+        derived = configured.with_name(
+            configured.name.replace(_DUMP_TOOL_NAME, _IMPORT_TOOL_NAME)
+        )
+        if derived.is_file():
+            return str(derived)
+    return shutil.which(_IMPORT_TOOL_NAME) or _IMPORT_TOOL_NAME
 
 # Log técnico do módulo (feature 016, briefing §26): usa o handler rotativo
 # existente; nunca registra credenciais, DATABASE_URL ou o comando completo.
@@ -114,13 +177,16 @@ def _run_mysqldump(path: Path) -> None:
     if not database:
         raise BackupError("DATABASE_URL não contém o nome do banco de dados.")
 
-    env = {"MYSQL_PWD": password, "PATH": "/usr/local/bin:/usr/bin:/bin"}
+    # 018 (R1/R3): executável resolvido (config → PATH) e ambiente herdado;
+    # a senha EXCLUSIVAMENTE no ambiente (nunca em argv — Princípio VI).
+    executable = _resolve_tool_executable(_DUMP_TOOL_NAME)
+    env = _dump_env(password)
 
     try:
         with open(path, "wb") as out:
             subprocess.run(
                 [
-                    "mysqldump",
+                    executable,
                     "--single-transaction",
                     "--no-tablespaces",
                     f"--host={host}",
@@ -134,11 +200,30 @@ def _run_mysqldump(path: Path) -> None:
                 timeout=_DUMP_TIMEOUT_SECONDS,
                 check=True,
             )
-    except subprocess.CalledProcessError:
-        # stderr pode conter o comando — NUNCA propagar (Princípio VI)
+    except subprocess.CalledProcessError as exc:
+        # Diagnóstico técnico no log (018 — R5, paridade com o import):
+        # etapa, exit code e stderr SANITIZADO. stderr pode conter segredos —
+        # NUNCA propagar ao usuário/auditoria (Princípio VI).
+        stderr_text = ""
+        if exc.stderr:
+            stderr_text = exc.stderr.decode("utf-8", "replace")
+        logger.error(
+            "Dump falhou (etapa=dump, exit=%s). stderr do utilitário: %s",
+            exc.returncode,
+            _sanitize_stderr(stderr_text, password),
+        )
         raise BackupError("O utilitário de dump retornou erro.")
     except subprocess.TimeoutExpired:
+        logger.error("Dump falhou (etapa=dump): tempo limite de %ds excedido.", _DUMP_TIMEOUT_SECONDS)
         raise BackupError("O utilitário de dump excedeu o tempo limite.")
+    except FileNotFoundError as exc:
+        # Defesa em profundidade: executável sumiu entre a resolução e a
+        # execução — mesmo tratamento diagnóstico (018)
+        logger.error("Dump falhou (etapa=dump): executável indisponível (%s).", type(exc).__name__)
+        raise BackupError(
+            "O utilitário de dump não foi encontrado no servidor. "
+            "Instale-o ou configure o caminho correto (variável MYSQLDUMP_PATH)."
+        ) from exc
 
 
 class BackupError(Exception):
@@ -211,7 +296,10 @@ def _run_mysql_import(path: Path, *, is_gzip: bool) -> None:
     if not database:
         raise BackupError("DATABASE_URL não contém o nome do banco de dados.")
 
-    env = {"MYSQL_PWD": password, "PATH": "/usr/local/bin:/usr/bin:/bin"}
+    # 018 (R1/R4): mesma correção do dump — ambiente herdado + MYSQL_PWD e
+    # executável derivado do MYSQLDUMP_PATH (mesmo bin) com fallback PATH.
+    executable = _resolve_import_executable()
+    env = _dump_env(password)
 
     try:
         # Streaming: o Python alimenta o stdin do cliente bloco a bloco
@@ -219,7 +307,13 @@ def _run_mysql_import(path: Path, *, is_gzip: bool) -> None:
         # stderr é capturado para diagnóstico no log técnico (sanitizado —
         # §31: nunca credenciais) e NUNCA vai ao usuário/auditoria.
         proc = subprocess.Popen(
-            ["mysql", f"--host={host}", f"--port={port}", f"--user={user}", database],
+            [
+                executable,
+                f"--host={host}",
+                f"--port={port}",
+                f"--user={user}",
+                database,
+            ],
             stdin=subprocess.PIPE,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
@@ -252,6 +346,17 @@ def _run_mysql_import(path: Path, *, is_gzip: bool) -> None:
         raise BackupError("O utilitário de importação retornou erro.")
     except subprocess.TimeoutExpired:
         raise BackupError("O utilitário de importação excedeu o tempo limite.")
+    except FileNotFoundError as exc:
+        # 018: executável ausente no PATH/config — falha clara e
+        # diagnosticável (mesma mensagem-padrão da resolução do dump)
+        logger.error(
+            "Importação falhou (etapa=import): executável indisponível (%s).",
+            type(exc).__name__,
+        )
+        raise BackupError(
+            "O utilitário 'mysql' não foi encontrado no servidor. "
+            "Instale-o ou configure o caminho correto (variável MYSQLDUMP_PATH)."
+        ) from exc
 
 
 def _iter_dump_chunks(path: Path, is_gzip: bool):

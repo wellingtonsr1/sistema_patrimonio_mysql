@@ -217,6 +217,7 @@ Observações factuais sobre a arquitetura:
 | Item | Valor |
 |---|---|
 | Banco | MariaDB/MySQL (configurável via `DATABASE_URL` em `app/config.py`) |
+| Backup/restauração | Utilitários nativos do SGBD via subprocesso; caminho do dump opcionalmente configurável por `MYSQLDUMP_PATH` em `app/config.py` (feature 018 — necessário no Windows/XAMPP quando o `mysqldump` não está no PATH do processo; fallback: busca no PATH do sistema). Falhas de dump/import registram diagnóstico técnico no log (etapa, exit code, stderr sanitizado — sem credenciais) |
 | Acesso | SQLAlchemy 2 (`create_engine` + `sessionmaker`); pool QueuePool para concorrência |
 | Sessão por request | `app.database.get_db` (dependency FastAPI) |
 | Migrações | `Base.metadata.create_all` + `_ensure_schema_migrations()` (ALTER TABLE condicional; sem Alembic) |

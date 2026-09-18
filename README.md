@@ -813,8 +813,8 @@ Usuários com a permissão `backup.gerenciar` (concedida ao perfil Administrador
 - O arquivo é armazenado no servidor em `data/backups/`, nomeado `backup_AAAAMMDD_HHMMSS_micros.sql.gz` com **data/hora em UTC**;
 - A tela lista os backups disponíveis (data/hora, tamanho, **Integridade** OK/—/CORROMPIDO e **SHA-256** — o mesmo valor do `sha256sum` do arquivo, útil para conferir o download) e permite baixá-los;
 - Backups do formato anterior (`.sql`, sem checksum) continuam listados e baixáveis (Integridade "—");
-- Cada operação (geração, falha e download) é registrada na trilha de auditoria — a geração como `Backup Gerado`/`Backup Falhou`; diagnóstico técnico no log rotativo do sistema, sem credenciais.
-
+- Cada operação (geração, falha e download) é registrada na trilha de auditoria — a geração como `Backup Gerado`/`Backup Falhou`; diagnóstico técnico no log rotativo do sistema, sem credenciais;
+- **Requisito do servidor (feature 018)**: o utilitário nativo de dump (`mysqldump`) deve estar no PATH do processo — ou ter seu caminho indicado na variável `MYSQLDUMP_PATH` do `.env` (ex.: `MYSQLDUMP_PATH=C:\xampp\mysql\bin\mysqldump.exe` no Windows/XAMPP). Sem isso, a geração falha com a mensagem "utilitário não foi encontrado" e o diagnóstico completo vai ao log técnico (etapa, código de retorno e saída de erro sanitizada — nunca credenciais).
 Limitações: o backup é **manual** (sem agendamento, sem política de retenção) e cobre o banco de dados; a **restauração** não é executada pelo sistema — continua sendo política operacional do servidor.
 
 ### Restauração de backup pela interface (feature 017)

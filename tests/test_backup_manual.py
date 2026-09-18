@@ -754,3 +754,450 @@ def test_eventos_nao_contem_credenciais_nem_comando(db_session):
     ev = _audit_entries(db_session, ACTION_BACKUP_CREATED)[0]
     new_data = _new_data(ev)
     assert set(new_data.keys()) <= {"arquivo", "tamanho_bytes", "sha256"}
+
+
+# ============================================================================
+# 018 — US1: resolução do executável de dump e ambiente do subprocesso
+# (research R1/R3: MYSQLDUMP_PATH → fallback PATH → erro diagnosticável;
+#  ambiente herdado + MYSQL_PWD — a senha EXCLUSIVAMENTE no ambiente)
+# ============================================================================
+
+_DUMP_URL = "mariadb+pymysql://usuario:senha_falsa@localhost:3306/banco"
+
+
+def _fake_run_capture(captured, result_returncode=0):
+    """Falso subprocess.run que captura argv/kwargs (nunca executa nada)."""
+    from types import SimpleNamespace
+
+    def _run(cmd, **kwargs):
+        captured["args"] = cmd
+        captured["kwargs"] = kwargs
+        return SimpleNamespace(returncode=result_returncode)
+
+    return _run
+
+
+def test_018_us1_mysqldump_path_configurado_define_argv(monkeypatch, tmp_path):
+    """MYSQLDUMP_PATH configurado → o argv começa com o executável configurado (R3)."""
+    import sys
+
+    from app.services import backup_service
+
+    captured = {}
+    monkeypatch.setattr(
+        backup_service, "MYSQLDUMP_PATH", sys.executable, raising=False
+    )
+    monkeypatch.setattr(backup_service.subprocess, "run", _fake_run_capture(captured))
+    monkeypatch.setattr(backup_service, "DATABASE_URL", _DUMP_URL)
+
+    backup_service._run_mysqldump(tmp_path / "dump.part")
+
+    assert captured["args"][0] == sys.executable
+
+
+def test_018_us1_fallback_path_do_sistema(monkeypatch, tmp_path):
+    """Sem MYSQLDUMP_PATH → shutil.which resolve no PATH do processo (R2 — Teste F: Linux)."""
+    from types import SimpleNamespace
+
+    from app.services import backup_service
+
+    captured = {}
+    monkeypatch.setattr(backup_service, "MYSQLDUMP_PATH", None, raising=False)
+    monkeypatch.setattr(
+        backup_service,
+        "shutil",
+        SimpleNamespace(which=lambda name: "/usr/bin/mysqldump"),
+        raising=False,
+    )
+    monkeypatch.setattr(backup_service.subprocess, "run", _fake_run_capture(captured))
+    monkeypatch.setattr(backup_service, "DATABASE_URL", _DUMP_URL)
+
+    backup_service._run_mysqldump(tmp_path / "dump.part")
+
+    assert captured["args"][0] == "/usr/bin/mysqldump"
+
+
+def test_018_us1_nada_disponivel_erro_nao_encontrado(monkeypatch, tmp_path):
+    """Executável ausente → BackupError distinta de 'não encontrado' (R6 — Teste B; sem falso sucesso)."""
+    from types import SimpleNamespace
+
+    import pytest
+
+    from app.services import backup_service
+    from app.services.backup_service import BackupError
+
+    monkeypatch.setattr(backup_service, "MYSQLDUMP_PATH", None, raising=False)
+    monkeypatch.setattr(
+        backup_service, "shutil", SimpleNamespace(which=lambda name: None), raising=False
+    )
+
+    with pytest.raises(BackupError, match="não foi encontrado"):
+        backup_service._run_mysqldump(tmp_path / "dump.part")
+
+
+def test_018_us1_mysqldump_path_inexistente_falha_clara(monkeypatch, tmp_path):
+    """MYSQLDUMP_PATH apontando para caminho inexistente → BackupError clara (antes do subprocesso)."""
+    import pytest
+
+    from app.services import backup_service
+    from app.services.backup_service import BackupError
+
+    monkeypatch.setattr(
+        backup_service,
+        "MYSQLDUMP_PATH",
+        "Z:/caminho/inexistente/mysqldump.exe",
+        raising=False,
+    )
+
+    with pytest.raises(BackupError, match="não foi encontrado"):
+        backup_service._run_mysqldump(tmp_path / "dump.part")
+
+
+def test_018_us1_env_herdado_com_mysql_pwd(monkeypatch, tmp_path):
+    """Ambiente do subprocesso: herda o processo + MYSQL_PWD (R1 — sem PATH fixo Unix)."""
+    import os
+    import sys
+
+    from app.services import backup_service
+
+    captured = {}
+    monkeypatch.setattr(
+        backup_service, "MYSQLDUMP_PATH", sys.executable, raising=False
+    )
+    monkeypatch.setattr(backup_service.subprocess, "run", _fake_run_capture(captured))
+    monkeypatch.setattr(backup_service, "DATABASE_URL", _DUMP_URL)
+
+    backup_service._run_mysqldump(tmp_path / "dump.part")
+
+    env = captured["kwargs"]["env"]
+    assert env["MYSQL_PWD"] == "senha_falsa"
+    assert env["PATH"] != "/usr/local/bin:/usr/bin:/bin"
+    assert env["PATH"] == os.environ.get("PATH", "")
+
+
+def test_018_us1_senha_nunca_em_argv(monkeypatch, tmp_path):
+    """A senha da DATABASE_URL NUNCA aparece nos argumentos do subprocesso (FR-005 — Teste H)."""
+    import sys
+
+    from app.services import backup_service
+
+    captured = {}
+    monkeypatch.setattr(
+        backup_service, "MYSQLDUMP_PATH", sys.executable, raising=False
+    )
+    monkeypatch.setattr(backup_service.subprocess, "run", _fake_run_capture(captured))
+    monkeypatch.setattr(backup_service, "DATABASE_URL", _DUMP_URL)
+
+    backup_service._run_mysqldump(tmp_path / "dump.part")
+
+    assert all("senha_falsa" not in str(arg) for arg in captured["args"])
+
+
+# ============================================================================
+# 018 — US2: diagnóstico técnico sem segredos + mensagens distintas
+# (research R5/R6: paridade com o import; Testes D e H do briefing)
+# ============================================================================
+
+
+def _fake_run_calledprocess(stderr_bytes, returncode=2):
+    """Falso subprocess.run que levanta CalledProcessError com stderr (Teste D)."""
+    import subprocess as sp_mod
+
+    def _run(cmd, **kwargs):
+        raise sp_mod.CalledProcessError(
+            returncode, cmd, stderr=stderr_bytes
+        )
+
+    return _run
+
+
+def test_018_us2_log_tecnico_dump_exit_e_stderr(monkeypatch, tmp_path, caplog):
+    """Falha de retorno: log com etapa=dump, exit code e diagnóstico (Teste D)."""
+    import logging
+    import sys
+
+    from app.services import backup_service
+
+    monkeypatch.setattr(
+        backup_service, "MYSQLDUMP_PATH", sys.executable, raising=False
+    )
+    monkeypatch.setattr(backup_service, "DATABASE_URL", _DUMP_URL)
+    monkeypatch.setattr(
+        backup_service.subprocess,
+        "run",
+        _fake_run_calledprocess(b"mysqldump: [Warning] unknown option\n"),
+    )
+
+    with caplog.at_level(logging.ERROR, logger="app.services.backup_service"):
+        with pytest.raises(Exception):
+            backup_service._run_mysqldump(tmp_path / "dump.part")
+
+    joined = " ".join(r.getMessage() for r in caplog.records)
+    assert "etapa=dump" in joined
+    assert "exit=2" in joined
+    assert "unknown option" in joined
+
+
+def test_018_us2_stderr_sanitizado_sem_senha(monkeypatch, tmp_path, caplog):
+    """stderr contendo a senha do banco → mascarada no log (Teste H — Princípio VI)."""
+    import logging
+    import sys
+
+    from app.services import backup_service
+
+    monkeypatch.setattr(
+        backup_service, "MYSQLDUMP_PATH", sys.executable, raising=False
+    )
+    monkeypatch.setattr(backup_service, "DATABASE_URL", _DUMP_URL)
+    monkeypatch.setattr(
+        backup_service.subprocess,
+        "run",
+        _fake_run_calledprocess(
+            b"mysqldump: Got error: 1045: Access denied ... senha_falsa ...\n"
+        ),
+    )
+
+    with caplog.at_level(logging.ERROR, logger="app.services.backup_service"):
+        with pytest.raises(Exception):
+            backup_service._run_mysqldump(tmp_path / "dump.part")
+
+    joined = " ".join(r.getMessage() for r in caplog.records)
+    assert "senha_falsa" not in joined
+    assert "***" in joined
+
+
+def test_018_us2_mensagens_distintas_nao_encontrado_vs_erro(monkeypatch, tmp_path):
+    """FR-014: 'não encontrado' ≠ 'retornou erro' — operador distingue as causas."""
+    from types import SimpleNamespace
+
+    import pytest
+
+    from app.services import backup_service
+    from app.services.backup_service import BackupError
+
+    # Ausente → "não foi encontrado"
+    monkeypatch.setattr(backup_service, "MYSQLDUMP_PATH", None, raising=False)
+    monkeypatch.setattr(
+        backup_service, "shutil", SimpleNamespace(which=lambda name: None), raising=False
+    )
+    with pytest.raises(BackupError, match="não foi encontrado"):
+        backup_service._run_mysqldump(tmp_path / "dump.part")
+
+    # Presente mas retornando erro → "retornou erro" (mensagem existente)
+    import sys
+
+    monkeypatch.setattr(
+        backup_service, "MYSQLDUMP_PATH", sys.executable, raising=False
+    )
+    monkeypatch.setattr(
+        backup_service.subprocess,
+        "run",
+        _fake_run_calledprocess(b"erro qualquer\n"),
+    )
+    with pytest.raises(BackupError, match="retornou erro"):
+        backup_service._run_mysqldump(tmp_path / "dump.part")
+
+
+def test_018_us2_stderr_nunca_no_usuario(monkeypatch, tmp_path):
+    """A mensagem da BackupError NUNCA contém o texto do stderr (Princípio VI)."""
+    import sys
+
+    import pytest
+
+    from app.services import backup_service
+    from app.services.backup_service import BackupError
+
+    monkeypatch.setattr(
+        backup_service, "MYSQLDUMP_PATH", sys.executable, raising=False
+    )
+    monkeypatch.setattr(backup_service, "DATABASE_URL", _DUMP_URL)
+    monkeypatch.setattr(
+        backup_service.subprocess,
+        "run",
+        _fake_run_calledprocess(b"DETALHE INTERNO SECRETO DO STDERR\n"),
+    )
+
+    with pytest.raises(BackupError) as excinfo:
+        backup_service._run_mysqldump(tmp_path / "dump.part")
+
+    assert "DETALHE INTERNO SECRETO" not in str(excinfo.value)
+
+
+# ============================================================================
+# 018 — US3: paridade do import (restauração 017) e robustez
+# (Testes D/E/F/G/H do briefing; R1/R4)
+# ============================================================================
+
+
+def test_018_us3_import_derivado_do_mysqldump_path(monkeypatch, tmp_path):
+    """R4: MYSQLDUMP_PATH aponta o mysqldump → cliente mysql derivado do mesmo bin."""
+    import sys
+    from types import SimpleNamespace
+
+    from app.services import backup_service
+
+    dump_fake = tmp_path / "mysqldump.exe"
+    dump_fake.write_bytes(b"")
+    mysql_fake = tmp_path / "mysql.exe"
+    mysql_fake.write_bytes(b"")
+
+    captured = {}
+
+    class _FakeStdin:
+        def write(self, chunk):
+            pass
+
+        def close(self):
+            pass
+
+    class _FakeProc:
+        def __init__(self):
+            self.stdin = _FakeStdin()
+            self.stderr = SimpleNamespace(read=lambda: b"", close=lambda: None)
+            self.returncode = 0
+
+        def wait(self, timeout=None):
+            return 0
+
+    def _fake_popen(cmd, **kwargs):
+        captured["args"] = cmd
+        captured["kwargs"] = kwargs
+        return _FakeProc()
+
+    monkeypatch.setattr(backup_service, "MYSQLDUMP_PATH", str(dump_fake), raising=False)
+    monkeypatch.setattr(backup_service.subprocess, "Popen", _fake_popen)
+    monkeypatch.setattr(backup_service, "DATABASE_URL", _DUMP_URL)
+
+    dump = tmp_path / "dump.sql"
+    dump.write_bytes(b"-- conteudo\n")
+    backup_service._run_mysql_import(dump, is_gzip=False)
+
+    assert captured["args"][0] == str(mysql_fake)
+
+
+def test_018_us3_import_env_herdado_com_mysql_pwd(monkeypatch, tmp_path):
+    """R1: o import usa o mesmo ambiente do dump (herdado + MYSQL_PWD)."""
+    import os
+    from types import SimpleNamespace
+
+    from app.services import backup_service
+
+    captured = {}
+
+    class _FakeStdin:
+        def write(self, chunk):
+            pass
+
+        def close(self):
+            pass
+
+    class _FakeProc:
+        def __init__(self):
+            self.stdin = _FakeStdin()
+            self.stderr = SimpleNamespace(read=lambda: b"", close=lambda: None)
+            self.returncode = 0
+
+        def wait(self, timeout=None):
+            return 0
+
+    monkeypatch.setattr(backup_service, "MYSQLDUMP_PATH", None, raising=False)
+    monkeypatch.setattr(
+        backup_service.subprocess,
+        "Popen",
+        lambda cmd, **kwargs: (captured.update(args=cmd, kwargs=kwargs), _FakeProc())[1],
+    )
+    monkeypatch.setattr(backup_service, "DATABASE_URL", _DUMP_URL)
+
+    dump = tmp_path / "dump.sql"
+    dump.write_bytes(b"-- conteudo\n")
+    backup_service._run_mysql_import(dump, is_gzip=False)
+
+    env = captured["kwargs"]["env"]
+    assert env["MYSQL_PWD"] == "senha_falsa"
+    assert env["PATH"] == os.environ.get("PATH", "")
+
+
+def test_018_us3_import_executavel_ausente_mensagem_clara(monkeypatch, tmp_path):
+    """Import sem executável em lugar nenhum → BackupError 'não encontrado' (R4/R6)."""
+    import pytest
+
+    from app.services import backup_service
+    from app.services.backup_service import BackupError
+
+    monkeypatch.setattr(backup_service, "MYSQLDUMP_PATH", None, raising=False)
+    monkeypatch.setattr(backup_service.shutil, "which", lambda name: None)
+
+    dump = tmp_path / "dump.sql"
+    dump.write_bytes(b"-- conteudo\n")
+
+    with pytest.raises(BackupError, match="não foi encontrado"):
+        backup_service._run_mysql_import(dump, is_gzip=False)
+
+
+def test_018_us3_dump_falha_gera_auditoria_failure(db_session, monkeypatch):
+    """Teste G: utilitário ausente → ACTION_BACKUP_FAILED com descrição controlada."""
+    from types import SimpleNamespace
+
+    from app.services import backup_service
+    from app.services.audit_service import ACTION_BACKUP_FAILED
+    from app.services.backup_service import BackupError
+
+    user = _make_user(db_session, "bkp18fail", role_names=["Administrador"])
+
+    monkeypatch.setattr(backup_service, "MYSQLDUMP_PATH", None, raising=False)
+    monkeypatch.setattr(
+        backup_service, "shutil", SimpleNamespace(which=lambda name: None)
+    )
+
+    with pytest.raises(BackupError):
+        BackupService.generate_backup(db_session, user, "127.0.0.1")
+
+    failures = _audit_entries(db_session, ACTION_BACKUP_FAILED)
+    assert len(failures) == 1
+    assert "não foi encontrado" in failures[0].description or "Falha" in failures[0].description
+
+
+def test_018_us3_todos_os_logs_da_feature_sem_senha(monkeypatch, tmp_path, caplog):
+    """Teste H (fechamento): nenhum log da 018 contém a senha falsa das URLs de teste."""
+    import logging
+    import sys
+
+    from app.services import backup_service
+
+    monkeypatch.setattr(
+        backup_service, "MYSQLDUMP_PATH", sys.executable, raising=False
+    )
+    monkeypatch.setattr(backup_service, "DATABASE_URL", _DUMP_URL)
+    monkeypatch.setattr(
+        backup_service.subprocess,
+        "run",
+        _fake_run_calledprocess(b"Access denied para usuario com senha_falsa\n"),
+    )
+
+    with caplog.at_level(logging.ERROR, logger="app.services.backup_service"):
+        with pytest.raises(Exception):
+            backup_service._run_mysqldump(tmp_path / "dump.part")
+
+    joined = " ".join(r.getMessage() for r in caplog.records)
+    assert "senha_falsa" not in joined
+
+
+def test_018_us3_config_le_apos_load_dotenv():
+    """Guarda de regressão do incidente real (2026-09-18): a leitura de
+    MYSQLDUMP_PATH em app/config.py foi posicionada ANTES de load_dotenv(),
+    fazendo a variável do .env nunca ser vista (sempre None) mesmo com o
+    servidor reiniciado. Toda variável lida via os.getenv deve vir depois
+    da chamada load_dotenv()."""
+    from pathlib import Path
+
+    source = Path("app/config.py").read_text(encoding="utf-8")
+    pos_load = source.find("load_dotenv()")
+    assert pos_load != -1, "load_dotenv() ausente do app/config.py"
+
+    for var in ("DATABASE_URL", "MYSQLDUMP_PATH"):
+        pos_var = source.find(f"{var} = os.getenv(")
+        assert pos_var != -1, f"leitura de {var} ausente do app/config.py"
+        assert pos_var > pos_load, (
+            f"{var} é lida ANTES de load_dotenv() em app/config.py — "
+            "o valor do .env nunca seria carregado (bug da feature 018)"
+        )

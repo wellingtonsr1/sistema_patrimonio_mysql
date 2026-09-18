@@ -35,6 +35,13 @@ if not DATABASE_URL:
         "Configure a variável no arquivo .env."
     )
 
+# Caminho do executável mysqldump (feature 018 — correção do backup no Windows).
+# Opcional: se não configurado, o utilitário é procurado no PATH do processo.
+# Exemplo (Windows/XAMPP): MYSQLDUMP_PATH=C:\xampp\mysql\bin\mysqldump.exe
+# Contém APENAS um caminho de executável — nunca credenciais.
+# NOTA: DEVE ficar APÓS load_dotenv() — a variável vive no .env do servidor.
+MYSQLDUMP_PATH = os.getenv("MYSQLDUMP_PATH") or None
+
 # Configurações da Aplicação
 APP_NAME = "SisPatrimônio Pro"
 APP_DESCRIPTION = "Sistema Integrado de Gestão Patrimonial e Fluxo de Movimentação de Equipamentos"
