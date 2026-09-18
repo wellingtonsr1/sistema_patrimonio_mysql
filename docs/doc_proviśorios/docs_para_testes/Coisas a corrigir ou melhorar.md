@@ -108,3 +108,57 @@ Ata final continua imutável após o encerramento
 12 - Ajustar a cor do check da tela de conferência.
 
 13 - Colocar 'Departamento / Setor' exibindo a lista ---> OK
+
+11. Como eu dividiria em Features do Spec Kit
+
+Eu faria duas ou três specs, em vez de uma gigantesca.
+
+Feature 1 — Backup manual ---> OK
+Backup do banco e arquivos do SisPatrimônio
+
+Inclui:
+
+criar backup;
+validar;
+armazenar;
+listar;
+identificar data/tamanho;
+hash;
+auditoria;
+download;
+permissões.
+Feature 2 — Restauração segura
+
+Restauração de backup do SisPatrimônio
+
+Inclui:
+
+selecionar backup;
+confirmação;
+backup de segurança antes do restore;
+restaurar;
+validar resultado;
+auditoria;
+tratamento de falhas.
+
+Feature 3 — Backup automático
+
+Somente depois:
+
+Backup automático e política de retenção
+
+Inclui:
+
+agendamento;
+retenção;
+limpeza;
+falhas;
+histórico;
+monitoramento.
+
+
+E colocaria como regra principal:
+
+Implementar somente o mecanismo de backup, sem implementar ainda restauração automática, agendamento ou alterações na arquitetura do banco. Analisar primeiro a estrutura atual do SisPatrimônio Pro, identificar o banco utilizado, arquivos persistidos, configurações, mecanismo de auditoria, RBAC e ambiente de execução. Fazer a menor alteração possível.
+
+Isso é particularmente importante no seu caso porque você está consolidando a migração para MariaDB/MySQL. A spec deve ser feita já considerando o banco definitivo, e não criar uma solução específica para o SQLite antigo.
