@@ -22,3 +22,7 @@ data/patrimonio.db
 .env
 .env.*
 !.env.example
+
+# Runtime do SisPatrimônio (logs e repositório de backups)
+data/logs/
+data/backups/
