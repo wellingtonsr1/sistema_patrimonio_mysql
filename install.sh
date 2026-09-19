@@ -43,7 +43,7 @@ readonly DEFAULT_SERVICE_NAME="sispatrimoniopro"
 readonly DEFAULT_SERVICE_USER="sispatrimonio"
 readonly DEFAULT_SERVICE_GROUP="sispatrimonio"
 readonly INSTALL_LOG="/var/log/sispatrimonio-install.log"
-readonly HEALTH_TIMEOUT_SECONDS=90
+readonly HEALTH_TIMEOUT_SECONDS=120
 readonly APP_LOG_DIR="data/logs"
 readonly BACKUP_DIR="data/backups"
 readonly MIN_PYTHON_MAJOR=3
@@ -594,8 +594,11 @@ ensure_venv() {
     fi
     $SUDO python3 -m venv "$INSTALL_DIR/.venv"
     $SUDO "$INSTALL_DIR/.venv/bin/python" -m pip install --upgrade pip >/dev/null
-    info "Instalando requirements.txt (do repositório recém-clonado)..."
-    $SUDO "$INSTALL_DIR/.venv/bin/python" -m pip install -r "$INSTALL_DIR/requirements.txt" >/dev/null
+    # Saída VISÍVEL (sem >/dev/null): pip demora minutos e output silencioso parece
+    # travamento — que convida a uma 2ª execução concorrente (causa real de
+    # crash-loop ENOENT observada em instalação real)
+    info "Instalando requirements.txt (do repositório recém-clonado; leva alguns minutos)..."
+    $SUDO "$INSTALL_DIR/.venv/bin/python" -m pip install --progress-bar off -r "$INSTALL_DIR/requirements.txt"
     # FR-009: validação final = imports do próprio README (roda como o usuário do serviço,
     # pois o venv é dele; o chown ocorre depois, em ensure_service_user)
     "$INSTALL_DIR/.venv/bin/python" -c 'import fastapi, sqlalchemy, pymysql, ldap3, reportlab, openpyxl, dotenv'
@@ -765,6 +768,22 @@ UNITEOF
 # ----------------------------------------------------------------------------
 # T011 — start + health (FR-013, R11)
 # ----------------------------------------------------------------------------
+pre_start_sanity() {  # falha ANTES do start nomeando o arquivo ausente (evita
+                      # crash-loop ENOENT opaco observado em instalação real)
+    STEP="Sanity pré-start"
+    local missing=()
+    [ -r "$INSTALL_DIR/.env" ]            || missing+=("EnvironmentFile: $INSTALL_DIR/.env")
+    [ -x "$INSTALL_DIR/.venv/bin/python" ] || missing+=("ExecStart: $INSTALL_DIR/.venv/bin/python")
+    [ -f "$INSTALL_DIR/run.py" ]           || missing+=("run.py: $INSTALL_DIR/run.py")
+    if [ "${#missing[@]}" -gt 0 ]; then
+        local m
+        err "Arquivos exigidos pela unit estão AUSENTES — o serviço NÃO será iniciado (FR-019):"
+        for m in "${missing[@]}"; do err "  - $m"; done
+        die "Instalação incompleta. Reexecute o instalador (idempotente) — e evite rodar duas instâncias ao mesmo tempo."
+    fi
+    ok "Arquivos do serviço presentes (.env, venv, run.py)."
+}
+
 start_and_health_check() {
     STEP="Inicialização e verificação de saúde"
     $SUDO systemctl start "$SERVICE_NAME"
@@ -784,12 +803,20 @@ start_and_health_check() {
                     info "status=$status — aguardando..." ;;
             esac
         fi
-        sleep 3
-        waited=$((waited + 3))
+        sleep 2
+        waited=$((waited + 2))
     done
     err "Aplicação não respondeu em /health dentro de ${HEALTH_TIMEOUT_SECONDS}s."
     err "=== Últimas linhas do journal do serviço (sem segredos) ==="
     journalctl -u "$SERVICE_NAME" -n 50 --no-pager 2>/dev/null || true
+    err "=== systemctl status ==="
+    systemctl --no-pager status "$SERVICE_NAME" 2>/dev/null | head -15 || true
+    err "=== unit instalada (systemctl cat) ==="
+    systemctl cat "$SERVICE_NAME" 2>/dev/null || true
+    # Interrompe o crash-loop (Restart=on-failure reiniciaria para sempre um
+    # serviço quebrado — comportamento observado em instalação real)
+    $SUDO systemctl stop "$SERVICE_NAME" 2>/dev/null || true
+    warn "Serviço PARADO para encerrar o loop de reinício. Reexecute o instalador quando quiser tentar novamente (idempotente)."
     die "Falha na verificação de saúde (FR-013). Diagnóstico acima; log completo em $INSTALL_LOG."
 }
 
@@ -922,6 +949,7 @@ main() {
     test_db_connection
     ensure_service_user
     ensure_systemd_unit
+    pre_start_sanity
     start_and_health_check
     post_install_checks
     security_self_check
