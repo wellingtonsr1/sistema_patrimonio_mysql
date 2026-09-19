@@ -95,9 +95,14 @@
     <dl class="row mb-0">
         <dt class="col-sm-4 col-lg-2 small">Agendamento</dt>
         <dd class="col-sm-8 col-lg-4 small mb-1">
-            {% if auto_status and auto_status.enabled %}
+            <!-- Feature 026: o estado EXIBIDO (configuração) vem da efetiva por
+                 request (mesma fonte do checkbox do modal — config_form), não do
+                 snapshot interno do scheduler (renovado por tick de 30 s); dados
+                 de execução (próxima execução/último disparo) permanecem em
+                 auto_status. Correção do badge defasado pós-salvamento. -->
+            {% if config_form and config_form.auto_enabled %}
                 <span class="badge bg-success-subtle text-success">Ativado</span>
-                {{ auto_status.schedule }} às {{ auto_status.time_local }}
+                {{ config_form.schedule }} às {{ config_form.time }}
             {% else %}
                 <span class="badge bg-secondary-subtle text-secondary">Desativado</span>
             {% endif %}

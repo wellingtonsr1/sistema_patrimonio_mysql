@@ -817,6 +817,140 @@ def test_022_fidelidade_visual_sem_js_css_novo(client, db_session, fixed_fallbac
     assert template.count("<style") == 0
 
 
+# ============================================================================
+# FEATURE 026 — Atualização imediata do indicador "Agendamento" do card
+# "Backup Automático" (badge Ativado/Desativado): a fonte do estado EXIBIDO
+# passa a ser a configuração EFETIVA por request (config_form), a mesma do
+# checkbox do modal — sem depender do snapshot interno do scheduler
+# (_current_effective, renovado só por tick de 30 s).
+# ============================================================================
+
+
+def _badge(html: str) -> str:
+    """Valor do badge de Agendamento no card 'Backup Automático'."""
+    marker = "Agendamento</dt>"
+    pos = html.find(marker)
+    assert pos != -1, "card Backup Automático ausente do HTML"
+    chunk = html[pos : pos + 600]
+    if ">Ativado<" in chunk:
+        return "Ativado"
+    if ">Desativado<" in chunk:
+        return "Desativado"
+    raise AssertionError("badge Agendamento não encontrado no card")
+
+
+def _post_config_follow(client, **overrides):
+    """POST + seguir redirect (fluxo real: POST → 303 → GET — briefing §42)."""
+    resp = _post_config(client, **overrides)
+    assert resp.status_code == 303, f"esperado 303 do POST, veio {resp.status_code}"
+    return client.get(resp.headers["location"])
+
+
+def test_026_ativacao_refletida_imediatamente(
+    client, db_session, fixed_fallbacks, seeded_config
+):
+    """Off → salvar Ativado → GET pós-redirect já mostra 'Ativado' (SC-001)."""
+    seeded_config.auto_enabled = False
+    db_session.commit()
+    backup_scheduler.refresh_effective_config()  # snapshot = estado antigo (janela entre ticks)
+
+    resp = _post_config_follow(client, auto_enabled="true")
+    assert resp.status_code == 200
+    assert _badge(resp.text) == "Ativado"
+    # checkbox do modal na MESMA resposta (mesma fonte — FR-002/SC-003)
+    assert 'name="auto_enabled" checked' in resp.text
+
+
+def test_026_desativacao_refletida_imediatamente(
+    client, db_session, fixed_fallbacks, seeded_config
+):
+    """On → salvar Desativado → GET pós-redirect já mostra 'Desativado' (SC-001)."""
+    seeded_config.auto_enabled = True
+    db_session.commit()
+    backup_scheduler.refresh_effective_config()  # snapshot antigo = Ativado
+
+    resp = _post_config_follow(client, auto_enabled=False)
+    assert resp.status_code == 200
+    assert _badge(resp.text) == "Desativado"
+    assert 'name="auto_enabled" checked' not in resp.text
+
+
+def test_026_causa_snapshot_defasado_reproduz_problema(
+    client, db_session, fixed_fallbacks, seeded_config
+):
+    """Teste-documentação da causa (§45.1): com o snapshot do scheduler
+    propositalmente defasado (auto_enabled contrário ao persistido), o fluxo
+    POST→redirect→GET deve AINDA refletir o valor novo no badge — pois a
+    fonte do estado exibido é a efetiva por request, não o snapshot.
+
+    No código pré-026 (badge alimentado por auto_status.enabled), este teste
+    falha exibindo o valor antigo — reproduzindo o problema relatado.
+    """
+    seeded_config.auto_enabled = True
+    db_session.commit()
+    backup_scheduler.refresh_effective_config()  # snapshot real: Ativado
+
+    # Salva Desativado e segue o redirect. O snapshot do scheduler permanece
+    # com o valor ANTIGO (só se renova no próximo tick de 30 s) — exatamente
+    # o estado de produção após um salvamento entre ticks.
+    resp = _post_config_follow(client, auto_enabled=False)
+    assert resp.status_code == 200
+    assert get_effective_config(db_session).auto_enabled is False
+    # Snapshot ainda defasado — e NÃO é a fonte da tela:
+    assert backup_scheduler._current_effective.auto_enabled is True
+    # O badge já mostra o valor novo (fonte da tela = efetiva por request):
+    assert _badge(resp.text) == "Desativado"
+    assert 'name="auto_enabled" checked' not in resp.text
+
+
+def test_026_alteracao_repetida_off_on_off(
+    client, db_session, fixed_fallbacks, seeded_config
+):
+    """Off→On→Off: a cada POST, o HTML seguinte reflete o novo estado (§26)."""
+    seeded_config.auto_enabled = False
+    db_session.commit()
+    backup_scheduler.refresh_effective_config()
+
+    esperados = ("Ativado", "Desativado", "Ativado")
+    valores = ("true", False, "true")
+    for esperado, valor in zip(esperados, valores):
+        resp = _post_config_follow(client, auto_enabled=valor)
+        assert resp.status_code == 200
+        assert _badge(resp.text) == esperado
+        backup_scheduler.refresh_effective_config()  # simula tick entre salvamentos
+
+
+def test_026_outros_campos_nao_regredem_indicador(
+    client, db_session, fixed_fallbacks, seeded_config
+):
+    """Toggle + outros campos: indicador coerente com o toggle (§28)."""
+    seeded_config.auto_enabled = False
+    db_session.commit()
+    backup_scheduler.refresh_effective_config()
+
+    resp = _post_config_follow(client, auto_enabled="true", time="05:30")
+    assert resp.status_code == 200
+    assert _badge(resp.text) == "Ativado"
+
+    backup_scheduler.refresh_effective_config()  # simula tick entre salvamentos
+    resp = _post_config_follow(client, auto_enabled=False, retention_daily_days=7)
+    assert resp.status_code == 200
+    assert _badge(resp.text) == "Desativado"
+
+
+def test_026_f5_idempotente(client, db_session, fixed_fallbacks, seeded_config):
+    """GET consecutivo após salvar = mesmo valor do primeiro GET (§29)."""
+    seeded_config.auto_enabled = False
+    db_session.commit()
+    backup_scheduler.refresh_effective_config()
+
+    _post_config_follow(client, auto_enabled="true")
+    first = client.get("/admin/backups")
+    second = client.get("/admin/backups")
+    assert first.status_code == second.status_code == 200
+    assert _badge(first.text) == _badge(second.text) == "Ativado"
+
+
 
 
 
