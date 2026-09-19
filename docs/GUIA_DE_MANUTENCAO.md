@@ -109,8 +109,14 @@ mapeado para perfil existente; sem mapeamento → nada é criado no banco, apena
 A configuração do AD também pode ser feita pela tela `/admin/ad` (tabela `ad_settings`),
 com as variáveis de ambiente como fallback dos campos vazios. A configuração operacional
 do backup (features 021/022) fica na tabela `backup_config` e é administrada pelo modal
-aberto pelo botão ⚙ no topo direito da página de Backups (`templates/admin/backups.html`);
-as env `BACKUP_*` são fallback da primeira inicialização (service: `backup_config_service.py`).
+aberto pelo botão ⚙ no topo direito da página de Backups (`templates/admin/backups.html`).
+As variáveis de ambiente `BACKUP_*` funcionam como **fallback por campo** durante a resolução
+da configuração efetiva (`get_effective_config()`): valem quando o respectivo campo persistido
+está indefinido (`None` = "não definido") e também no bootstrap/fallback de boot do scheduler
+(ver `ARQUITETURA_E_MANUTENCAO.md`). Particularidade: o campo `auto_enabled` é não-nulo
+(`models/backup_config.py`), portanto `BACKUP_AUTO_ENABLED` não é reconsultado dinamicamente
+depois que a linha existe — vale na instalação nova e no fallback de boot
+(service: `backup_config_service.py`).
 
 ## Como executar o sistema
 

@@ -967,7 +967,7 @@ Usuários com a permissão `backup.gerenciar` (concedida ao perfil Administrador
 
 O backup automático **reutiliza o mesmo mecanismo do backup manual** (mesmo dump, mesma compressão, mesma validação, mesmo diretório e formato de arquivo) — é apenas uma nova forma de disparo. A tela **Administração → Backups** passa a exibir o card "Backup Automático" (estado, horário configurado, próxima execução, último resultado) e a coluna **Tipo** na listagem (MANUAL / AUTOMÁTICO / PRÉ-RESTAURAÇÃO / — para arquivos legados).
 
-**Configuração (todas opcionais; defaults conservadores)** — desde a **feature 021**, administráveis pela interface; desde a **feature 022**, o acesso é pelo **botão ⚙ no canto superior direito da página Administração → Backups**, que abre o **modal "Configurações de Backup"** com os valores atuais (permissão `backup.gerenciar`); a rota direta `/admin/backups/configuracoes` permanece por compatibilidade. As variáveis de ambiente abaixo continuam valendo como **fallback** na primeira inicialização e em deploys automatizados. Precedência única por campo: **valor persistido (tela) → variável de ambiente → default da 020**:
+**Configuração (todas opcionais; defaults conservadores)** — desde a **feature 021**, administráveis pela interface; desde a **feature 022**, o acesso é pelo **botão ⚙ no canto superior direito da página Administração → Backups**, que abre o **modal "Configurações de Backup"** com os valores atuais (permissão `backup.gerenciar`); a rota direta `/admin/backups/configuracoes` permanece por compatibilidade. As variáveis de ambiente abaixo funcionam como **fallback por campo** enquanto o campo correspondente não estiver persistido (e continuam úteis para deploys automatizados que precisem pré-definir valores). Precedência única por campo, aplicada por `get_effective_config()`: **valor persistido (tela) → variável de ambiente → default da 020**. **Exceção (fallback de boot do scheduler)**: se a leitura da configuração efetiva falhar (ex.: banco indisponível), o scheduler mantém o **snapshot anterior**; sem snapshot anterior, usa o **bootstrap** por env/default até a próxima leitura bem-sucedida — mecanismo de segurança, não caminho normal.
 
 | Variável | Default | Descrição |
 |---|---|---|
@@ -981,6 +981,8 @@ O backup automático **reutiliza o mesmo mecanismo do backup manual** (mesmo dum
 | `BACKUP_RETENTION_KEEP_PRE_RESTORE` | `0` | 0 = preserva **todos** os backups pré-restauração; N>0 = preserva apenas os N mais recentes. |
 
 Valores inválidos não derrubam o sistema: caem no default seguro com registro no log técnico.
+
+**Particularidade de `BACKUP_AUTO_ENABLED`**: o campo persistido `auto_enabled` é **não nulo** — depois que a linha de configuração existe, a variável de ambiente não é reconsultada dinamicamente para esse campo (diferente dos demais, que aceitam env enquanto o campo persistido estiver indefinido). Ela continua valendo na instalação nova (default `false` — o sistema nasce desativado) e no fallback de boot descrito acima.
 
 **Comportamento:**
 
