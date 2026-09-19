@@ -406,7 +406,9 @@ ensure_packages() {
 
     local need_pkgs=()
     [ "$HAS_PYTHON" != "true" ] && need_pkgs+=("python3")
-    if [ "$HAS_PYTHON" != "true" ] || ! python3 -c 'import venv' >/dev/null 2>&1; then
+    # Sonda REAL de criação de venv (não `import venv`, que passa no Ubuntu 24.04
+    # mesmo sem python3.12-venv — o que falta lá é o ensurepip, usado pelo venv):
+    if ! python3 -m ensurepip --version >/dev/null 2>&1; then
         need_pkgs+=("python3-venv")
     fi
     [ "$HAS_GIT" != "true" ] && need_pkgs+=("git")
