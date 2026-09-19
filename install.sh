@@ -265,7 +265,10 @@ collect_secrets() {  # modo interativo: coleta senha (sem eco) ou marca para ger
 }
 
 confirm_plan() {  # R12: confirmação final antes da primeira mutação (interativo)
-    [ "$NON_INTERACTIVE" = "true" ] && return
+    # return 0 EXPLÍCITO: `&& return` devolveria o status do teste que falhou
+    # (NON_INTERACTIVE=false → 1) e `set -e` abortaria (mesmo bug do confirm_recreate_db)
+    [ "$NON_INTERACTIVE" = "true" ] && return 0
+    true
     echo
     info "===== Resumo da instalação ====="
     echo "  Diretório:      $INSTALL_DIR"
@@ -511,7 +514,9 @@ ensure_database() {
 }
 
 confirm_recreate_db() {  # R13/D2: aviso + dupla confirmação digitando o nome do banco
-    [ "$RECREATE_DB" = "true" ] || return
+    # return 0 EXPLÍCITO: `|| return` sem status devolveria o status do teste
+    # que acabou de falhar (1) e `set -e` abortaria após o confirm (bug real)
+    [ "$RECREATE_DB" = "true" ] || return 0
     [ "$NON_INTERACTIVE" = "true" ] && die "Inconsistência: --recreate-db em modo não interativo (deveria ter sido bloqueado)."
     warn "=============================================================="
     warn "MODO DESTRUTIVO: --recreate-db APAGARÁ o banco '$DB_NAME'"
@@ -586,7 +591,8 @@ ensure_venv() {
     $SUDO "$INSTALL_DIR/.venv/bin/python" -m pip install --upgrade pip >/dev/null
     info "Instalando requirements.txt (do repositório recém-clonado)..."
     $SUDO "$INSTALL_DIR/.venv/bin/python" -m pip install -r "$INSTALL_DIR/requirements.txt" >/dev/null
-    # FR-009: validação final = imports do próprio README
+    # FR-009: validação final = imports do próprio README (roda como o usuário do serviço,
+    # pois o venv é dele; o chown ocorre depois, em ensure_service_user)
     "$INSTALL_DIR/.venv/bin/python" -c 'import fastapi, sqlalchemy, pymysql, ldap3, reportlab, openpyxl, dotenv'
     ok "Dependências instaladas e validadas (imports OK)."
 }
@@ -868,15 +874,19 @@ main() {
     echo "==============================================================" | tee -a "$INSTALL_LOG" >/dev/null
     info "SisPatrimônio Pro — Instalador Linux v${APP_VERSION_INSTALLER} ($(date '+%Y-%m-%d %H:%M:%S'))"
 
-    run_step "Parâmetros e validação" validate_inputs
+    STEP="Parâmetros e validação"
+    validate_inputs
     require_root
     check_distro
     check_connectivity
     detect_host
+    STEP="Coleta de credenciais"
     collect_secrets
 
     # Interação ANTES de qualquer mutação (R12/R13)
+    STEP="Confirmação do plano"
     confirm_plan
+    STEP="Confirmação de recriação de banco"
     confirm_recreate_db
 
     ensure_packages
