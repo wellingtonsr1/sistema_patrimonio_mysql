@@ -803,14 +803,15 @@ post_install_checks() {
     python_at_least "$MIN_PYTHON_MAJOR" "$MIN_PYTHON_MINOR" && ok "Python >= ${MIN_PYTHON_MAJOR}.${MIN_PYTHON_MINOR}: OK" || { err "Python: FALHOU"; failures=$((failures+1)); }
     venv_ok && ok "venv + dependências: OK" || { err "venv/dependências: FALHOU"; failures=$((failures+1)); }
     systemctl is-active --quiet "$BANCO_SERVICE_DETECTED" && ok "Banco ativo ($BANCO_SERVICE_DETECTED): OK" || { err "Banco ativo: FALHOU"; failures=$((failures+1)); }
-    "$INSTALL_DIR/.venv/bin/python" - <<PYEOF >/dev/null 2>&1 && ok "Conexão com o banco: OK" || { err "Conexão com o banco: FALHOU"; failures=$((failures+1)); }
+    # Mesmo contrato da unit (WorkingDirectory): imports de app.* exigem CWD = projeto
+    ( cd "$INSTALL_DIR" && "$INSTALL_DIR/.venv/bin/python" - <<PYEOF >/dev/null 2>&1) && ok "Conexão com o banco: OK" || { err "Conexão com o banco: FALHOU"; failures=$((failures+1)); }
 from app.database import SessionLocal
 from sqlalchemy import text
 db = SessionLocal()
 db.execute(text("SELECT 1"))
 db.close()
 PYEOF
-    "$INSTALL_DIR/.venv/bin/python" - <<PYEOF >/dev/null 2>&1 && ok "Tabela base (users) existente: OK" || { err "Tabela base: FALHOU"; failures=$((failures+1)); }
+    ( cd "$INSTALL_DIR" && "$INSTALL_DIR/.venv/bin/python" - <<PYEOF >/dev/null 2>&1) && ok "Tabela base (users) existente: OK" || { err "Tabela base: FALHOU"; failures=$((failures+1)); }
 from app.database import SessionLocal
 from sqlalchemy import text
 db = SessionLocal()
