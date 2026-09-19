@@ -784,6 +784,27 @@ pre_start_sanity() {  # falha ANTES do start nomeando o arquivo ausente (evita
     ok "Arquivos do serviço presentes (.env, venv, run.py)."
 }
 
+# T011 — init_db explícito (efeito do run.py, mas VERIFICADO pelo instalador:
+# a unidade executa o mesmo comando, portanto sem risco de divergência; se o
+# boot do app falhar antes do create_all, o instalador declara sucesso com o
+# banco vazio e o app só quebra depois — traceback 'backup_config doesn't
+# exist' observado em instalação real). Idempotente: create_all nunca destrói.
+init_database() {
+    STEP="Inicialização do schema do banco (init_db)"
+    info "Executando init_db() do projeto (create_all + migrações leves)..."
+    if ! (
+        cd "$INSTALL_DIR"
+        set +e
+        ./.venv/bin/python -c "from app.database import init_db; init_db()"
+        rc=$?
+        set -e
+        exit "$rc"
+    ); then
+        die "init_db() falhou — verificar DATABASE_URL/.env e acesso do usuário do banco. Instalação interrompida (nenhum dado alterado)."
+    fi
+    ok "Schema verificado/criado via init_db() do projeto."
+}
+
 start_and_health_check() {
     STEP="Inicialização e verificação de saúde"
     $SUDO systemctl start "$SERVICE_NAME"
@@ -808,7 +829,9 @@ start_and_health_check() {
     done
     err "Aplicação não respondeu em /health dentro de ${HEALTH_TIMEOUT_SECONDS}s."
     err "=== Últimas linhas do journal do serviço (sem segredos) ==="
-    journalctl -u "$SERVICE_NAME" -n 50 --no-pager 2>/dev/null || true
+    journalctl -u "$SERVICE_NAME" -n 60 --no-pager 2>/dev/null || true
+    err "=== Traceback da última falha, se houver ==="
+    journalctl -u "$SERVICE_NAME" --no-pager 2>/dev/null | grep -E 'Error|Traceback|raise_mysql_exception' | tail -10 || true
     err "=== systemctl status ==="
     systemctl --no-pager status "$SERVICE_NAME" 2>/dev/null | head -15 || true
     err "=== unit instalada (systemctl cat) ==="
@@ -950,6 +973,7 @@ main() {
     ensure_service_user
     ensure_systemd_unit
     pre_start_sanity
+    init_database
     start_and_health_check
     post_install_checks
     security_self_check
