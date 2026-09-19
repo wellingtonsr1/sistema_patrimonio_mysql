@@ -676,14 +676,16 @@ ensure_env_file() {
         # anterior aponta para a senha ANTERIOR (ou não existe ainda). Oferece atualizar
         # APENAS o DATABASE_URL quando o banco foi criado/recriado NESTA execução.
         if [ "$NON_INTERACTIVE" != "true" ] && [ "$DB_PASSWORD_CHANGED" = "true" ]; then
-            tty_printf 'DATABASE_URL do .env aponta para senha diferente da desta execução. Atualizar apenas o DATABASE_URL? (s/N): '
+            tty_printf 'DATABASE_URL do .env aponta para senha diferente da desta execução. Atualizar apenas o DATABASE_URL? (S/n): '
             read -r ans
             case "$ans" in
-                s|S|sim|SIM|y|Y)
+                n|N|nao|não|no)
+                    warn ".env mantido sem alterações (valores existentes preservados)."
+                    ;;
+                *)
                     $SUDO sed -i "s|^DATABASE_URL=.*|DATABASE_URL=$DATABASE_URL_BUILT|" "$env_file"
                     ok "DATABASE_URL atualizado no .env existente (demais chaves preservadas)."
                     ;;
-                *) warn ".env mantido sem alterações (valores existentes preservados)." ;;
             esac
         else
             # Comportamento original: completa apenas chaves ausentes (merge consentido)
