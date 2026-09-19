@@ -58,6 +58,33 @@ def db_session():
         Base.metadata.drop_all(bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def _scheduler_session_isolation(db_session, monkeypatch):
+    """Feature 021: o agendador lê a configuração efetiva com sessão PRÓPRIA.
+
+    Sem este isolamento, caminhos de teste que tocam scheduler_status/_eff()
+    abririam a SessionLocal de PRODUÇÃO (banco real do deploy). Aqui a sessão
+    do scheduler é sempre o banco de teste e o snapshot começa limpo por teste.
+
+    A thread real NÃO é iniciada nos testes: o lifespan (TestClient) dispara
+    start_scheduler(), cujo primeiro tick abre sessão na conexão compartilhada
+    (StaticPool) e quebra a transação do fixture. Em 020 a thread era inofensiva
+    quando desativada; em 021 ela toca o banco imediatamente. Nenhum teste
+    depende da thread — todos exercitam o loop/funções de forma síncrona.
+    """
+    from sqlalchemy.orm import sessionmaker as _sessionmaker
+
+    import app.services.backup_scheduler as _bs
+
+    SchedulerSM = _sessionmaker(
+        autocommit=False, autoflush=False, bind=db_session.get_bind()
+    )
+    monkeypatch.setattr(_bs, "SessionLocal", SchedulerSM)
+    monkeypatch.setattr(_bs, "_current_effective", None)
+    monkeypatch.setattr(_bs, "start_scheduler", lambda *a, **k: None)
+    monkeypatch.setattr(_bs, "stop_scheduler", lambda *a, **k: None)
+
+
 def _override_get_db():
     db = TestingSessionLocal()
     try:

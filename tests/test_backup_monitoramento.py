@@ -88,15 +88,17 @@ def test_legado_sem_registro_exibe_traco(client, db_session):
     # sem registro → sem badge de tipo (coluna mostra —)
 
 
-def test_sem_nenhum_registro_indicadores_vazios(client, db_session, monkeypatch):
+def test_sem_nenhum_registro_indicadores_vazios(client, db_session):
     """Sem registros, o card mostra estados vazios legíveis.
 
-    Hermeticidade: a flag é fixada via monkeypatch — o teste não depende do
-    default do ambiente (.env/BACKUP_AUTO_ENABLED pode variar por deploy).
+    Hermeticidade 021: a flag é fixada na FONTE ÚNICA (linha singleton) —
+    o teste não depende do default do ambiente (.env pode variar por deploy).
     """
-    from app.services import backup_scheduler
+    from app.services.backup_config_service import get_backup_config
 
-    monkeypatch.setattr(backup_scheduler, "BACKUP_AUTO_ENABLED", False)
+    row = get_backup_config(db_session)
+    row.auto_enabled = False
+    db_session.commit()
     resp = client.get("/admin/backups")
     assert resp.status_code == 200
     assert "Backup Automático" in resp.text

@@ -54,9 +54,16 @@ BACKUP_IMPORT_TIMEOUT = float(os.getenv("BACKUP_IMPORT_TIMEOUT", "900"))
 # parâmetros operacionais). Defaults seguros; validação de faixas no serviço
 # (backup_scheduler — valores fora de faixa caem no default com log).
 # NOTA: DEVE ficar APÓS load_dotenv() — as variáveis vivem no .env do servidor.
+# ----------------------------------------------------------------------------
+# Feature 021 — PRECEDÊNCIA da configuração EFETIVA (única fonte em runtime):
+#   valor persistido na tela (backup_config, quando definido)
+#     → variável de ambiente abaixo (bootstrap/fallback)
+#       → default da Feature 020.
+# Estas constantes PERMANENCEM como bootstrap/fallback (nada é removido);
+# a leitura viva é feita por backup_config_service.get_effective_config().
 # ============================================================================
 
-# Backup automático ativado? Default DESATIVADO (conservador — spec FR-005).
+# Backup automático ativado? Default DESATIVADO (conservador — spec FR-005/021).
 BACKUP_AUTO_ENABLED = os.getenv("BACKUP_AUTO_ENABLED", "false").strip().lower() == "true"
 
 # Frequência do disparo: "daily" | "weekly" (default diário).

@@ -29,20 +29,29 @@ FAKE_DUMP_CONTENT = b"-- SisPatrimonio Pro fake dump (020)\n"
 
 @pytest.fixture(autouse=True)
 def _clean_backup_dir():
-    """Remove artefatos gerados pelos testes (mesmo padrão da 015/016)."""
+    """Remove artefatos gerados pelos testes (mesmo padrão da 015/016).
+
+    Usa o unlink REAL capturado no import: testes que patcheiam Path.unlink
+    (F5) não podem impedir o cleanup — a ordem de teardown com o fixture
+    autouse do conftest (021) roda o cleanup antes do undo do monkeypatch.
+    """
+    from pathlib import Path as _Path
+
     from app.config import BACKUP_DIR
+
+    _real_unlink = _Path.unlink
 
     if BACKUP_DIR.exists():
         for p in BACKUP_DIR.iterdir():
             if _BACKUP_NAME_RE.match(p.name) or ".part" in p.name:
                 if p.is_file():
-                    p.unlink()
+                    _real_unlink(p)
     yield
     if BACKUP_DIR.exists():
         for p in BACKUP_DIR.iterdir():
             if _BACKUP_NAME_RE.match(p.name) or ".part" in p.name:
                 if p.is_file():
-                    p.unlink()
+                    _real_unlink(p)
 
 
 def _fake_dump(path):

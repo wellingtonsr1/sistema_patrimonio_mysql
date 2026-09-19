@@ -181,9 +181,15 @@ def test_manual_antigo_nunca_removido(db_session, retention):
 # TESTE I — pré-restauração preservado por default
 # ============================================================================
 
-def test_pre_restauracao_preservado_por_default(db_session, retention, monkeypatch):
-    """Teste I: KEEP_PRE_RESTORE=0 (default) preserva TODOS os pré-restauração."""
-    monkeypatch.setattr(backup_scheduler, "BACKUP_RETENTION_KEEP_PRE_RESTORE", 0)
+def test_pre_restauracao_preservado_por_default(db_session, retention):
+    """Teste I: keep_pre_restore=0 (default) preserva TODOS os pré-restauração."""
+    # 021: política fixada na FONTE ÚNICA (linha singleton) — env não é lida mais pelo scheduler
+    from app.services.backup_config_service import get_backup_config
+
+    row = get_backup_config(db_session)
+    row.keep_pre_restore = 0
+    db_session.commit()
+    retention.refresh_effective_config()
     r_pre = _seed_record(db_session, "backup_20240918_120000_000005.sql.gz",
                          backup_type="PRE_RESTAURACAO",
                          timestamp=NOW - timedelta(days=730))
@@ -194,9 +200,15 @@ def test_pre_restauracao_preservado_por_default(db_session, retention, monkeypat
     assert (BACKUP_DIR / r_pre.filename).exists()
 
 
-def test_pre_restauracao_com_keep_n_preserva_os_n_mais_recentes(db_session, retention, monkeypatch):
-    """Teste I (política explícita): KEEP_PRE_RESTORE=1 preserva só o mais recente."""
-    monkeypatch.setattr(backup_scheduler, "BACKUP_RETENTION_KEEP_PRE_RESTORE", 1)
+def test_pre_restauracao_com_keep_n_preserva_os_n_mais_recentes(db_session, retention):
+    """Teste I (política explícita): keep_pre_restore=1 preserva só o mais recente."""
+    # 021: política fixada na FONTE ÚNICA (linha singleton) — env não é lida mais pelo scheduler
+    from app.services.backup_config_service import get_backup_config
+
+    row = get_backup_config(db_session)
+    row.keep_pre_restore = 1
+    db_session.commit()
+    retention.refresh_effective_config()
     r_antigo = _seed_record(db_session, "backup_20240901_120000_000006.sql.gz",
                             backup_type="PRE_RESTAURACAO",
                             timestamp=NOW - timedelta(days=740))

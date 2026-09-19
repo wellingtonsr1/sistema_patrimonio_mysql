@@ -19,6 +19,7 @@ from app.models.user_role import UserRole
 from app.models.role_permission import RolePermission
 from app.models.audit_log import AuditLog
 from app.models.backup_record import BackupRecord
+from app.models.backup_config import BackupConfig
 from app.models.ad_settings import ADSettings
 from app.models.ad_group_role import ADGroupRole
 from app.models.setup_claim import SetupClaim
@@ -44,6 +45,7 @@ __all__ = [
     "RolePermission",
     "AuditLog",
     "BackupRecord",
+    "BackupConfig",
     "ADSettings",
     "ADGroupRole",
     "SetupClaim",

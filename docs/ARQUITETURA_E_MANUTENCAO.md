@@ -94,9 +94,9 @@ sistema_patrimonio/
 │   │   ├── custodians_api.py  # Colaboradores (CRUD, bens sob custódia, import CSV)
 │   │   ├── locations_api.py   # Locais (CRUD)
 │   │   └── reports_api.py     # dashboard-stats + 3 exportações CSV
-│   ├── models/                # 17 modelos SQLAlchemy + enums.py (fonte de verdade das tabelas; 020: + backup_records)
+│   ├── models/                # 18 modelos SQLAlchemy + enums.py (fonte de verdade das tabelas; 020: + backup_records; 021: + backup_config)
 │   ├── schemas/               # Schemas Pydantic v2 (Create/Update/Read por entidade; user.py para /auth/me)
-│   ├── services/              # 18 módulos de regra de negócio (ver §8 e INVENTARIO_TECNICO.md; 020: + backup_scheduler)
+│   ├── services/              # 19 módulos de regra de negócio (ver §8 e INVENTARIO_TECNICO.md; 020: + backup_scheduler; 021: + backup_config_service)
 │   └── web/
 │       ├── routes.py          # Páginas de negócio + login/logout + configuração Jinja2Templates (context processor _inject_current_user, função can())
 │       ├── admin_routes.py    # /admin/users*, /admin/roles*, /admin/audit, /profile/password, /admin/ad*
@@ -261,6 +261,7 @@ Patrimônio
 | `ad_settings` | `ADSettings` | singleton `id=1` |
 | `ad_group_roles` | `ADGroupRole` | `group_name` unique `uq_ad_group_role_group`; `priority` (menor vence); `is_active` |
 | `backup_records` | `BackupRecord` (feature 020) | `filename` unique (nome final projetado, regex `_BACKUP_NAME_RE`); `backup_type` MANUAL/AUTOMATICO/PRE_RESTAURACAO; `status` SUCCESS/FAILURE; `size_bytes`, `sha256`, `error_description`, `timestamp` (UTC) índice; `removed_at`/`removed_reason` (retenção — histórico preservado) |
+| `backup_config` | `BackupConfig` (feature 021) | singleton `id=1` (lazy via `create_all`); campos operacionais nulos = "não definido" → fallback env/default: `auto_enabled` (bool, default False), `schedule`, `time`, `weekday`, `retention_daily_days`, `retention_weekly_weeks`, `retention_monthly_months`, `keep_pre_restore`; rastreio `updated_at` (UTC)/`updated_by` |
 | `assets` | `Asset` | `tag` unique+índice; `serial_number` unique (nullable); FKs `locations.id`, `custodians.id` |
 | `movements` | `Movement` | `movement_uuid` unique; FK `assets.id` CASCADE; snapshots origem/destino; `term_code` índice |
 | `custodians` | `Custodian` | `registration_code` unique (matrícula); `email` unique |
@@ -1211,6 +1212,7 @@ app.cli ──► services/* (mesma camada de negócio das rotas)
 | Manutenção | `app/services/maintenance_service.py` |
 | Dashboard/Relatórios | `dashboard_service.py`, `report_service.py`, `app/api/reports_api.py` |
 | Backup automático/retenção | `app/services/backup_scheduler.py` (agendador + retenção GFS), `app/services/backup_service.py` (`generate_backup` com `backup_type`), `app/models/backup_record.py`, env vars em `app/config.py` (§6), tela `/admin/backups` |
+| Configuração do backup (021) | `app/services/backup_config_service.py` (efetiva: persistido → env → default; validação e salvamento), `app/models/backup_config.py` (singleton), rotas `GET/POST /admin/backups/configuracoes` (`admin_routes.py`), evento `BACKUP_CONFIGURACAO_ALTERADA` (before/after), snapshot renovado por tick no `backup_scheduler` (aplicação sem reinício) |
 | Auditoria | `app/services/audit_service.py`, `app/web/admin_routes.py` (seção AUDITORIA) |
 | Ajuda/Manual | `app/services/help_service.py` (conteúdo) |
 | Etiquetas | `app/web/routes.py::assets_labels`, template `assets/labels.html`, CSS de impressão em `style.css` |

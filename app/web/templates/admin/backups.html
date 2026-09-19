@@ -83,7 +83,13 @@
 
 <!-- Feature 020: monitoramento do Backup Automático e da Retenção (contract §7) -->
 <div class="card p-3 mb-4">
-    <h6 class="fw-semibold mb-2"><i class="bi bi-clock-history me-1"></i>Backup Automático</h6>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-clock-history me-1"></i>Backup Automático</h6>
+        <!-- Feature 021: acesso às Configurações de Backup -->
+        <a class="btn btn-sm btn-outline-primary" href="/admin/backups/configuracoes" title="Configurações de Backup">
+            <i class="bi bi-gear me-1"></i>Configurar
+        </a>
+    </div>
     <dl class="row mb-0">
         <dt class="col-sm-4 col-lg-2 small">Agendamento</dt>
         <dd class="col-sm-8 col-lg-4 small mb-1">
@@ -137,6 +143,66 @@
         <dd class="col-sm-8 col-lg-4 small mb-0">{{ retention_summary.removed_count if retention_summary else 0 }}</dd>
     </dl>
 </div>
+
+<!-- Configurações (feature 021) — apenas na rota de configuração -->
+{% if config_form %}
+<div class="card p-3 mb-4">
+    <h6 class="fw-semibold mb-2"><i class="bi bi-gear me-1"></i>Configurações de Backup</h6>
+    <p class="text-muted small mb-3">
+        Parâmetros operacionais do backup automático e da política de retenção.
+        A alteração é validada, registrada na auditoria e aplicada sem reinício.
+    </p>
+    <form method="post" action="/admin/backups/configuracoes" class="row g-3">
+        <div class="col-12">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="cfg-auto-enabled" name="auto_enabled" {% if config_form.auto_enabled %}checked{% endif %}>
+                <label class="form-check-label" for="cfg-auto-enabled">Backup automático ativado</label>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <label class="form-label small mb-1" for="cfg-schedule">Frequência</label>
+            <select class="form-select form-select-sm" id="cfg-schedule" name="schedule">
+                <option value="daily" {% if config_form.schedule == 'daily' %}selected{% endif %}>Diário</option>
+                <option value="weekly" {% if config_form.schedule == 'weekly' %}selected{% endif %}>Semanal</option>
+            </select>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <label class="form-label small mb-1" for="cfg-time">Horário</label>
+            <input type="time" class="form-control form-control-sm" id="cfg-time" name="time" value="{{ config_form.time }}" required>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <label class="form-label small mb-1" for="cfg-weekday">Dia da semana (frequência semanal)</label>
+            <select class="form-select form-select-sm" id="cfg-weekday" name="weekday">
+                {% for valor, nome in [(0, 'Domingo'), (1, 'Segunda'), (2, 'Terça'), (3, 'Quarta'), (4, 'Quinta'), (5, 'Sexta'), (6, 'Sábado')] %}
+                <option value="{{ valor }}" {% if config_form.weekday == valor %}selected{% endif %}>{{ nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <label class="form-label small mb-1" for="cfg-keep-pre">Pré-restauração preservados</label>
+            <input type="number" min="0" class="form-control form-control-sm" id="cfg-keep-pre" name="keep_pre_restore" value="{{ config_form.keep_pre_restore }}" required>
+            <div class="form-text small">0 preserva todos os backups pré-restauração.</div>
+        </div>
+        <div class="col-sm-4 col-lg-3">
+            <label class="form-label small mb-1" for="cfg-ret-daily">Retenção diária (dias)</label>
+            <input type="number" min="1" class="form-control form-control-sm" id="cfg-ret-daily" name="retention_daily_days" value="{{ config_form.retention_daily_days }}" required>
+        </div>
+        <div class="col-sm-4 col-lg-3">
+            <label class="form-label small mb-1" for="cfg-ret-weekly">Retenção semanal (semanas)</label>
+            <input type="number" min="1" class="form-control form-control-sm" id="cfg-ret-weekly" name="retention_weekly_weeks" value="{{ config_form.retention_weekly_weeks }}" required>
+        </div>
+        <div class="col-sm-4 col-lg-3">
+            <label class="form-label small mb-1" for="cfg-ret-monthly">Retenção mensal (meses)</label>
+            <input type="number" min="1" class="form-control form-control-sm" id="cfg-ret-monthly" name="retention_monthly_months" value="{{ config_form.retention_monthly_months }}" required>
+        </div>
+        <div class="col-12 d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1"></i>Salvar configuração
+            </button>
+        </div>
+    </form>
+</div>
+{% endif %}
 
 <!-- Gerar -->
 <div class="card p-3 mb-4">

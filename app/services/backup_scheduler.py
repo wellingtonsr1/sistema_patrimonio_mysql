@@ -78,48 +78,77 @@ _FAIXA_MENSAL = "RETENCAO_MENSAL"
 
 
 # ============================================================================
-# Configuração efetiva — normalização/validação no serviço (contract §1)
+# Configuração efetiva — feature 021 (fonte única em runtime, contract §3)
+#
+# Precedência única: persistido (tela backup_config) → env (config.py) →
+# default da 020. O snapshot corrente é atualizado POR TICK no loop (R4/R5):
+# alteração pela tela aplica-se sem reinício. Antes do 1º tick (ou fora do
+# processo do servidor), o snapshot reflete env/default — compatibilidade
+# total com quem opera por variáveis (FR-026).
 # ============================================================================
 
+_current_effective = None  # EffectiveBackupConfig | None (lazy — evita import cíclico)
+
+
+def refresh_effective_config() -> None:
+    """Atualiza o snapshot corrente a partir da configuração persistida.
+
+    Chama `backup_config_service.get_effective_config` com sessão própria e
+    curta (padrão _worker_audit). Nunca levanta: falha de leitura mantém o
+    snapshot anterior (crash-safe). Sem snapshot anterior → efetiva via
+    env/default (SessionLocal pode não ser aberta em contextos de teste).
+    """
+    global _current_effective
+    from app.services.backup_config_service import EffectiveBackupConfig
+
+    try:
+        from app.services.backup_config_service import get_effective_config
+
+        db = SessionLocal()
+        try:
+            _current_effective = get_effective_config(db)
+        finally:
+            db.close()
+        return
+    except Exception:
+        logger.exception("Falha ao ler configuração efetiva — mantendo snapshot anterior.")
+    if _current_effective is None:
+        _current_effective = EffectiveBackupConfig(
+            auto_enabled=bool(BACKUP_AUTO_ENABLED),
+            schedule=(BACKUP_AUTO_SCHEDULE if BACKUP_AUTO_SCHEDULE in ("daily", "weekly") else "daily"),
+            time=(BACKUP_AUTO_TIME if isinstance(BACKUP_AUTO_TIME, str) and len(BACKUP_AUTO_TIME) == 5 else "02:00"),
+            weekday=(BACKUP_AUTO_WEEKDAY if 0 <= BACKUP_AUTO_WEEKDAY <= 6 else 0),
+            retention_daily_days=BACKUP_RETENTION_DAILY_DAYS if isinstance(BACKUP_RETENTION_DAILY_DAYS, int) and BACKUP_RETENTION_DAILY_DAYS >= 1 else 30,
+            retention_weekly_weeks=BACKUP_RETENTION_WEEKLY_WEEKS if isinstance(BACKUP_RETENTION_WEEKLY_WEEKS, int) and BACKUP_RETENTION_WEEKLY_WEEKS >= 1 else 12,
+            retention_monthly_months=BACKUP_RETENTION_MONTHLY_MONTHS if isinstance(BACKUP_RETENTION_MONTHLY_MONTHS, int) and BACKUP_RETENTION_MONTHLY_MONTHS >= 1 else 12,
+            keep_pre_restore=max(0, BACKUP_RETENTION_KEEP_PRE_RESTORE or 0),
+        )
+
+
+def _eff() -> "EffectiveBackupConfig":
+    """Snapshot corrente; lê da persistência na 1ª necessidade (lazy)."""
+    if _current_effective is None:
+        refresh_effective_config()
+    assert _current_effective is not None  # refresh garante fallback
+    return _current_effective
+
+
 def _effective_schedule() -> str:
-    if BACKUP_AUTO_SCHEDULE in ("daily", "weekly"):
-        return BACKUP_AUTO_SCHEDULE
-    logger.warning(
-        "BACKUP_AUTO_SCHEDULE inválido (%r) — usando default 'daily'.",
-        BACKUP_AUTO_SCHEDULE,
-    )
-    return "daily"
+    return _eff().schedule
 
 
 def _effective_time() -> tuple:
-    """Retorna (hora, minuto) do horário configurado; inválido → (2, 0) + log."""
-    raw = (BACKUP_AUTO_TIME or "").strip()
-    parts = raw.split(":")
-    if len(parts) == 2:
-        try:
-            hour, minute = int(parts[0]), int(parts[1])
-            if 0 <= hour <= 23 and 0 <= minute <= 59:
-                return hour, minute
-        except ValueError:
-            pass
-    logger.warning(
-        "BACKUP_AUTO_TIME inválido (%r) — usando default '02:00'.", BACKUP_AUTO_TIME
-    )
-    return 2, 0
+    """Retorna (hora, minuto) da configuração efetiva."""
+    hour, minute = _eff().time.split(":")
+    return int(hour), int(minute)
 
 
 def _effective_weekday() -> int:
-    if 0 <= BACKUP_AUTO_WEEKDAY <= 6:
-        return BACKUP_AUTO_WEEKDAY
-    logger.warning(
-        "BACKUP_AUTO_WEEKDAY inválido (%r) — usando default 0 (domingo).",
-        BACKUP_AUTO_WEEKDAY,
-    )
-    return 0
+    return _eff().weekday
 
 
 def _effective_int(value: int, default: int, name: str) -> int:
-    """Retenção ≥ 1 (0/negativo provocaria exclusão imediata — FR-035/A9)."""
+    """Compat 020: normaliza valor ≥ 1 (0/negativo → default com log)."""
     if isinstance(value, int) and value >= 1:
         return value
     logger.warning("%s inválido (%r) — usando default %s.", name, value, default)
@@ -241,7 +270,7 @@ def scheduler_status() -> Dict:
     now = _clock()
     hour, minute = _effective_time()
     status = {
-        "enabled": bool(BACKUP_AUTO_ENABLED),
+        "enabled": _eff().auto_enabled,
         "schedule": _effective_schedule(),
         "time_local": f"{hour:02d}:{minute:02d}",
         "weekday": _effective_weekday(),
@@ -591,10 +620,12 @@ def _apply_retention(db) -> Dict:
     mensal + integridade OK + guarda do último backup válido. Remoção física
     EXCLUSIVAMENTE via `get_backup_path` (regex + diretório oficial — §31).
     """
-    daily_days = _effective_int(BACKUP_RETENTION_DAILY_DAYS, 30, "BACKUP_RETENTION_DAILY_DAYS")
-    weekly_weeks = _effective_int(BACKUP_RETENTION_WEEKLY_WEEKS, 12, "BACKUP_RETENTION_WEEKLY_WEEKS")
-    monthly_months = _effective_int(BACKUP_RETENTION_MONTHLY_MONTHS, 12, "BACKUP_RETENTION_MONTHLY_MONTHS")
-    keep_pre_restore = max(0, BACKUP_RETENTION_KEEP_PRE_RESTORE)
+    # 021: limites vindos do snapshot da configuração EFETIVA (fonte única)
+    eff = _eff()
+    daily_days = _effective_int(eff.retention_daily_days, 30, "BACKUP_RETENTION_DAILY_DAYS")
+    weekly_weeks = _effective_int(eff.retention_weekly_weeks, 12, "BACKUP_RETENTION_WEEKLY_WEEKS")
+    monthly_months = _effective_int(eff.retention_monthly_months, 12, "BACKUP_RETENTION_MONTHLY_MONTHS")
+    keep_pre_restore = max(0, int(eff.keep_pre_restore))
 
     now = _clock()
     daily_deadline = now - timedelta(days=daily_days)
@@ -750,21 +781,29 @@ def _apply_retention_after_cycle() -> None:
 # ============================================================================
 
 def _scheduler_loop(stop: threading.Event) -> None:
-    """Loop de verificação: dispara o worker no horário configurado (R1/R5)."""
+    """Loop de verificação: dispara o worker no horário configurado (R1/R5).
+
+    Feature 021: a cada tick o snapshot da configuração EFETIVA é renovado
+    (refresh_effective_config) — alteração pela tela aplica-se sem reinício.
+    """
     global _catchup_done
+    refresh_effective_config()
     hour, minute = _effective_time()
     logger.info(
         "Agendador de backup automático iniciado (enabled=%s, schedule=%s, time=%02d:%02d).",
-        BACKUP_AUTO_ENABLED, _effective_schedule(), hour, minute,
+        _eff().auto_enabled, _effective_schedule(), hour, minute,
     )
     while not stop.is_set():
         try:
             now = _clock()
+            refresh_effective_config()  # 021: fonte única renovada por tick (R4)
+            enabled = _eff().auto_enabled
 
             # Catch-up determinístico (R5): avaliado UMA vez por start
             if not _catchup_done:
+
                 _catchup_done = True
-                if BACKUP_AUTO_ENABLED:
+                if enabled:
                     db = SessionLocal()
                     try:
                         needs_catchup = _should_catch_up(now, db)
@@ -783,7 +822,7 @@ def _scheduler_loop(stop: threading.Event) -> None:
                             daemon=True,
                         ).start()
 
-            if BACKUP_AUTO_ENABLED:
+            if enabled:
                 next_run = _next_run_utc(_clock())
                 if _clock() >= next_run:
                     threading.Thread(

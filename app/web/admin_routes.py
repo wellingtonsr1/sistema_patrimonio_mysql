@@ -26,6 +26,7 @@ from app.api.deps import _client_ip, require_permission
 from app.services import permission_service
 from app.services.audit_service import (
     ACTION_BACKUP_CREATED,
+    ACTION_BACKUP_CONFIG_UPDATED,
     ACTION_BACKUP_DOWNLOAD,
     ACTION_BLOCK,
     ACTION_UNBLOCK,
@@ -46,6 +47,7 @@ from app.services.audit_service import (
     write_change_audit,
 )
 from app.services.auth_service import change_password, create_user, reset_password
+from app.services import backup_config_service
 from app.services import backup_service
 from app.services.backup_service import BackupService
 from app.services import ad_service
@@ -820,6 +822,9 @@ def admin_backups(
         .filter(BackupRecord.filename.in_([b["filename"] for b in backups]))
         .all()
     }
+    # 021: SEM contexto de configuração aqui — esta rota é somente-leitura e
+    # NÃO pode criar/commitar a linha singleton (configuração vive em
+    # /admin/backups/configuracoes).
     return templates.TemplateResponse(
         request=request,
         name="admin/backups.html",
@@ -870,6 +875,99 @@ def admin_backup_download(request: Request, filename: str, db: Session = Depends
     # 016: media type coerente com o sufixo (.sql.gz → gzip; .sql → sql)
     media_type = "application/gzip" if filename.endswith(".gz") else "application/sql"
     return FileResponse(path, media_type=media_type, filename=filename)
+
+
+# ============================================================================
+# CONFIGURAÇÕES DE BACKUP (feature 021) — backup.gerenciar (existente)
+# ============================================================================
+
+@admin_router.get("/admin/backups/configuracoes", response_class=HTMLResponse, dependencies=[Depends(require_permission("backup.gerenciar"))])
+def admin_backup_config_form(request: Request, db: Session = Depends(get_db)):
+    """Formulário de configuração (021): pré-preenchido com a configuração EFETIVA."""
+    eff = backup_config_service.get_effective_config(db)
+    row = backup_config_service.get_backup_config(db)
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/backups.html",
+        context={
+            "backups": BackupService.list_backups(),
+            "restore_status": backup_service.restore_status(),
+            "auto_status": __import__("app.services.backup_scheduler", fromlist=["scheduler_status"]).scheduler_status(),
+            "retention_summary": __import__("app.services.backup_scheduler", fromlist=["retention_monitoring_summary"]).retention_monitoring_summary(db),
+            "types_by_filename": {},
+            "config_form": eff,
+            "config_row": row,
+            "success": request.query_params.get("success"),
+            "error": request.query_params.get("error"),
+            "info": None,
+            "active_tab": "admin",
+        },
+    )
+
+
+@admin_router.post("/admin/backups/configuracoes", dependencies=[Depends(require_permission("backup.gerenciar"))])
+def admin_backup_config_save(
+    request: Request,
+    db: Session = Depends(get_db),
+    auto_enabled: Optional[str] = Form(None),  # checkbox: ausente = false
+    schedule: str = Form("daily"),
+    time: str = Form("02:00"),
+    weekday: int = Form(0),
+    retention_daily_days: int = Form(30),
+    retention_weekly_weeks: int = Form(12),
+    retention_monthly_months: int = Form(12),
+    keep_pre_restore: int = Form(0),
+):
+    """Salva a configuração (021): valida no backend, persiste (commit único),
+    audita com before/after por campo e confirma — fluxo §17 do briefing."""
+    actor = request.state.user
+    before = backup_config_service.get_effective_config(db)
+    # checkbox: o campo só vem no form quando marcado (padrão HTML)
+    auto_enabled = auto_enabled is not None
+    try:
+        after = backup_config_service.save_backup_config(
+            db, actor,
+            auto_enabled=auto_enabled,
+            schedule=schedule.strip(),
+            time=time.strip(),
+            weekday=weekday,
+            retention_daily_days=retention_daily_days,
+            retention_weekly_weeks=retention_weekly_weeks,
+            retention_monthly_months=retention_monthly_months,
+            keep_pre_restore=keep_pre_restore,
+        )
+    except ValueError as err:
+        return RedirectResponse(
+            url=f"/admin/backups/configuracoes?error={_quote(str(err))}",
+            status_code=303,
+        )
+
+    changed = {}
+    for field in (
+        "auto_enabled", "schedule", "time", "weekday",
+        "retention_daily_days", "retention_weekly_weeks",
+        "retention_monthly_months", "keep_pre_restore",
+    ):
+        v_before, v_after = getattr(before, field), getattr(after, field)
+        if v_before != v_after:
+            changed[field] = {"antes": v_before, "depois": v_after}
+    if changed:
+        write_change_audit(
+            db,
+            user=actor,
+            action=ACTION_BACKUP_CONFIG_UPDATED,
+            module="Backup",
+            resource="BackupConfig",
+            resource_id=1,
+            ip_address=_client_ip(request),
+            before={k: v["antes"] for k, v in changed.items()},
+            after={k: v["depois"] for k, v in changed.items()},
+            description="Alteração da configuração de backup (tela).",
+        )
+    return RedirectResponse(
+        url=f"/admin/backups/configuracoes?success={_quote('Configuração salva.')}",
+        status_code=303,
+    )
 
 
 # ============================================================================

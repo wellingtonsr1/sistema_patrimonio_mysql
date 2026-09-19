@@ -50,10 +50,14 @@ def _fake_dump(path):
 def fresh_scheduler(db_session, monkeypatch):
     """Agendador isolado: sessão de teste no lugar de SessionLocal + clock fixo."""
     monkeypatch.setattr(backup_scheduler, "SessionLocal", lambda: db_session)
-    monkeypatch.setattr(
-        backup_service, "SessionLocal", lambda: db_session, raising=False
-    )
-    monkeypatch.setattr(backup_scheduler, "BACKUP_AUTO_ENABLED", True)
+    monkeypatch.setattr(backup_service, "SessionLocal", lambda: db_session,
+                        raising=False)
+    # 021: flag ativada na FONTE ÚNICA (linha singleton), não em constante do módulo
+    from app.services.backup_config_service import get_backup_config
+
+    row = get_backup_config(db_session)
+    row.auto_enabled = True
+    db_session.commit()
     monkeypatch.setattr(backup_scheduler, "_catchup_done", True)  # sem catch-up nos testes A/B
     return backup_scheduler
 
@@ -97,14 +101,17 @@ def test_disparo_no_horario_gera_backup_automatico(db_session, fresh_scheduler, 
     assert auto_log.user_id is None
 
 
-def test_backup_desativado_nao_dispara(db_session, fresh_scheduler, monkeypatch):
-    """US1/US2: BACKUP_AUTO_ENABLED=false → nenhum disparo."""
-    monkeypatch.setattr(backup_scheduler, "BACKUP_AUTO_ENABLED", False)
-    called = []
+def test_backup_desativado_nao_dispara(db_session, fresh_scheduler):
+    """US1/US2: configuração efetiva auto_enabled=false → nenhum disparo."""
+    from app.services.backup_config_service import get_backup_config
 
-    real_loop_tick = fresh_scheduler._scheduler_loop
-    # Não executa o loop; valida apenas a condição de disparo
-    assert fresh_scheduler.BACKUP_AUTO_ENABLED is False
+    row = get_backup_config(db_session)
+    row.auto_enabled = False
+    db_session.commit()
+    fresh_scheduler.refresh_effective_config()
+
+    # Não executa o loop; valida apenas a condição de disparo (fonte única 021)
+    assert fresh_scheduler._eff().auto_enabled is False
 
 
 def test_scheduler_status_sem_segredos(fresh_scheduler):
@@ -176,9 +183,16 @@ def test_backup_automatico_restauravel_pelo_restore_existente(db_session, fresh_
 # US2 — _next_run_utc / _should_catch_up / config inválida
 # ============================================================================
 
-def test_next_run_daily_deterministico(fresh_scheduler, monkeypatch):
+def test_next_run_daily_deterministico(db_session, fresh_scheduler):
     """US2: daily — próxima ocorrência futura do HH:MM (Recife→UTC)."""
-    monkeypatch.setattr(backup_scheduler, "BACKUP_AUTO_TIME", "02:00")
+    # 021: horário fixado na fonte única (camada persistida — hermético)
+    from app.services.backup_config_service import get_backup_config
+
+    row = get_backup_config(db_session)
+    row.time = "02:00"
+    db_session.commit()
+    fresh_scheduler.refresh_effective_config()
+
     # 2026-09-18 03:00 UTC = 00:00 Recife → próximo 02:00 Recife = 05:00 UTC
     now = datetime(2026, 9, 18, 3, 0, 0)
     next_run = fresh_scheduler._next_run_utc(now)
@@ -217,16 +231,29 @@ def test_catch_up_apenas_sem_sucesso_no_ciclo(db_session, fresh_scheduler):
     assert fresh_scheduler._should_catch_up(before, db_session) is False
 
 
-def test_config_invalida_cai_no_default_sem_crash(fresh_scheduler, monkeypatch, caplog):
-    """US2/A9: valores inválidos → default seguro + warning, sem crash."""
-    monkeypatch.setattr(backup_scheduler, "BACKUP_AUTO_TIME", "25:99")
+def test_config_invalida_cai_no_default_sem_crash(db_session, fresh_scheduler, monkeypatch, caplog):
+    """US2/A9: env inválida é tratada como ausente → default seguro + warning."""
+    from app import config
+    from app.services.backup_config_service import get_backup_config
+
+    # camada persistida indefinida: a efetiva vem da camada env
+    row = get_backup_config(db_session)
+    row.time = None
+    row.schedule = None
+    row.retention_daily_days = None
+    db_session.commit()
+
+    monkeypatch.setattr(config, "BACKUP_AUTO_TIME", "25:99")
+    fresh_scheduler.refresh_effective_config()
     hour, minute = fresh_scheduler._effective_time()
     assert (hour, minute) == (2, 0)
 
-    monkeypatch.setattr(backup_scheduler, "BACKUP_AUTO_SCHEDULE", "xyz")
+    monkeypatch.setattr(config, "BACKUP_AUTO_SCHEDULE", "xyz")
+    fresh_scheduler.refresh_effective_config()
     assert fresh_scheduler._effective_schedule() == "daily"
 
-    monkeypatch.setattr(backup_scheduler, "BACKUP_RETENTION_DAILY_DAYS", 0)
+    monkeypatch.setattr(config, "BACKUP_RETENTION_DAILY_DAYS", 0)
+    fresh_scheduler.refresh_effective_config()
     assert fresh_scheduler._effective_int(0, 30, "X") == 30
 
     warnings = [r for r in caplog.records if r.levelname == "WARNING"]

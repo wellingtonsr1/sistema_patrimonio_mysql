@@ -853,6 +853,10 @@ def test_019_webPostRestaurarResponde303Imediato(client, db_session, monkeypatch
     resp = client.post(f"/admin/backups/{name}/restaurar", follow_redirects=False)
     assert resp.status_code == 303  # imediato — request NÃO esperou o import
 
+    # active é marcado pela thread do worker (assíncrona) — aguarda com polling
+    # (mesmo padrão _wait_for do arquivo) em vez de checar uma única vez.
+    assert _wait_for(lambda: client.get("/admin/backups/restaurar/status").json()["active"] is True), \
+        "worker não marcou active a tempo"
     status = client.get("/admin/backups/restaurar/status")
     assert status.status_code == 200
     dados = status.json()

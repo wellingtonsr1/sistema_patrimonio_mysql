@@ -1090,19 +1090,32 @@ ARTICLES: List[Dict] = [
             {
                 "heading": "Backup automático e retenção",
                 "body": (
-                    "O sistema pode gerar backups automaticamente (desativado por padrão; ativado "
-                    "apenas pelo administrador no arquivo .env do servidor, nas variáveis "
-                    "BACKUP_AUTO_*). O card Backup Automático na tela de Backups mostra se está "
-                    "ativado, o horário configurado (fuso America/Recife), a próxima execução e o "
-                    "resultado do último disparo. A política de retenção apaga, após cada ciclo "
-                    "automático, apenas backups AUTOMÁTICOS antigos e íntegros: são preservados os "
-                    "backups MANUAIS, os PRÉ-RESTAURAÇÃO e o backup válido mais recente de cada "
-                    "semana e de cada mês dentro das janelas configuradas; o sistema nunca se "
-                    "deixa sem nenhum backup válido. Quando um arquivo é removido pela retenção, o "
-                    "registro histórico permanece (coluna de data mantida na auditoria), indicando "
-                    "a remoção. Os indicadores do card (último automático, último backup válido, "
-                    "última falha, última retenção, quantidades) ajudam a acompanhar a saúde dos "
-                    "backups. Toda execução e remoção é registrada na trilha de auditoria."
+                    "O sistema pode gerar backups automaticamente (desativado por padrão). O card "
+                    "Backup Automático na tela de Backups mostra se está ativado, o horário "
+                    "configurado (fuso America/Recife), a próxima execução e o resultado do último "
+                    "disparo. A política de retenção apaga, após cada ciclo automático, apenas "
+                    "backups AUTOMÁTICOS antigos e íntegros: são preservados os backups MANUAIS, os "
+                    "PRÉ-RESTAURAÇÃO e o backup válido mais recente de cada semana e de cada mês "
+                    "dentro das janelas configuradas; o sistema nunca se deixa sem nenhum backup "
+                    "válido. Quando um arquivo é removido pela retenção, o registro histórico "
+                    "permanece (coluna de data mantida na auditoria), indicando a remoção. Os "
+                    "indicadores do card (último automático, último backup válido, última falha, "
+                    "última retenção, quantidades) ajudam a acompanhar a saúde dos backups. Toda "
+                    "execução e remoção é registrada na trilha de auditoria."
+                ),
+            },
+            {
+                "heading": "Configurações de Backup (feature 021)",
+                "body": (
+                    "Em Administração → Backups → Configurações de Backup, usuários com a permissão "
+                    "backup.gerenciar alteram os parâmetros operacionais: backup automático "
+                    "ativado/desativado, frequência (diário/semanal), horário, dia da semana e as "
+                    "janelas de retenção (diária, semanal, mensal) e de pré-restauração. A alteração "
+                    "é validada no servidor, aplicada sem reinício (vale no próximo ciclo, em até 30 "
+                    "segundos) e registrada na auditoria com os valores antes/depois. Precedência por "
+                    "campo: valor salvo pela tela → variável de ambiente → padrão do sistema. Nunca é "
+                    "editável pela tela: caminhos e executáveis do banco (MYSQLDUMP_PATH, BACKUP_DIR, "
+                    "BACKUP_IMPORT_TIMEOUT) e credenciais — esses parâmetros permanecem no servidor."
                 ),
             },
             {

@@ -71,6 +71,7 @@ ACTION_BACKUP_AUTO_FAILED = "BACKUP_AUTOMATICO_FALHA"
 ACTION_RETENTION_EXECUTED = "BACKUP_RETENCAO_EXECUTADA"
 ACTION_BACKUP_REMOVED_RETENTION = "BACKUP_REMOVIDO_RETENCAO"
 ACTION_RETENTION_FAILED = "BACKUP_RETENCAO_FALHA"
+ACTION_BACKUP_CONFIG_UPDATED = "BACKUP_CONFIGURACAO_ALTERADA"
 
 # Rótulos em linguagem natural exibidos na interface.
 # A ação gravada na trilha continua sendo o identificador (ex.: "RESET_SENHA").
@@ -91,6 +92,7 @@ ACTION_LABELS: Dict[str, str] = {
     ACTION_RETENTION_EXECUTED: "Retenção de Backups Executada",
     ACTION_BACKUP_REMOVED_RETENTION: "Backup Removido pela Retenção",
     ACTION_RETENTION_FAILED: "Retenção de Backups Falhou",
+    ACTION_BACKUP_CONFIG_UPDATED: "Configuração de Backup Alterada",
     ACTION_LOGIN: "Login",
     ACTION_LOGIN_FAILED: "Falha de Login",
     ACTION_LOGIN_LOCKED: "Login Bloqueado",

@@ -819,7 +819,7 @@ Usuários com a permissão `backup.gerenciar` (concedida ao perfil Administrador
 
 O backup automático **reutiliza o mesmo mecanismo do backup manual** (mesmo dump, mesma compressão, mesma validação, mesmo diretório e formato de arquivo) — é apenas uma nova forma de disparo. A tela **Administração → Backups** passa a exibir o card "Backup Automático" (estado, horário configurado, próxima execução, último resultado) e a coluna **Tipo** na listagem (MANUAL / AUTOMÁTICO / PRÉ-RESTAURAÇÃO / — para arquivos legados).
 
-**Configuração via `.env` (todas opcionais; defaults conservadores):**
+**Configuração (todas opcionais; defaults conservadores)** — desde a **feature 021**, administráveis pela tela **Administração → Backups → Configurações de Backup** (permissão `backup.gerenciar`); as variáveis de ambiente abaixo continuam valendo como **fallback** na primeira inicialização e em deploys automatizados. Precedência única por campo: **valor persistido (tela) → variável de ambiente → default da 020**:
 
 | Variável | Default | Descrição |
 |---|---|---|
@@ -849,6 +849,15 @@ Valores inválidos não derrubam o sistema: caem no default seguro com registro 
 - **Nunca deixa o sistema sem backup válido**: se uma remoção deixaria 0 backups válidos no disco, o candidato é preservado com motivo `ULTIMO_BACKUP_VALIDO`;
 - Cada remoção marca o **registro histórico** (`removed_at`) — o histórico é preservado mesmo após a remoção física do arquivo (rastreabilidade);
 - Toda execução registra eventos de auditoria (`BACKUP_RETENCAO_EXECUTADA`, `BACKUP_REMOVIDO_RETENCAO`); falha parcial na remoção → resultado **PARCIAL**, nunca "concluída".
+
+**Configurações de Backup pela interface (feature 021):**
+
+- A tela **Administração → Backups → Configurações de Backup** permite ao administrador alterar: backup automático ativado/desativado, frequência (diário/semanal), horário (fuso America/Recife), dia da semana, retenção diária/semanal/mensal e a política de pré-restauração;
+- **Aplicação sem reinício**: o agendador renova a configuração efetiva a cada ciclo (≤ 30 s) — alterar `02:00 → 23:00` pela tela vale já no próximo disparo;
+- Validação no backend (barreira real, não só HTML): frequência, HH:MM, dia 0–6, quantidades ≥ 1 e pré-restauração ≥ 0; valores inválidos são rejeitados com a configuração anterior intacta;
+- Cada alteração registra o evento de auditoria `BACKUP_CONFIGURACAO_ALTERADA` com os valores **antes/depois** por campo alterado (nunca credenciais);
+- Continuam sendo **configuração técnica do servidor** (não editáveis pela tela): `MYSQLDUMP_PATH`, `BACKUP_DIR`, `BACKUP_IMPORT_TIMEOUT` e `DATABASE_URL` — a tela não permite alterar caminhos, executáveis nem credenciais;
+- A configuração da tela fica na tabela `backup_config` (singleton, criada automaticamente); sem linha persistida, valem ambiente e defaults — o sistema nunca fica em estado indefinido.
 
 Limitações anteriores (backup manual sem agendamento) ficam resolvidas por esta feature; a **restauração** executada pela interface está descrita na próxima seção (feature 017, com correções da feature 019).
 
