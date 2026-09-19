@@ -182,7 +182,7 @@
                         <input type="time" class="form-control form-control-sm" id="cfg-time" name="time" value="{{ config_form.time }}" required>
                     </div>
                     <div class="col-sm-6 col-lg-3">
-                        <label class="form-label small mb-1" for="cfg-weekday">Dia da semana (frequência semanal)</label>
+                        <label class="form-label small mb-1" for="cfg-weekday">Dia da semana</label>
                         <select class="form-select form-select-sm" id="cfg-weekday" name="weekday">
                             {% for valor, nome in [(0, 'Domingo'), (1, 'Segunda'), (2, 'Terça'), (3, 'Quarta'), (4, 'Quinta'), (5, 'Sexta'), (6, 'Sábado')] %}
                             <option value="{{ valor }}" {% if config_form.weekday == valor %}selected{% endif %}>{{ nome }}</option>
@@ -194,15 +194,15 @@
                         <input type="number" min="0" class="form-control form-control-sm" id="cfg-keep-pre" name="keep_pre_restore" value="{{ config_form.keep_pre_restore }}" required>
                         <div class="form-text small">0 preserva todos os backups pré-restauração.</div>
                     </div>
-                    <div class="col-sm-4 col-lg-3">
+                    <div class="col-sm-4 col-lg-4">
                         <label class="form-label small mb-1" for="cfg-ret-daily">Retenção diária (dias)</label>
                         <input type="number" min="1" class="form-control form-control-sm" id="cfg-ret-daily" name="retention_daily_days" value="{{ config_form.retention_daily_days }}" required>
                     </div>
-                    <div class="col-sm-4 col-lg-3">
+                    <div class="col-sm-4 col-lg-4">
                         <label class="form-label small mb-1" for="cfg-ret-weekly">Retenção semanal (semanas)</label>
                         <input type="number" min="1" class="form-control form-control-sm" id="cfg-ret-weekly" name="retention_weekly_weeks" value="{{ config_form.retention_weekly_weeks }}" required>
                     </div>
-                    <div class="col-sm-4 col-lg-3">
+                    <div class="col-sm-4 col-lg-4">
                         <label class="form-label small mb-1" for="cfg-ret-monthly">Retenção mensal (meses)</label>
                         <input type="number" min="1" class="form-control form-control-sm" id="cfg-ret-monthly" name="retention_monthly_months" value="{{ config_form.retention_monthly_months }}" required>
                     </div>

@@ -261,7 +261,7 @@ Patrimônio
 | `ad_settings` | `ADSettings` | singleton `id=1` |
 | `ad_group_roles` | `ADGroupRole` | `group_name` unique `uq_ad_group_role_group`; `priority` (menor vence); `is_active` |
 | `backup_records` | `BackupRecord` (feature 020) | `filename` unique (nome final projetado, regex `_BACKUP_NAME_RE`); `backup_type` MANUAL/AUTOMATICO/PRE_RESTAURACAO; `status` SUCCESS/FAILURE; `size_bytes`, `sha256`, `error_description`, `timestamp` (UTC) índice; `removed_at`/`removed_reason` (retenção — histórico preservado) |
-| `backup_config` | `BackupConfig` (feature 021) | singleton `id=1` (lazy via `create_all`); campos operacionais nulos = "não definido" → fallback env/default: `auto_enabled` (bool, default False), `schedule`, `time`, `weekday`, `retention_daily_days`, `retention_weekly_weeks`, `retention_monthly_months`, `keep_pre_restore`; rastreio `updated_at` (UTC)/`updated_by` |
+| `backup_config` | `BackupConfig` (features 021/022) | singleton `id=1` (lazy via `create_all`); campos operacionais nulos = "não definido" → fallback env/default: `auto_enabled` (bool, default False), `schedule`, `time`, `weekday`, `retention_daily_days`, `retention_weekly_weeks`, `retention_monthly_months`, `keep_pre_restore`; rastreio `updated_at` (UTC)/`updated_by`. Na 022 a listagem lê a efetiva com `get_effective_config(db, create=False)` (leitura pura, sem criar a linha) |
 | `assets` | `Asset` | `tag` unique+índice; `serial_number` unique (nullable); FKs `locations.id`, `custodians.id` |
 | `movements` | `Movement` | `movement_uuid` unique; FK `assets.id` CASCADE; snapshots origem/destino; `term_code` índice |
 | `custodians` | `Custodian` | `registration_code` unique (matrícula); `email` unique |
@@ -1212,7 +1212,7 @@ app.cli ──► services/* (mesma camada de negócio das rotas)
 | Manutenção | `app/services/maintenance_service.py` |
 | Dashboard/Relatórios | `dashboard_service.py`, `report_service.py`, `app/api/reports_api.py` |
 | Backup automático/retenção | `app/services/backup_scheduler.py` (agendador + retenção GFS), `app/services/backup_service.py` (`generate_backup` com `backup_type`), `app/models/backup_record.py`, env vars em `app/config.py` (§6), tela `/admin/backups` |
-| Configuração do backup (021) | `app/services/backup_config_service.py` (efetiva: persistido → env → default; validação e salvamento), `app/models/backup_config.py` (singleton), rotas `GET/POST /admin/backups/configuracoes` (`admin_routes.py`), evento `BACKUP_CONFIGURACAO_ALTERADA` (before/after), snapshot renovado por tick no `backup_scheduler` (aplicação sem reinício) |
+| Configuração do backup (021/022) | `app/services/backup_config_service.py` (efetiva: persistido → env → default; validação e salvamento; parâmetro `create=False` para leitura sem efeito colateral — 022), `app/models/backup_config.py` (singleton), rotas `GET/POST /admin/backups/configuracoes` (`admin_routes.py`; POST redireciona para `/admin/backups?success=|error=`), acesso pela interface pelo botão ⚙ no header da página de Backups (modal `#modalBackupConfig` em `templates/admin/backups.html` — 022), evento `BACKUP_CONFIGURACAO_ALTERADA` (before/after), snapshot renovado por tick no `backup_scheduler` (aplicação sem reinício) |
 | Auditoria | `app/services/audit_service.py`, `app/web/admin_routes.py` (seção AUDITORIA) |
 | Ajuda/Manual | `app/services/help_service.py` (conteúdo) |
 | Etiquetas | `app/web/routes.py::assets_labels`, template `assets/labels.html`, CSS de impressão em `style.css` |

@@ -107,7 +107,10 @@ mapeado para perfil existente; sem mapeamento → nada é criado no banco, apena
 `app/config.py` — único ponto. Variáveis de ambiente documentadas em
 `ARQUITETURA_E_MANUTENCAO.md` §17 (`AUTH_*`, `AD_*`, `DATABASE_URL`, `APP_*`).
 A configuração do AD também pode ser feita pela tela `/admin/ad` (tabela `ad_settings`),
-com as variáveis de ambiente como fallback dos campos vazios.
+com as variáveis de ambiente como fallback dos campos vazios. A configuração operacional
+do backup (features 021/022) fica na tabela `backup_config` e é administrada pelo modal
+aberto pelo botão ⚙ no topo direito da página de Backups (`templates/admin/backups.html`);
+as env `BACKUP_*` são fallback da primeira inicialização (service: `backup_config_service.py`).
 
 ## Como executar o sistema
 

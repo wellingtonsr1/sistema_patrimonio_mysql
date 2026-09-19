@@ -2,7 +2,7 @@
 
 **SisPatrimônio Pro** é um sistema completo e moderno de **Gestão Patrimonial (Controle de Ativo Fixo e Equipamentos)** desenvolvido em **Python**, com **FastAPI**, **SQLAlchemy** e **Bootstrap 5**, focado no **rastreamento auditável e na gravação detalhada do fluxo de movimentação de cada equipamento**.
 
-**Status:** Em desenvolvimento ativo.
+**Status:** Em desenvolvimento ativo (versão da aplicação: `1.2.0`, conforme `app/config.py`).
 
 > **Documentação:** este README apresenta a visão geral, instalação, arquitetura e principais regras do sistema. Detalhes operacionais e técnicos específicos devem ser mantidos em `docs/`, evitando que o README fique desatualizado ou excessivamente extenso.
 
@@ -47,7 +47,7 @@ O inventário é uma **conferência física comprobatória** e possui ciclo pró
 - Status dos itens: `PENDENTE`, `ENCONTRADO`, `LOCAL_DIFERENTE`, `NAO_ENCONTRADO` e `SEM_IDENTIFICACAO`.
 - Conferência em campo por QR Code, busca na ficha do bem ou pela página do inventário.
 - Registro de localização encontrada, observação, conferente e data/hora.
-- Aceita bens encontrados que não estavam na lista de esperados.
+- Aceita bens encontrados que não estavam na lista de esperados: a ocorrência é registrada como **observação complementar** (item não previsto), sem alterar o cadastro do bem.
 - **Re-conferência deliberada:** itens já conferidos exibem o resultado anterior e exigem confirmação antes de sua substituição.
 - Encerramento exige que todos os bens esperados tenham sido conferidos; depois disso os itens ficam travados.
 - Ata comprobatória exportável em CSV, Excel e PDF.
@@ -141,15 +141,17 @@ O sistema separa deliberadamente **estado atual**, **histórico operacional**, *
 | Camada | Tecnologia |
 |---|---|
 | Linguagem | Python 3.10+ |
-| Framework web | FastAPI |
-| Servidor ASGI | Uvicorn |
-| ORM / Banco | SQLAlchemy 2 + MariaDB/MySQL |
-| Validação | Pydantic v2 |
+| Framework web | FastAPI >= 0.110 |
+| Servidor ASGI | Uvicorn >= 0.28 |
+| ORM / Banco | SQLAlchemy 2 + MariaDB/MySQL (PyMySQL) |
+| Validação | Pydantic v2 >= 2.6 |
 | Templates | Jinja2 + Bootstrap 5 + Bootstrap Icons |
 | Frontend | Chart.js, QRCode.js, tema claro/escuro |
-| Exportações | OpenPyXL · ReportLab |
+| Exportações | OpenPyXL (.xlsx) · ReportLab (PDF) · CSV UTF-8 BOM |
 | Diretório | LDAP/LDAPS via `ldap3` |
 | Testes | pytest + TestClient do FastAPI |
+
+> Versões mínimas conforme `requirements.txt`.
 
 ---
 
@@ -219,16 +221,99 @@ Detalhes: `specs/004-padronizacao-datas-utc/`.
 ### 1. Instalar dependências
 
 ```bash
+cp -r sis_patrimonio_pro /opt/SisPatrimonioPro
+```
+
+```bash
+cd /opt/SisPatrimonioPro
+```
+
+```bash
+python3 -m venv .venv
+```
+
+```bash
+source .venv/bin/activate
+```
+
+```bash
+sudo chown -R seu_usuario:seu_usuario /opt/SisPratrimonioPro
+```
+
+```bash
 pip install -r requirements.txt
+```
+
+```bash
+python -c "import fastapi, sqlalchemy, pymysql, ldap3, reportlab, openpyxl, dotenv; print('DEPENDÊNCIAS OK')"
 ```
 
 ### 2. Configurar banco
 
-Defina `DATABASE_URL` no `.env`:
+Crie o .env
+```
+nano .env
+```
 
+Defina `DATABASE_URL` no `.env`:
 ```env
 DATABASE_URL=mariadb+pymysql://sispat:SENHA@localhost:3306/sispatrimonio
 ```
+
+Se a senha tiver caracteres especias, será preciso codificá-la
+A forma correta é codificar a senha para URL (percent-encoding) antes de colocá-la no DATABASE_URL.
+
+
+Por exemplo, se a senha fosse:
+```
+Minha@Senha#2026
+```
+os caracteres especiais seriam codificados:
+```
+Minha%40Senha%232026
+```
+Então:
+```
+DATABASE_URL=mariadb+pymysql://patrimonio:Minha%40Senha%232026@localhost:3306/sispatrimoniopro
+```
+
+Principais caracteres
+```
+| Caractere | Usar na URL |
+| --------- | ----------- |
+| `@`       | `%40`       |
+| `#`       | `%23`       |
+| `%`       | `%25`       |
+| `:`       | `%3A`       |
+| `/`       | `%2F`       |
+| `?`       | `%3F`       |
+| espaço    | `%20`       |
+```
+
+Uma forma mais segura de fazer isso
+
+Você pode deixar o Python gerar o DATABASE_URL corretamente, sem precisar fazer a conversão manual.
+
+No terminal, não coloque a senha real aqui no chat. Na sua máquina, execute:
+```
+python -c "from urllib.parse import quote_plus; senha=input('Senha: '); print(quote_plus(senha))"
+```
+
+Digite a senha quando solicitado.
+Se, por exemplo, retornar:
+```
+Minha%40Senha%232026
+```
+use esse valor no .env:
+```
+DATABASE_URL=mariadb+pymysql://patrimonio:Minha%40Senha%232026@localhost:3306/sispatrimoniopro
+```
+
+Depois podemos testar a conexão sem nunca revelar a senha:
+```
+python -c "from app.config import DATABASE_URL; from sqlalchemy import create_engine, text; e=create_engine(DATABASE_URL); c=e.connect(); print('CONEXÃO OK'); print('BANCO:', c.execute(text('SELECT DATABASE()')).scalar()); c.close()"
+```
+
 
 A aplicação **não possui fallback para SQLite**. SQLite é utilizado somente pela suíte de testes, quando configurado para isso.
 
@@ -294,9 +379,9 @@ AUTH_ADMIN_USERNAME=admin
 AUTH_ADMIN_PASSWORD=SENHA_FORTE
 ```
 
-**B — Primeiro acesso**
+**B — Primeiro acesso (`/setup`)**
 
-Em uma instalação sem usuários e sem `AUTH_ADMIN_PASSWORD`, a aplicação disponibiliza `/setup`.
+Em uma instalação que ainda não possui nenhum usuário cadastrado (registro singleton `setup_claims`), a aplicação disponibiliza a página `/setup` para criar o primeiro administrador. Após a criação do primeiro usuário (por qualquer um dos caminhos), a página deixa de estar disponível.
 
 **C — CLI**
 
@@ -525,6 +610,7 @@ As permissões seguem `modulo.acao`.
 | Perfis | `perfis.visualizar`, `perfis.criar`, `perfis.editar`, `perfis.excluir` |
 | Relatórios | `relatorios.visualizar`, `relatorios.exportar` |
 | Inventário | `inventario.visualizar`, `inventario.criar`, `inventario.conferir`, `inventario.encerrar` |
+| Backup | `backup.gerenciar`, `backup.restaurar` |
 | Auditoria | `auditoria.visualizar` |
 
 `movimentacao.cancelar` permanece reservada enquanto não houver fluxo que a utilize.
@@ -597,6 +683,8 @@ ad_settings
 ad_group_roles
 inventarios
 inventario_itens
+backup_records
+backup_config
 setup_claims
 ```
 
@@ -713,6 +801,7 @@ A suíte cobre, entre outros:
 - locais;
 - primeiro acesso;
 - central de ajuda;
+- backup (manual, automático, retenção, configuração pela tela e restauração);
 - exportações CSV/Excel/PDF.
 
 ### Banco utilizado pelos testes
@@ -742,6 +831,7 @@ sistema_patrimonio_mysql/
 │   └── main.py               # Aplicação FastAPI
 ├── data/                     # Dados e logs locais
 ├── docs/                     # Documentação detalhada
+├── specs/                    # Especificações das features (fluxo Spec Kit)
 ├── tests/                    # Suíte pytest
 ├── seed_demo.py              # Dados de demonstração
 ├── run.py                    # Inicialização
@@ -819,7 +909,7 @@ Usuários com a permissão `backup.gerenciar` (concedida ao perfil Administrador
 
 O backup automático **reutiliza o mesmo mecanismo do backup manual** (mesmo dump, mesma compressão, mesma validação, mesmo diretório e formato de arquivo) — é apenas uma nova forma de disparo. A tela **Administração → Backups** passa a exibir o card "Backup Automático" (estado, horário configurado, próxima execução, último resultado) e a coluna **Tipo** na listagem (MANUAL / AUTOMÁTICO / PRÉ-RESTAURAÇÃO / — para arquivos legados).
 
-**Configuração (todas opcionais; defaults conservadores)** — desde a **feature 021**, administráveis pela tela **Administração → Backups → Configurações de Backup** (permissão `backup.gerenciar`); as variáveis de ambiente abaixo continuam valendo como **fallback** na primeira inicialização e em deploys automatizados. Precedência única por campo: **valor persistido (tela) → variável de ambiente → default da 020**:
+**Configuração (todas opcionais; defaults conservadores)** — desde a **feature 021**, administráveis pela interface; desde a **feature 022**, o acesso é pelo **botão ⚙ no canto superior direito da página Administração → Backups**, que abre o **modal "Configurações de Backup"** com os valores atuais (permissão `backup.gerenciar`); a rota direta `/admin/backups/configuracoes` permanece por compatibilidade. As variáveis de ambiente abaixo continuam valendo como **fallback** na primeira inicialização e em deploys automatizados. Precedência única por campo: **valor persistido (tela) → variável de ambiente → default da 020**:
 
 | Variável | Default | Descrição |
 |---|---|---|
@@ -898,27 +988,17 @@ O backup deve fazer parte da política operacional do servidor e ser testado per
 
 ## 📚 Documentação
 
-A documentação detalhada deve ser mantida em `docs/`, organizada por assunto.
+Este README é a **porta de entrada do projeto**. A documentação detalhada fica em `docs/` e as especificações de cada feature em `specs/`.
 
-Sugestão:
+Documentação técnica disponível:
 
 ```text
 docs/
-├── instalacao.md
-├── configuracao.md
-├── autenticacao.md
-├── active-directory.md
-├── rbac.md
-├── inventario.md
-├── movimentacoes.md
-├── importacao-exportacao.md
-├── seguranca.md
-├── banco-de-dados.md
-├── cli.md
-└── desenvolvimento.md
+├── ARQUITETURA_E_MANUTENCAO.md
+├── GUIA_DE_MANUTENCAO.md
 ```
 
-O README deve permanecer como **porta de entrada do projeto**, enquanto as regras detalhadas e procedimentos operacionais devem ser mantidos nos documentos específicos.
+As especificações por feature (`specs/NNN-nome/`) registram requisitos, decisões de design e critérios de validação do fluxo de desenvolvimento.
 
 ---
 

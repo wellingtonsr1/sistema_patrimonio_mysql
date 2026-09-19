@@ -807,7 +807,7 @@ def test_022_fidelidade_visual_sem_js_css_novo(client, db_session, fixed_fallbac
         "btn-outline-secondary", "btn-primary", "form-select form-select-sm",
         "form-control form-control-sm", "form-check form-switch",
         "form-label small mb-1", "form-text small", "row g-3",
-        "col-sm-6 col-lg-3", "col-sm-4 col-lg-3", "col-12",
+        "col-sm-6 col-lg-3", "col-sm-4 col-lg-4", "col-12",
     ):
         assert classe in modal, f"classe esperada no modal: {classe}"
     # nenhum script/CSS novo no template (baseline T001: 1 <script>, 0 <style>)

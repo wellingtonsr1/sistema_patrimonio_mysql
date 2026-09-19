@@ -1064,8 +1064,8 @@ ARTICLES: List[Dict] = [
         "module": "Administração",
         "icon": "bi-archive",
         "audience": "admin",
-        "summary": "Gerar um backup manual do banco de dados, consultar os backups disponíveis e baixá-los; backup automático agendado com política de retenção.",
-        "keywords": ["backup", "cópia", "segurança", "dump", "restauração", "admin", "automático", "agendamento", "retenção", "limpeza"],
+        "summary": "Gerar um backup manual do banco de dados, consultar os backups disponíveis e baixá-los; backup automático agendado com política de retenção e configuração pelo botão de engrenagem.",
+        "keywords": ["backup", "cópia", "segurança", "dump", "restauração", "admin", "automático", "agendamento", "retenção", "limpeza", "configurações", "engrenagem", "modal", "horário", "frequência"],
         "sections": [
             {
                 "heading": "O que o backup contém",
@@ -1106,20 +1106,14 @@ ARTICLES: List[Dict] = [
             },
             {
                 "heading": "Configurações de Backup (features 021/022)",
-                "body": (
-                    "Na página Administração → Backups, o botão de engrenagem no canto superior "
-                    "direito abre o modal Configurações de Backup. Usuários com a permissão "
-                    "backup.gerenciar alteram nele os parâmetros operacionais: backup automático "
-                    "ativado/desativado, frequência (diário/semanal), horário, dia da semana e as "
-                    "janelas de retenção (diária, semanal, mensal) e de pré-restauração. Cancelar "
-                    "fecha o modal sem salvar; Salvar configuração é validada no servidor, aplicada "
-                    "sem reinício (vale no próximo ciclo, em até 30 segundos) e registrada na "
-                    "auditoria com os valores antes/depois — a mensagem de confirmação aparece no "
-                    "topo da página com o modal fechado. Precedência por campo: valor salvo pela "
-                    "tela → variável de ambiente → padrão do sistema. Nunca é editável pela tela: "
-                    "caminhos e executáveis do banco (MYSQLDUMP_PATH, BACKUP_DIR, "
-                    "BACKUP_IMPORT_TIMEOUT) e credenciais — esses parâmetros permanecem no servidor."
-                ),
+                "steps": [
+                    "Na página Administração → Backups, clique no botão de engrenagem no canto superior direito, alinhado ao título, para abrir o modal Configurações de Backup.",
+                    "Com a permissão backup.gerenciar, ajuste: backup automático ativado/desativado, frequência (diário/semanal), horário, dia da semana e as janelas de retenção (diária, semanal, mensal) e de pré-restauração.",
+                    "Cancelar fecha o modal sem salvar nada; Salvar configuração é validada no servidor e registrada na auditoria com os valores antes/depois.",
+                    "Após salvar, a página recarrega com o modal fechado e a mensagem de confirmação no topo.",
+                    "A alteração vale sem reinício (vale no próximo ciclo, em até 30 segundos). Precedência por campo: valor salvo pela tela → variável de ambiente → padrão do sistema.",
+                    "Nunca é editável pela tela: caminhos e executáveis do banco (MYSQLDUMP_PATH, BACKUP_DIR, BACKUP_IMPORT_TIMEOUT) e credenciais — esses parâmetros permanecem no servidor.",
+                ],
             },
             {
                 "heading": "Importante",
@@ -1280,6 +1274,15 @@ FAQ: List[Dict] = [
             "a ata comprobatória pode ser exportada em CSV, Excel e PDF. Divergências (local diferente ou "
             "bem não encontrado) devem ser tratadas depois pelos fluxos de movimentação e manutenção — "
             "o inventário não altera o cadastro."
+        ),
+    },
+    {
+        "question": "Como configurar o backup automático (horário, frequência, retenção)?",
+        "answer": (
+            "Na página Administração → Backups, clique no botão de engrenagem no canto superior direito: "
+            "o modal Configurações de Backup abre com os valores atuais. Ajuste o que precisar e clique em "
+            "Salvar configuração (a validação é no servidor e a alteração é auditada). Cancelar não salva nada. "
+            "A alteração vale no próximo ciclo, sem reiniciar o sistema. Requer a permissão backup.gerenciar."
         ),
     },
     {
