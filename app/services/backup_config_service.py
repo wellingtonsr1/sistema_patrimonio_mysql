@@ -56,15 +56,23 @@ class EffectiveBackupConfig:
     updated_by: Optional[str] = None
 
 
-def get_backup_config(db: Session) -> BackupConfig:
+def get_backup_config(db: Session, create: bool = True) -> BackupConfig:
     """Retorna a linha singleton id=1, criando-a (lazy) se ausente.
 
     Campos operacionais ficam None = "não definido": a configuração efetiva
     nesse estado é exatamente os defaults da Feature 020 (com fallback env) —
     o agendador nunca fica em estado indefinido (spec FR-008).
+
+    Feature 022: com ``create=False`` a função é LEITURA PURA — se a linha não
+    existe, retorna um objeto NÃO persistido (nunca add/commit/flush), para
+    GETs somente-leitura (ex.: página de listagem de backups) sem efeito
+    colateral de escrita. Default ``create=True`` preserva o comportamento
+    atual de todos os chamadores existentes.
     """
     settings = db.query(BackupConfig).filter(BackupConfig.id == 1).first()
     if settings is None:
+        if not create:
+            return BackupConfig(id=1, auto_enabled=False)
         settings = BackupConfig(id=1, auto_enabled=False)
         db.add(settings)
         db.commit()
@@ -95,15 +103,20 @@ def _first_defined(*values):
     return None
 
 
-def get_effective_config(db: Session) -> EffectiveBackupConfig:
+def get_effective_config(db: Session, create: bool = True) -> EffectiveBackupConfig:
     """Resolve a configuração efetiva (precedência única — spec FR-007).
 
     Por campo: persistido (definido) → env (config.py) → default da 020.
     Env inválida é tratada como ausente (cai no default; log técnico) — nunca
     levanta. Retorna snapshot imutável para consumo consistente por ciclo
     (agendador/tela/retenção leem sempre a MESMA configuração — FR-010).
+
+    Feature 022: propaga ``create`` para ``get_backup_config`` — com
+    ``create=False`` (leitura pura, ex.: listagem de backups) nunca cria
+    nem persiste a linha singleton; a efetiva resolvida é idêntica à que
+    uma primeira abertura da tela de configuração mostraria.
     """
-    row = get_backup_config(db)
+    row = get_backup_config(db, create=create)
 
     # --- frequência ---
     schedule = _first_defined(row.schedule, config.BACKUP_AUTO_SCHEDULE)

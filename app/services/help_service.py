@@ -1105,16 +1105,19 @@ ARTICLES: List[Dict] = [
                 ),
             },
             {
-                "heading": "Configurações de Backup (feature 021)",
+                "heading": "Configurações de Backup (features 021/022)",
                 "body": (
-                    "Em Administração → Backups → Configurações de Backup, usuários com a permissão "
-                    "backup.gerenciar alteram os parâmetros operacionais: backup automático "
+                    "Na página Administração → Backups, o botão de engrenagem no canto superior "
+                    "direito abre o modal Configurações de Backup. Usuários com a permissão "
+                    "backup.gerenciar alteram nele os parâmetros operacionais: backup automático "
                     "ativado/desativado, frequência (diário/semanal), horário, dia da semana e as "
-                    "janelas de retenção (diária, semanal, mensal) e de pré-restauração. A alteração "
-                    "é validada no servidor, aplicada sem reinício (vale no próximo ciclo, em até 30 "
-                    "segundos) e registrada na auditoria com os valores antes/depois. Precedência por "
-                    "campo: valor salvo pela tela → variável de ambiente → padrão do sistema. Nunca é "
-                    "editável pela tela: caminhos e executáveis do banco (MYSQLDUMP_PATH, BACKUP_DIR, "
+                    "janelas de retenção (diária, semanal, mensal) e de pré-restauração. Cancelar "
+                    "fecha o modal sem salvar; Salvar configuração é validada no servidor, aplicada "
+                    "sem reinício (vale no próximo ciclo, em até 30 segundos) e registrada na "
+                    "auditoria com os valores antes/depois — a mensagem de confirmação aparece no "
+                    "topo da página com o modal fechado. Precedência por campo: valor salvo pela "
+                    "tela → variável de ambiente → padrão do sistema. Nunca é editável pela tela: "
+                    "caminhos e executáveis do banco (MYSQLDUMP_PATH, BACKUP_DIR, "
                     "BACKUP_IMPORT_TIMEOUT) e credenciais — esses parâmetros permanecem no servidor."
                 ),
             },

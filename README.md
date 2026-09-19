@@ -850,9 +850,11 @@ Valores inválidos não derrubam o sistema: caem no default seguro com registro 
 - Cada remoção marca o **registro histórico** (`removed_at`) — o histórico é preservado mesmo após a remoção física do arquivo (rastreabilidade);
 - Toda execução registra eventos de auditoria (`BACKUP_RETENCAO_EXECUTADA`, `BACKUP_REMOVIDO_RETENCAO`); falha parcial na remoção → resultado **PARCIAL**, nunca "concluída".
 
-**Configurações de Backup pela interface (feature 021):**
+**Configurações de Backup pela interface (features 021/022):**
 
-- A tela **Administração → Backups → Configurações de Backup** permite ao administrador alterar: backup automático ativado/desativado, frequência (diário/semanal), horário (fuso America/Recife), dia da semana, retenção diária/semanal/mensal e a política de pré-restauração;
+- O acesso é pelo **botão ⚙ no canto superior direito da página Administração → Backups** (feature 022, alinhado ao título), que abre o **modal "Configurações de Backup"** com os valores atuais; o formulário permite ao administrador alterar: backup automático ativado/desativado, frequência (diário/semanal), horário (fuso America/Recife), dia da semana, retenção diária/semanal/mensal e a política de pré-restauração;
+- **Cancelar** fecha o modal sem salvar nada; **Salvar configuração** usa o mesmo fluxo de sempre (validação → persistência → auditoria → mensagem no topo da página);
+- A rota direta `/admin/backups/configuracoes` continua existindo por compatibilidade (links antigos) e exibe a mesma página;
 - **Aplicação sem reinício**: o agendador renova a configuração efetiva a cada ciclo (≤ 30 s) — alterar `02:00 → 23:00` pela tela vale já no próximo disparo;
 - Validação no backend (barreira real, não só HTML): frequência, HH:MM, dia 0–6, quantidades ≥ 1 e pré-restauração ≥ 0; valores inválidos são rejeitados com a configuração anterior intacta;
 - Cada alteração registra o evento de auditoria `BACKUP_CONFIGURACAO_ALTERADA` com os valores **antes/depois** por campo alterado (nunca credenciais);

@@ -573,6 +573,250 @@ def test_html_sem_campos_tecnicos(client, db_session, fixed_fallbacks):
         assert termo not in html
 
 
+# ============================================================================
+# FEATURE 022 — Configurações de Backup em Modal (spec/022-modal-configuracoes-backup)
+# Fundação: leitura sem efeito colateral (create=False) + redirect do POST
+# ============================================================================
+
+def test_022_create_false_sem_linha_nao_persiste(db_session, fixed_fallbacks):
+    """T002: create=False em banco SEM linha → nenhuma escrita (leitura pura)."""
+    from app.models.backup_config import BackupConfig
+
+    assert db_session.query(BackupConfig).count() == 0  # pré-condição
+    row = get_backup_config(db_session, create=False)
+    assert row.auto_enabled is False
+    eff = get_effective_config(db_session, create=False)
+    assert eff.schedule == "daily" and eff.time == "02:00"  # defaults
+    assert db_session.query(BackupConfig).count() == 0  # NUNCA criou
+
+
+def test_022_create_false_com_linha_retorna_persistido(db_session, fixed_fallbacks):
+    """T002: create=False com linha existente → valores persistidos."""
+    save_backup_config(
+        db_session, None, auto_enabled=True, schedule="weekly", time="23:00",
+        weekday=1, retention_daily_days=7, retention_weekly_weeks=4,
+        retention_monthly_months=6, keep_pre_restore=2,
+    )
+    row = get_backup_config(db_session, create=False)
+    assert row.time == "23:00" and row.schedule == "weekly"
+    eff = get_effective_config(db_session, create=False)
+    assert eff.time == "23:00" and eff.auto_enabled is True
+    assert eff.retention_daily_days == 7 and eff.keep_pre_restore == 2
+
+
+def test_022_create_true_mantem_criacao_lazy(db_session, fixed_fallbacks):
+    """T002: create=True (default) preserva o comportamento atual (anti-regressão)."""
+    from app.models.backup_config import BackupConfig
+
+    assert db_session.query(BackupConfig).count() == 0
+    row = get_backup_config(db_session)  # default create=True
+    assert row.id == 1
+    assert db_session.query(BackupConfig).count() == 1  # criada + commitada
+    eff = get_effective_config(db_session)  # idem, agora linha existente
+    assert eff.time == "02:00"
+
+
+# ============================================================================
+# FEATURE 022 — US1: ⚙ no header + modal #modalBackupConfig (estrutura HTML)
+# ============================================================================
+
+def test_022_get_listagem_sem_insert_e_com_modal(client, db_session, fixed_fallbacks, monkeypatch):
+    """T005/T004: GET /admin/backups (banco sem linha) → 200, leitura pura e com modal.
+
+    O snapshot do scheduler (020) é pré-aquecido porque seu refresh lazy usa
+    sessão própria com create=True — comportamento PRÉ-existente, fora do
+    escopo da 022 (T012 proíbe alterar backup_scheduler.py). O alvo do assert
+    é a rota: a leitura config_form (create=False) não pode escrever.
+    """
+    from app.models.backup_config import BackupConfig
+    from app.services import backup_scheduler
+    from app.services.backup_config_service import EffectiveBackupConfig
+
+    monkeypatch.setattr(
+        backup_scheduler, "_current_effective",
+        EffectiveBackupConfig(
+            auto_enabled=False, schedule="daily", time="02:00", weekday=0,
+            retention_daily_days=30, retention_weekly_weeks=12,
+            retention_monthly_months=12, keep_pre_restore=0,
+        ),
+    )
+    assert db_session.query(BackupConfig).count() == 0  # pré-condição: sem linha
+    resp = client.get("/admin/backups")
+    assert resp.status_code == 200
+    assert db_session.query(BackupConfig).count() == 0  # leitura pura (create=False)
+    assert "modalBackupConfig" in resp.text  # modal pré-preenchido pela efetiva
+
+
+def test_022_botao_engrenagem_estrutura(client, db_session, fixed_fallbacks):
+    """T005(1)(2): ⚙ somente-ícone, aria/title, data-bs-target, no page-header flex."""
+    html = client.get("/admin/backups").text
+    assert 'aria-label="Configurações de Backup"' in html
+    assert 'title="Configurações de Backup"' in html
+    assert 'data-bs-target="#modalBackupConfig"' in html
+    assert 'data-bs-toggle="modal"' in html
+    assert 'bi bi-gear' in html
+    # header flex com o botão APÓS o bloco do título
+    header_pos = html.find("page-header d-flex justify-content-between")
+    assert header_pos != -1
+    title_pos = html.find("page-header-title", header_pos)
+    btn_pos = html.find("data-bs-target=\"#modalBackupConfig\"", header_pos)
+    assert -1 < title_pos < btn_pos
+
+
+def test_022_estrutura_modal_conferir(client, db_session, fixed_fallbacks):
+    """T005(3)+U1: modal com a estrutura do modalConferir + acessibilidade."""
+    html = client.get("/admin/backups").text
+    id_pos = html.find('id="modalBackupConfig"')
+    assert id_pos != -1
+    start = html.rfind("<div", 0, id_pos)  # abertura do div do modal (inclui class="modal fade")
+    assert start != -1
+    modal = html[start:start + 20000]
+    for frag in (
+        "modal fade", "modal-dialog", "modal-content", "modal-header",
+        "modal-title", "btn-close", "modal-body", "modal-footer",
+        'aria-label="Fechar"',  # U1: btn-close acessível
+        "for=\"cfg-auto-enabled\"", "for=\"cfg-time\"",  # U1: labels associados
+    ):
+        assert frag in modal, f"esperado no modal: {frag}"
+
+
+def test_022_oito_campos_uma_vez(client, db_session, fixed_fallbacks):
+    """T005(4): os 8 name= aparecem EXATAMENTE 1 vez no HTML (só dentro do modal)."""
+    html = client.get("/admin/backups").text
+    for name in (
+        'name="auto_enabled"', 'name="schedule"', 'name="time"',
+        'name="weekday"', 'name="keep_pre_restore"',
+        'name="retention_daily_days"', 'name="retention_weekly_weeks"',
+        'name="retention_monthly_months"',
+    ):
+        assert html.count(name) == 1, f"{name} deve aparecer exatamente 1 vez"
+
+
+def test_022_secao_antiga_removida_e_configurar_removido(client, db_session, fixed_fallbacks):
+    """T005(5)(6): "Salvar configuração" só no modal; botão Configurar fora da página."""
+    html = client.get("/admin/backups").text
+    start = html.find('id="modalBackupConfig"')
+    assert start != -1, "modal deve existir"
+    end = html.find("Gerar backup agora", start)
+    assert end != -1
+    modal = html[start:end]
+    fora = html[:start] + html[end:]
+    assert modal.count("Salvar configuração") == 1  # dentro do modal
+    assert fora.count("Salvar configuração") == 0  # card antigo fora do modal
+    assert ">Configurar<" not in html  # botão 021 removido (FR-001)
+
+
+def test_022_card_gerar_backup_e_indicadores_preservados(client, db_session, fixed_fallbacks):
+    """T005/FR-010: cards "Gerar backup agora" e "Backup Automático" intocados."""
+    html = client.get("/admin/backups").text
+    assert "Gerar backup agora" in html
+    assert "btn-gerar-backup" in html
+    assert "Backup Automático" in html
+    assert "Agendamento" in html  # indicador do card
+
+
+def test_022_valores_da_efetiva_no_modal(client, db_session, fixed_fallbacks):
+    """T007/US1: modal pré-preenchido com a efetiva (T002 já cobriu o service)."""
+    save_backup_config(
+        db_session, None, auto_enabled=True, schedule="weekly", time="23:00",
+        weekday=3, retention_daily_days=15, retention_weekly_weeks=8,
+        retention_monthly_months=10, keep_pre_restore=3,
+    )
+    html = client.get("/admin/backups").text
+    assert 'value="23:00"' in html
+    assert 'value="15"' in html and 'value="8"' in html and 'value="10"' in html
+    assert 'value="3"' in html  # keep_pre_restore
+
+
+# ============================================================================
+# FEATURE 022 — US2: Cancelar não persiste; Salvar usa o fluxo existente
+# ============================================================================
+
+def test_022_post_salvo_redirect_para_listagem(client, db_session, fixed_fallbacks):
+    """T008(1): POST válida → 303 /admin/backups?success= (destino novo da 022)."""
+    resp = _post_config(client, time="23:00", auto_enabled="true")
+    assert resp.status_code == 303
+    assert resp.headers["location"].startswith("/admin/backups?success=")
+
+
+def test_022_post_invalido_redirect_para_listagem_e_intacto(client, db_session, fixed_fallbacks):
+    """T008(2): POST inválida → 303 /admin/backups?error= e efetiva intacta."""
+    resp = _post_config(client, time="25:99")
+    assert resp.status_code == 303
+    assert resp.headers["location"].startswith("/admin/backups?error=")
+    assert get_effective_config(db_session).time == "02:00"  # configuração vigente intacta
+
+
+def test_022_teste_e_valores_apos_salvar_no_modal(client, db_session, fixed_fallbacks):
+    """T008(3) — Teste E completo: após salvar 23:00, a PÁGINA principal exibe 23:00."""
+    _post_config(client, time="23:00", auto_enabled="true")
+    html = client.get("/admin/backups").text
+    assert 'value="23:00"' in html
+
+
+def test_022_botao_cancelar_fora_do_submit(client, db_session, fixed_fallbacks):
+    """T008(4) — Teste C automatizado: Cancelar é type=button + data-bs-dismiss (não submete)."""
+    html = client.get("/admin/backups").text
+    start = html.find('id="modalBackupConfig"')
+    assert start != -1
+    modal = html[start:start + 20000]
+    cancelar_pos = modal.find(">Cancelar<")
+    assert cancelar_pos != -1, "botão Cancelar deve existir no modal"
+    tag_start = modal.rfind("<button", 0, cancelar_pos)
+    tag = modal[tag_start:modal.find(">", cancelar_pos) + 1]
+    assert 'type="button"' in tag
+    assert 'data-bs-dismiss="modal"' in tag
+    assert 'type="submit"' not in tag
+
+
+def test_022_auditoria_backups_config_intacta(client, db_session, fixed_fallbacks, monkeypatch):
+    """T008(5) — Teste H: BACKUP_CONFIGURACAO_ALTERADA continua gravado com before/after."""
+    from app.services import audit_service
+
+    eventos = []
+    original = audit_service.write_change_audit
+
+    def _spy(db, **kwargs):
+        eventos.append(kwargs)
+        return original(db, **kwargs)
+
+    monkeypatch.setattr(audit_service, "write_change_audit", _spy)
+    monkeypatch.setattr("app.web.admin_routes.write_change_audit", _spy)
+    _post_config(client, time="23:00", retention_daily_days="7")
+    assert eventos and eventos[-1]["action"] == "BACKUP_CONFIGURACAO_ALTERADA"
+    assert eventos[-1]["before"]["time"] == "02:00" and eventos[-1]["after"]["time"] == "23:00"
+    assert eventos[-1]["before"]["retention_daily_days"] == 30
+    assert eventos[-1]["after"]["retention_daily_days"] == 7
+
+
+# ============================================================================
+# FEATURE 022 — US3: fidelidade visual (classes do modalConferir; zero JS/CSS novo)
+# ============================================================================
+
+def test_022_fidelidade_visual_sem_js_css_novo(client, db_session, fixed_fallbacks):
+    """T010: modal usa somente classes Bootstrap já usadas; zero <script>/<style> novo."""
+    html = client.get("/admin/backups").text
+    id_pos = html.find('id="modalBackupConfig"')
+    assert id_pos != -1
+    start = html.rfind("<div", 0, id_pos)
+    modal = html[start:start + 20000]
+    # classes já presentes no modalConferir (inventarios/detail.html) e no projeto
+    for classe in (
+        "modal fade", "modal-dialog modal-lg modal-dialog-centered", "modal-content",
+        "modal-header", "modal-title", "btn-close", "modal-body", "modal-footer",
+        "btn-outline-secondary", "btn-primary", "form-select form-select-sm",
+        "form-control form-control-sm", "form-check form-switch",
+        "form-label small mb-1", "form-text small", "row g-3",
+        "col-sm-6 col-lg-3", "col-sm-4 col-lg-3", "col-12",
+    ):
+        assert classe in modal, f"classe esperada no modal: {classe}"
+    # nenhum script/CSS novo no template (baseline T001: 1 <script>, 0 <style>)
+    from pathlib import Path
+    template = Path("app/web/templates/admin/backups.html").read_text(encoding="utf-8")
+    assert template.count("<script") == 1  # JS pré-existente (017 — restauração)
+    assert template.count("<style") == 0
+
+
 
 
 

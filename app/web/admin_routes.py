@@ -822,9 +822,9 @@ def admin_backups(
         .filter(BackupRecord.filename.in_([b["filename"] for b in backups]))
         .all()
     }
-    # 021: SEM contexto de configuração aqui — esta rota é somente-leitura e
-    # NÃO pode criar/commitar a linha singleton (configuração vive em
-    # /admin/backups/configuracoes).
+    # 021→022: SEM efeito colateral de escrita — a listagem lê a efetiva com
+    # create=False (nunca cria/commita a linha singleton) para pré-preencher o
+    # modal de Configurações de Backup que agora vive nesta página.
     return templates.TemplateResponse(
         request=request,
         name="admin/backups.html",
@@ -837,6 +837,7 @@ def admin_backups(
             "auto_status": scheduler_status(),
             "retention_summary": retention_monitoring_summary(db),
             "types_by_filename": types_by_filename,
+            "config_form": backup_config_service.get_effective_config(db, create=False),
             "active_tab": "admin",
         },
     )
@@ -938,7 +939,9 @@ def admin_backup_config_save(
         )
     except ValueError as err:
         return RedirectResponse(
-            url=f"/admin/backups/configuracoes?error={_quote(str(err))}",
+            # 022: o formulário vive no modal na página principal — redirect de
+            # volta para /admin/backups (mensagens no alerta do topo).
+            url=f"/admin/backups?error={_quote(str(err))}",
             status_code=303,
         )
 
@@ -965,7 +968,8 @@ def admin_backup_config_save(
             description="Alteração da configuração de backup (tela).",
         )
     return RedirectResponse(
-        url=f"/admin/backups/configuracoes?success={_quote('Configuração salva.')}",
+        # 022: sucesso também volta para a página principal (modal nasce fechado).
+        url=f"/admin/backups?success={_quote('Configuração salva.')}",
         status_code=303,
     )
 
