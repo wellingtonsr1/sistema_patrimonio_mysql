@@ -148,6 +148,12 @@ Regras operacionais do instalador:
 - **Idempotente**: pode ser reexecutado — cada etapa reutiliza o que já existe; banco existente **nunca** é apagado (recriação só via `--recreate-db` no modo interativo, com dupla confirmação digitando o nome do banco);
 - `.env` existente nunca é sobrescrito (backup `.env.bak-<timestamp>` antes de qualquer alteração consentida);
 - Log da instalação: `/var/log/sispatrimonio-install.log` (0600, sem credenciais — senhas vão apenas ao `.env`);
+- **Regras de senha do banco** (instalador e fluxo manual do README):
+  - Mínimo **12 caracteres** (manual) — ou deixe gerar automaticamente (`--generate-db-password`, ou vazio nas duas perguntas do modo interativo; usa `secrets.token_urlsafe`);
+  - **Barra invertida (`\`) não é aceita** — o instalador rejeita antes de qualquer alteração (o MySQL interpreta sequências como `\n`/`\t` dentro de literais SQL, corrompendo a senha gravada no `CREATE USER`);
+  - Qualquer outro caractere especial é aceito (`@ # : / $ % ! espaço`, acentos…): a `DATABASE_URL` é montada programaticamente com percent-encoding (`@`→`%40`, espaço→`%20`, `#`→`%23`, `:`→`%3A`, `/`→`%2F`, `%`→`%25`);
+  - A senha **nunca** aparece em argv (vai pelo ambiente `MYSQL_PWD`), no log da instalação ou no resumo — somente no `.env` (0600);
+  - No fluxo manual, gere a senha codificada com `python -c "from urllib.parse import quote; senha=input('Senha: '); print(quote(senha, safe=''))"` — **não use `quote_plus`**: espaço viraria `+`, que o parse de URL do SQLAlchemy não decodifica como espaço (Access denied);
 - O instalador **não cria tabelas/schema** — a criação fica a cargo do `init_db()` idempotente no start do serviço (mecanismo existente);
 - `--update` é reconhecido mas **ainda não implementado** (evolução futura — use o fluxo manual de atualização do README);
 - HTTPS/reverse proxy (nginx) está fora do escopo do instalador — produção inicial em HTTP na rede interna; `AUTH_COOKIE_SECURE` permanece configurável no `.env`;

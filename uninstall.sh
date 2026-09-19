@@ -44,18 +44,25 @@ DB_HOST="localhost"
 DB_PORT="3306"
 BANCO_CLIENT_CMD=""
 
-info() { printf '\e[34m[ * ]\e[0m %s\n' "$*"; }
-ok()   { printf '\e[32m[ OK ]\e[0m %s\n' "$*"; }
-warn() { printf '\e[33m[ !! ]\e[0m %s\n' "$*"; }
-err()  { printf '\e[31m[ XX ]\e[0m %s\n' "$*" >&2; }
+_msg() {  # $1=formato printf (com cor/tag embutidas)  $2...=mensagem — SEMPRE stderr
+    # stderr é sem buffer; misturar canais (stdout vs /dev/tty) reordena a saída
+    # em consoles lentos (serial/VNC) e sob pipe — bug observado e corrigido no
+    # install.sh (027). Um único canal garante a ordem em qualquer terminal.
+    # Cor/tag no FORMATO (\e em argumento %s NÃO é interpretado pelo printf).
+    local fmt="$1"
+    shift
+    printf "$fmt" "$*" >&2
+}
+info() { _msg '\e[34m[ * ]\e[0m %s\n'  "$@"; }
+ok()   { _msg '\e[32m[ OK ]\e[0m %s\n' "$@"; }
+warn() { _msg '\e[33m[ !! ]\e[0m %s\n' "$@"; }
+err()  { _msg '\e[31m[ XX ]\e[0m %s\n' "$@"; }
 die()  { err "$*"; exit 1; }
 
-tty_printf() {  # prompt direto no terminal (bypass do buffering; lição da 027)
-    if [ -e /dev/tty ]; then
-        printf '%s' "$*" > /dev/tty
-    else
-        printf '%s' "$*"
-    fi
+prompt_printf() {  # prompt no canal stderr — MESMO canal do restante da saída (ordem garantida)
+    # Não usar /dev/tty: um segundo canal reordena a saída em consoles lentos
+    # (mesma correção aplicada ao install.sh na feature 027).
+    printf '%s' "$*" >&2
 }
 
 on_error() {
@@ -118,7 +125,7 @@ confirm() {  # $1=pergunta → 0 se confirmado (respeita --yes)
     if [ "$ASSUME_YES" = "true" ]; then
         return 0
     fi
-    tty_printf "$1"
+    prompt_printf "$1"
     local ans
     read -r ans
     case "$ans" in
@@ -198,12 +205,12 @@ remove_database() {
     if [ -n "$DB_NAME" ]; then
         warn "O .env instalado apontava para o banco '$DB_NAME' (usuário '$DB_USER')."
     else
-        printf 'Nome do banco da aplicação a remover: '
+        printf 'Nome do banco da aplicação a remover: ' >&2
         read -r DB_NAME
         [ -n "$DB_NAME" ] || { warn "Nenhum banco informado — preservado."; return; }
     fi
     # Confirmação OBRIGATÓRIA (mesmo com --yes): digitar o nome do banco
-    tty_printf "Digite o nome do banco para CONFIRMAR a remoção de '$DB_NAME' e seus dados (vazio = preservar): "
+    prompt_printf "Digite o nome do banco para CONFIRMAR a remoção de '$DB_NAME' e seus dados (vazio = preservar): "
     read -r c1
     if [ "$c1" != "$DB_NAME" ]; then
         warn "Banco PRESERVADO (confirmação não recebida)."
@@ -214,7 +221,7 @@ remove_database() {
     "$BANCO_CLIENT_CMD" -e "DROP DATABASE IF EXISTS \`$esc\`;"
     ok "Banco '$DB_NAME' removido."
     if [ -n "$DB_USER" ]; then
-        tty_printf "Remover também o usuário do banco '$DB_USER'@'localhost'? (s/N): "
+        prompt_printf "Remover também o usuário do banco '$DB_USER'@'localhost'? (s/N): "
         read -r c2
         case "$c2" in
             s|S|sim|SIM|y|Y)
@@ -236,10 +243,10 @@ purge_mariadb() {  # DESTRUTIVO: TODOS os bancos do servidor — dupla confirma�
     warn "ATENÇÃO: isto apaga TODOS os bancos de dados deste servidor —"
     warn "não apenas o do SisPatrimônio. IRREVERSÍVEL."
     warn "================================================================"
-    tty_printf "Digite EXATAMENTE 'PURGAR-MARIADB' para confirmar: "
+    prompt_printf "Digite EXATAMENTE 'PURGAR-MARIADB' para confirmar: "
     read -r c1
     [ "$c1" = "PURGAR-MARIADB" ] || { warn "MariaDB PRESERVADO."; return; }
-    tty_printf "Confirmar novamente (s/N): "
+    prompt_printf "Confirmar novamente (s/N): "
     read -r c2
     case "$c2" in
         s|S|sim|SIM|y|Y) ;;
@@ -273,7 +280,7 @@ main() {
     fi
     info "SisPatrimônio Pro — Desinstalador Linux v${VERSION} ($(date '+%Y-%m-%d %H:%M:%S'))"
     if [ "$ASSUME_YES" != "true" ]; then
-        tty_printf "Desinstalar o SisPatrimônio Pro deste servidor? (s/N): "
+        prompt_printf "Desinstalar o SisPatrimônio Pro deste servidor? (s/N): "
         read -r gate
         case "$gate" in
             s|S|sim|SIM|y|Y) ;;
@@ -295,7 +302,7 @@ main() {
     purge_mariadb
     remove_install_log
 
-    echo
+    echo >&2
     ok "Desinstalação concluída."
     [ "$KEEP_DB" = "true" ] && warn "Lembrete: banco/usuário do banco foram PRESERVADOS (--keep-db)."
     warn "Pacotes padrão (python3-venv, git, curl) foram mantidos — remova manualmente se desejar."

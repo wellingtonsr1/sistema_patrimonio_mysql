@@ -302,7 +302,7 @@ Você pode deixar o Python gerar o DATABASE_URL corretamente, sem precisar fazer
 
 No terminal, não coloque a senha real aqui no chat. Na sua máquina, execute:
 ```
-python -c "from urllib.parse import quote_plus; senha=input('Senha: '); print(quote_plus(senha))"
+python -c "from urllib.parse import quote; senha=input('Senha: '); print(quote(senha, safe=''))"
 ```
 
 Digite a senha quando solicitado.
@@ -310,6 +310,18 @@ Se, por exemplo, retornar:
 ```
 Minha%40Senha%232026
 ```
+
+> **Por que `quote(safe='')` e não `quote_plus`?** O `quote_plus` codifica espaço
+> como `+`, mas o parse de URL do SQLAlchemy **não** decodifica `+` como espaço —
+> a senha chegaria ao banco errada (Access denied). Com `quote(safe='')` o espaço
+> vira `%20`, decodificado corretamente. Vale para qualquer caractere especial:
+> `@` → `%40`, `#` → `%23`, `:` → `%3A`, `/` → `%2F`, `%` → `%25`.
+>
+> **Evite senhas com barra invertida (`\`)**: o MySQL interpreta sequências como
+> `\n`/`\t` dentro de literais SQL e isso afeta também a criação do usuário
+> (`CREATE USER ... IDENTIFIED BY`). Se precisar usá-la, redobre a barra ao criar
+> o usuário no SQL (`\\n`) ou escolha outra senha.
+
 use esse valor no .env:
 ```
 DATABASE_URL=mariadb+pymysql://patrimonio:Minha%40Senha%232026@localhost:3306/sispatrimoniopro
