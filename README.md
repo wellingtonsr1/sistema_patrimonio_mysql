@@ -220,30 +220,37 @@ Detalhes: `specs/004-padronizacao-datas-utc/`.
 
 ### 1. Instalar dependências
 
+Copie a pasta do sistema para a pasta de destino
 ```bash
 cp -r sis_patrimonio_pro /opt/SisPatrimonioPro
 ```
 
+Acesse o diretório
 ```bash
 cd /opt/SisPatrimonioPro
 ```
 
+Crie o ambiente virtual
 ```bash
 python3 -m venv .venv
 ```
 
+Ative o ambiente
 ```bash
 source .venv/bin/activate
 ```
 
+Se for preciso, altere o dono do diretório
 ```bash
 sudo chown -R seu_usuario:seu_usuario /opt/SisPratrimonioPro
 ```
 
+Instalar as dependências usando o pip
 ```bash
 pip install -r requirements.txt
 ```
 
+Faça o teste
 ```bash
 python -c "import fastapi, sqlalchemy, pymysql, ldap3, reportlab, openpyxl, dotenv; print('DEPENDÊNCIAS OK')"
 ```
@@ -252,7 +259,7 @@ python -c "import fastapi, sqlalchemy, pymysql, ldap3, reportlab, openpyxl, dote
 
 Crie o .env
 ```
-nano .env
+nano .env no /opt/SisPatrimonioPro
 ```
 
 Defina `DATABASE_URL` no `.env`:
@@ -262,7 +269,6 @@ DATABASE_URL=mariadb+pymysql://sispat:SENHA@localhost:3306/sispatrimonio
 
 Se a senha tiver caracteres especias, será preciso codificá-la
 A forma correta é codificar a senha para URL (percent-encoding) antes de colocá-la no DATABASE_URL.
-
 
 Por exemplo, se a senha fosse:
 ```
