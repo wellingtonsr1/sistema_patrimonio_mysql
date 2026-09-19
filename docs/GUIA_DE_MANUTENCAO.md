@@ -152,6 +152,7 @@ Regras operacionais do instalador:
 - `--update` é reconhecido mas **ainda não implementado** (evolução futura — use o fluxo manual de atualização do README);
 - HTTPS/reverse proxy (nginx) está fora do escopo do instalador — produção inicial em HTTP na rede interna; `AUTH_COOKIE_SECURE` permanece configurável no `.env`;
 - Configuração pós-instalação (host/porta): edite `APP_HOST`/`APP_PORT` no `.env` e `systemctl restart` — os defaults de `app/config.py` são fallback, não fonte efetiva.
+- **Desinstalação**: `sudo bash uninstall.sh` (na raiz do repositório) reverte a instalação — serviço, diretório, usuário Linux e, com confirmação explícita (digitar o nome do banco), banco/usuário do MariaDB; `--keep-db` preserva os dados; `--purge-mariadb` remove o servidor de banco inteiro (dupla confirmação — TODOS os bancos do servidor); idempotente; detecta banco/usuário pelo `.env` antes de removê-lo, sem exibir credenciais.
 
 ### Criação do primeiro administrador
 

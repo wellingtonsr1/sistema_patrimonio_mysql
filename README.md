@@ -429,6 +429,21 @@ sudo bash install.sh --non-interactive \
 
 Garantias do instalador: senha coletada sem eco ou gerada criptograficamente (nunca em log/argv), `.env` criado com permissão `600`, serviço rodando com **usuário dedicado sem login** e privilégios do banco **apenas no banco da aplicação**; criação de tabelas fica a cargo do `init_db()` existente no start do serviço (o instalador não cria schema). Log da instalação: `/var/log/sispatrimonio-install.log` (sem credenciais).
 
+### Desinstalação (feature 027)
+
+Para remover a instalação de produção criada pelo instalador (idempotente; detecta banco/usuário a partir do `.env` — a senha nunca é exibida):
+
+```bash
+sudo bash uninstall.sh                        # interativo, confirma cada etapa
+sudo bash uninstall.sh --yes                  # remove app+serviço+usuário Linux sem perguntar
+                                              # (o BANCO sempre exige confirmação digitando o nome)
+sudo bash uninstall.sh --keep-db              # preserva banco e usuário do banco
+sudo bash uninstall.sh --purge-mariadb        # remove o MariaDB INTEIRO (TODOS os bancos —
+                                              # dupla confirmação; use só em servidor dedicado ao teste)
+```
+
+A desinstalação remove nesta ordem: serviço systemd + unit → diretório da aplicação (incluindo `data/logs` e `data/backups` — salve backups importantes antes) → usuário/grupo Linux → banco/usuário do MariaDB (opcional/confirmado) → log do instalador. Pacotes padrão (Python, Git, curl) são mantidos.
+
 ### Fluxo manual (alternativa)
 
 Fluxo resumido:
