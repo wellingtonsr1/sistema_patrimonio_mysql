@@ -69,48 +69,95 @@ GENERATE_DB_PASSWORD="false"
 DB_PASSWORD_CHANGED="false"   # true quando o usuário do banco foi criado/recriado nesta execução
 
 STEP=""
+STEP_NO=0
+TOTAL_STEPS=15
 BANCO_SERVICE_DETECTED=""
 BANCO_CLIENT_CMD=""
 
 # ----------------------------------------------------------------------------
 # Log (FR-016, R1/R2): níveis INFO/OK/WARNING/ERROR + arquivo 0600
+# Cores SOMENTE quando stdout é um terminal (tput; respeita NO_COLOR/TERM=dumb);
+# o arquivo de log recebe SEMPRE texto limpo (ANSI removido no tee — setup_logging).
 # ----------------------------------------------------------------------------
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-dumb}" != "dumb" ] && command -v tput >/dev/null 2>&1 \
+    && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
+    C_RESET=$(tput sgr0)
+    C_BOLD=$(tput bold)
+    C_BLUE=$(tput setaf 4)
+    C_GREEN=$(tput setaf 2)
+    C_YELLOW=$(tput setaf 3)
+    C_RED=$(tput setaf 1)
+else
+    C_RESET=''
+    C_BOLD=''
+    C_BLUE=''
+    C_GREEN=''
+    C_YELLOW=''
+    C_RED=''
+fi
+
+# Saída humana: [ TAG ] em coluna fixa (alinhada) + mensagem
+_msg() {  # $1=cor da tag  $2=tag  $3...=mensagem — SEMPRE stderr (canal único)
+    # stderr é sem buffer; stdout sob tee é bufferizado. Misturar canais em console
+    # lento (serial/VNC) reordena linhas — pós setup_logging stderr==stdout (mesmo
+    # pipe), então um canal único garante a ordem. err() duplicaria o redirecionamento
+    # (>&2 >&2 é inofensivo).
+    local color="$1" tag="$2"
+    shift 2
+    printf '[%s%5s%s] %s\n' "$color" "$tag" "$C_RESET" "$*" >&2
+}
+info()  { _msg "$C_BLUE"   "INFO " "$@"; }
+ok()    { _msg "$C_GREEN"  " OK  " "$@"; }
+warn()  { _msg "$C_YELLOW" "AVISO" "$@"; }
+err()   { _msg "$C_RED"    "ERRO " "$@"; }
+
 setup_logging() {
     touch "$INSTALL_LOG" 2>/dev/null || true
     chmod 600 "$INSTALL_LOG" 2>/dev/null || true
-    exec > >(tee -a "$INSTALL_LOG") 2>&1
+    # Log SEMPRE limpo: remove sequências ANSI (a tela pode ter cor; o arquivo, não)
+    exec > >(tee >(sed -u 's/\x1B\[[0-9;]*[A-Za-z]//g' >> "$INSTALL_LOG")) 2>&1
 }
 
-info()  { printf '\e[34m[ * ]\e[0m %s\n' "$*"; }
-ok()    { printf '\e[32m[ OK ]\e[0m %s\n' "$*"; }
-warn()  { printf '\e[33m[ !! ]\e[0m %s\n' "$*"; }
-err()   { printf '\e[31m[ XX ]\e[0m %s\n' "$*" >&2; }
-
-tty_printf() {  # prompt direto no terminal — bypass do tee (sem buffering; nunca vai ao log)
-    if [ -e /dev/tty ]; then
-        printf '%s' "$*" > /dev/tty
-    else
-        printf '%s' "$*"
-    fi
+prompt_printf() {  # prompt no canal stderr — MESMA fila do restante da saída (ordem garantida)
+    # NÃO escrever em /dev/tty: um segundo canal (tty direto vs pipe do tee)
+    # reordena a saída em consoles lentos (serial/VNC) — o prompt saltava para
+    # FRENTE do resumo (bug observado em VM). Pós setup_logging, stderr == stdout
+    # (mesmo pipe → tee → tela+log): um único canal preserva a ordem em qualquer
+    # terminal. Com stdout redirecionado, o prompt segue visível no stderr.
+    # O prompt vai ao log (R2) e não contém segredos (SR-001).
+    printf '%s' "$*" >&2
 }
 
-on_error() {
+on_error() {  # caixa visual de falha — conteúdo/garantias preservados
     local exit_code=$?
-    err "Falha na etapa: ${STEP:-desconhecida} (exit $exit_code, linha $1)."
-    err "O log completo está em $INSTALL_LOG (sem credenciais)."
-    err "Corrija o problema e execute o instalador novamente — ele é idempotente"
-    err "e reutiliza o que já foi concluído (nenhum dado é apagado)."
+    {
+        echo "${C_RESET}${C_RED}"
+        echo "  ┌── INSTALAÇÃO INTERROMPIDA ──────────────────────────"
+        echo "  │ Etapa: ${STEP:-desconhecida} (exit $exit_code, linha ${1:-?})"
+        echo "  │ Log completo: $INSTALL_LOG (sem credenciais)"
+        echo "  │ Corrija o problema e reexecute o instalador — ele é"
+        echo "  │ idempotente e reutiliza o que já foi concluído"
+        echo "  │ (nenhum dado é apagado)."
+        echo "  └─────────────────────────────────────────────────────"
+        printf '%s\n' "$C_RESET"
+    } >&2
     exit "$exit_code"
 }
 trap 'on_error $LINENO' ERR
 
 die() { err "$*"; exit 1; }
 
-run_step() {  # rotula a etapa atual para o trap ERR
+run_step() {  # rotula a etapa atual para o trap ERR; numera a fase na tela
     STEP="$1"
     shift
-    info "$STEP"
+    STEP_NO=$((STEP_NO + 1))
+    echo "${C_BOLD}── [${STEP_NO}/${TOTAL_STEPS}] ${STEP}${C_RESET}" >&2
     "$@"
+}
+
+_kv() {  # par "label : valor" — label JÁ vem pré-padded do chamador em largura
+         # visual 13 (printf conta bytes, não colunas: acentos quebrariam o %-Ns)
+    printf '  %s: %s\n' "$1" "$2" >&2
 }
 
 # ----------------------------------------------------------------------------
@@ -119,16 +166,16 @@ run_step() {  # rotula a etapa atual para o trap ERR
 # ----------------------------------------------------------------------------
 prompt_secret() {  # $1=prompt  →  senha na stdout da função (capturado pelo chamador)
     # Vazio NAS DUAS entradas = "gerar automaticamente" (retorna vazio; o chamador gera).
-    # Prompts via /dev/tty: stdout está sob tee (buffering esconderia o prompt sem \n).
+    # Prompts via stderr (mesmo canal único da saída — ver prompt_printf).
     # NUNCA reativar set -x aqui: xtrace herdado por subshells imprimiria a senha no stderr
     # → log (violação SR-001 detectada na revisão).
     local prompt="$1" value confirm
-    tty_printf "$prompt"
+    prompt_printf "$prompt"
     read -rs value
-    tty_printf $'\n'
-    tty_printf "Confirme a senha (vazio nas duas = gerar automaticamente): "
+    prompt_printf $'\n'
+    prompt_printf "Confirme a senha (vazio nas duas = gerar automaticamente): "
     read -rs confirm
-    tty_printf $'\n'
+    prompt_printf $'\n'
     if [ -z "$value" ] && [ -z "$confirm" ]; then
         return 0  # chamador decide gerar
     fi
@@ -270,16 +317,16 @@ confirm_plan() {  # R12: confirmação final antes da primeira mutação (intera
     # (NON_INTERACTIVE=false → 1) e `set -e` abortaria (mesmo bug do confirm_recreate_db)
     [ "$NON_INTERACTIVE" = "true" ] && return 0
     true
-    echo
-    info "===== Resumo da instalação ====="
-    echo "  Diretório:      $INSTALL_DIR"
-    echo "  Repositório:    $REPO_URL (branch $BRANCH)"
-    echo "  Banco:          $DB_NAME (usuário $DB_USER em $DB_HOST:$DB_PORT)"
-    echo "  Aplicação:      $APP_HOST:$APP_PORT"
-    echo "  Serviço:        $SERVICE_NAME (usuário Linux $SERVICE_USER)"
-    [ "$RECREATE_DB" = "true" ] && warn "  *** --recreate-db ATIVO: o banco '$DB_NAME' será APAGADO e recriado ***"
-    echo
-    tty_printf 'Confirmar e iniciar a instalação? (s/N): '
+    echo >&2
+    echo "${C_BOLD}  RESUMO DA INSTALAÇÃO${C_RESET}" >&2
+    _kv "Diretório   " "$INSTALL_DIR"
+    _kv "Repositório " "$REPO_URL (branch $BRANCH)"
+    _kv "Banco       " "$DB_NAME (usuário $DB_USER em $DB_HOST:$DB_PORT)"
+    _kv "Aplicação   " "$APP_HOST:$APP_PORT"
+    _kv "Serviço     " "$SERVICE_NAME (usuário Linux $SERVICE_USER)"
+    [ "$RECREATE_DB" = "true" ] && warn "*** --recreate-db ATIVO: o banco '$DB_NAME' será APAGADO e recriado ***"
+    echo >&2
+    prompt_printf '  Confirmar e iniciar a instalação? (s/N): '
     read -r answer
     case "$answer" in
         s|S|sim|SIM|y|Y) ok "Confirmado." ;;
@@ -399,6 +446,21 @@ detect_host() {
 # ----------------------------------------------------------------------------
 # T006 — Pacotes (FR-003/FR-004/FR-005, R3)
 # ----------------------------------------------------------------------------
+apt_install_pkgs() {  # apt não interativo (output integral segue para o log)
+    # >&2: stderr não tem buffering — mantém o progresso do apt em ordem real
+    # (stdout sob pipe seria bufferizado em blocos e embaralharia avisos)
+    $SUDO apt-get update -y >&2
+    $SUDO apt-get install -y ca-certificates curl "$@" >&2
+}
+
+apt_repair_pkg() {  # restaura a instalação do pacote SEM remover dados:
+    # --reinstall regrava binários e o ARQUIVO DE UNIDADE systemd
+    # (/var/lib/mysql do MariaDB é preservado — nenhum dado é apagado).
+    info "Restaurando instalação do pacote $1 (unidade systemd ausente)..."
+    $SUDO apt-get update -y >&2
+    $SUDO apt-get install -y --reinstall -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" "$1" >&2
+}
+
 ensure_packages() {
     STEP="Instalação/verificação de pacotes do sistema"
     export DEBIAN_FRONTEND=noninteractive
@@ -418,8 +480,7 @@ ensure_packages() {
 
     if [ "${#need_pkgs[@]}" -gt 0 ]; then
         info "Instalando: ${need_pkgs[*]}"
-        $SUDO apt-get update -y
-        $SUDO apt-get install -y ca-certificates curl "${need_pkgs[@]}"
+        apt_install_pkgs "${need_pkgs[@]}"
     else
         ok "Todos os pacotes necessários já estão presentes."
     fi
@@ -439,10 +500,26 @@ ensure_packages() {
     detect_db_client
     [ -n "$BANCO_CLIENT_CMD" ] || die "Cliente SQL (mariadb/mysql) não encontrado mesmo após a instalação dos pacotes."
     ok "Cliente de banco: $BANCO_CLIENT_CMD"
+
     if ! systemctl is-active --quiet "$BANCO_SERVICE_DETECTED"; then
-        $SUDO systemctl enable --now "$BANCO_SERVICE_DETECTED"
+        # Caso real (Ubuntu Server 24.04): binário mariadbd presente, porém a
+        # UNIDADE systemd do banco não existe — o `enable --now` não sobe nada
+        # ("is not a native service, redirecting to systemd-sysv-install").
+        # Unidade ausente => pacote quebrado/retocado: reinstalá-lo regrava a
+        # unidade SEM remover dados (/var/lib/mysql é preservado).
+        if ! systemctl cat "$BANCO_SERVICE_DETECTED" >/dev/null 2>&1; then
+            warn "Unidade $BANCO_SERVICE_DETECTED não existe (pacote do banco quebrado ou instalado manualmente)."
+            apt_repair_pkg "${BANCO_SERVICE_DETECTED%.service}"
+        fi
+        $SUDO systemctl enable --now "$BANCO_SERVICE_DETECTED" >/dev/null 2>&1 || true
+        $SUDO systemctl start "$BANCO_SERVICE_DETECTED" 2>/dev/null || true
     fi
-    systemctl is-active --quiet "$BANCO_SERVICE_DETECTED" || die "Serviço de banco $BANCO_SERVICE_DETECTED não ficou ativo."
+    if ! systemctl is-active --quiet "$BANCO_SERVICE_DETECTED"; then
+        err "Serviço de banco $BANCO_SERVICE_DETECTED não ficou ativo."
+        systemctl status "$BANCO_SERVICE_DETECTED" --no-pager -n 20 2>/dev/null | sed -n '1,15p' >&2 || true
+        journalctl -u "$BANCO_SERVICE_DETECTED" -n 20 --no-pager 2>/dev/null | tail -10 >&2 || true
+        die "Verifique o MariaDB/MySQL manualmente (journalctl -u ${BANCO_SERVICE_DETECTED}) e reexecute o instalador — ele é idempotente."
+    fi
     ok "Serviço de banco ativo: $BANCO_SERVICE_DETECTED"
 }
 
@@ -529,7 +606,7 @@ ensure_database() {
             DB_PASSWORD_CHANGED="true"
             ok "Senha do usuário '$DB_USER' alinhada à desta execução."
         else
-            tty_printf "Senha do usuário do banco DIVERGE da digitada. Atualizá-la para a desta execução? (S/n): "
+            prompt_printf "Senha do usuário do banco DIVERGE da digitada. Atualizá-la para a desta execução? (S/n): "
             read -r ans
             case "$ans" in
                 n|N|nao|não|no)
@@ -559,9 +636,9 @@ confirm_recreate_db() {  # R13/D2: aviso + dupla confirmação digitando o nome 
     warn "MODO DESTRUTIVO: --recreate-db APAGARÁ o banco '$DB_NAME'"
     warn "e TODOS os seus dados. Esta ação é IRREVERSÍVEL."
     warn "=============================================================="
-    tty_printf 'Digite o nome do banco para confirmar (1/2): '
+    prompt_printf 'Digite o nome do banco para confirmar (1/2): '
     read -r c1
-    tty_printf 'Digite novamente (2/2): '
+    prompt_printf 'Digite novamente (2/2): '
     read -r c2
     [ "$c1" = "$DB_NAME" ] && [ "$c2" = "$DB_NAME" ] || die "Confirmação divergente. Operação abortada — nada foi alterado."
     ok "Dupla confirmação recebida."
@@ -630,7 +707,7 @@ ensure_venv() {
     # travamento — que convida a uma 2ª execução concorrente (causa real de
     # crash-loop ENOENT observada em instalação real)
     info "Instalando requirements.txt (do repositório recém-clonado; leva alguns minutos)..."
-    $SUDO "$INSTALL_DIR/.venv/bin/python" -m pip install --progress-bar off -r "$INSTALL_DIR/requirements.txt"
+    $SUDO "$INSTALL_DIR/.venv/bin/python" -m pip install --progress-bar off -r "$INSTALL_DIR/requirements.txt" >&2
     # FR-009: validação final = imports do próprio README (roda como o usuário do serviço,
     # pois o venv é dele; o chown ocorre depois, em ensure_service_user)
     "$INSTALL_DIR/.venv/bin/python" -c 'import fastapi, sqlalchemy, pymysql, ldap3, reportlab, openpyxl, dotenv'
@@ -676,7 +753,7 @@ ensure_env_file() {
         # anterior aponta para a senha ANTERIOR (ou não existe ainda). Oferece atualizar
         # APENAS o DATABASE_URL quando o banco foi criado/recriado NESTA execução.
         if [ "$NON_INTERACTIVE" != "true" ] && [ "$DB_PASSWORD_CHANGED" = "true" ]; then
-            tty_printf 'DATABASE_URL do .env aponta para senha diferente da desta execução. Atualizar apenas o DATABASE_URL? (S/n): '
+            prompt_printf 'DATABASE_URL do .env aponta para senha diferente da desta execução. Atualizar apenas o DATABASE_URL? (S/n): '
             read -r ans
             case "$ans" in
                 n|N|nao|não|no)
@@ -690,7 +767,7 @@ ensure_env_file() {
         else
             # Comportamento original: completa apenas chaves ausentes (merge consentido)
             if [ "$NON_INTERACTIVE" != "true" ]; then
-                tty_printf 'Completar chaves ausentes no .env existente com os valores desta instalação? (s/N): '
+                prompt_printf 'Completar chaves ausentes no .env existente com os valores desta instalação? (s/N): '
                 read -r ans
                 case "$ans" in
                     s|S|sim|SIM|y|Y)
@@ -932,39 +1009,42 @@ PYEOF
 print_summary() {
     local ip_addr
     ip_addr="$(hostname -I 2>/dev/null | awk '{print $1}')"
-    echo
-    echo "=============================================================="
+    echo >&2
+    echo "${C_BOLD}  ══════════════════════════════════════════════════════════════${C_RESET}" >&2
     ok "SisPatrimônio Pro instalado com sucesso!"
-    echo "=============================================================="
-    echo "  Aplicação:      http://${ip_addr:-$APP_HOST}:$APP_PORT"
-    echo "  Swagger API:    http://${ip_addr:-$APP_HOST}:$APP_PORT/docs"
-    echo "  Health check:   http://${ip_addr:-$APP_HOST}:$APP_PORT/health"
-    echo
-    echo "  Instalação:     $INSTALL_DIR"
-    echo "  Configuração:   $INSTALL_DIR/.env (0600 — contém credenciais)"
-    echo "  Serviço:        $SERVICE_NAME (usuário Linux: $SERVICE_USER)"
-    echo "  Log instalador: $INSTALL_LOG"
-    echo "  Logs da app:    $INSTALL_DIR/data/logs/  ·  Backups: $INSTALL_DIR/data/backups/"
-    echo
-    echo "  Gerenciar o serviço:"
-    echo "    systemctl status  $SERVICE_NAME"
-    echo "    systemctl restart $SERVICE_NAME"
-    echo "    systemctl stop    $SERVICE_NAME"
-    echo "    journalctl -u     $SERVICE_NAME -f"
-    echo
-    echo "  PRIMEIRO ADMINISTRADOR (escolha um caminho — nunca exibimos senhas):"
-    echo "    A) CLI (recomendado):"
-    echo "       cd $INSTALL_DIR && sudo -u $SERVICE_USER .venv/bin/python -m app.cli \\"
-    echo "         create-user --username admin --name 'Administrador' --admin"
-    echo "       (a senha é solicitada de forma oculta; mínimo 8 caracteres)"
-    echo "    B) Primeiro acesso: abra a aplicação e use a página /setup"
-    echo "       (disponível enquanto não existir nenhum usuário)"
-    echo "    C) Variáveis de ambiente: AUTH_ADMIN_USERNAME/AUTH_ADMIN_PASSWORD"
-    echo "       no .env antes do primeiro start (remova após o primeiro login)"
-    echo
-    echo "  A senha do banco NÃO aparece neste resumo nem no log — está apenas"
-    echo "  no .env (DATABASE_URL), com permissão 0600."
-    echo "=============================================================="
+    echo "${C_BOLD}  ══════════════════════════════════════════════════════════════${C_RESET}" >&2
+    echo >&2
+    echo "${C_BOLD}  ACESSO${C_RESET}" >&2
+    _kv "Aplicação   " "http://${ip_addr:-$APP_HOST}:$APP_PORT"
+    _kv "Swagger API " "http://${ip_addr:-$APP_HOST}:$APP_PORT/docs"
+    _kv "Health check" "http://${ip_addr:-$APP_HOST}:$APP_PORT/health"
+    echo >&2
+    echo "${C_BOLD}  INSTALAÇÃO${C_RESET}" >&2
+    _kv "Diretório   " "$INSTALL_DIR"
+    _kv "Configuração" "$INSTALL_DIR/.env (0600 — contém credenciais)"
+    _kv "Serviço     " "$SERVICE_NAME (usuário Linux: $SERVICE_USER)"
+    _kv "Log         " "$INSTALL_LOG"
+    _kv "Logs/Backups" "$INSTALL_DIR/data/logs/ · $INSTALL_DIR/data/backups/"
+    echo >&2
+    echo "${C_BOLD}  GERENCIAR O SERVIÇO${C_RESET}" >&2
+    echo "    systemctl status  $SERVICE_NAME" >&2
+    echo "    systemctl restart $SERVICE_NAME" >&2
+    echo "    systemctl stop    $SERVICE_NAME" >&2
+    echo "    journalctl -u     $SERVICE_NAME -f" >&2
+    echo >&2
+    echo "${C_BOLD}  PRIMEIRO ADMINISTRADOR (escolha um caminho — nunca exibimos senhas)${C_RESET}" >&2
+    echo "    A) CLI (recomendado):" >&2
+    echo "       cd $INSTALL_DIR && sudo -u $SERVICE_USER .venv/bin/python -m app.cli \\" >&2
+    echo "         create-user --username admin --name 'Administrador' --admin" >&2
+    echo "       (a senha é solicitada de forma oculta; mínimo 8 caracteres)" >&2
+    echo "    B) Primeiro acesso: abra a aplicação e use a página /setup" >&2
+    echo "       (disponível enquanto não existir nenhum usuário)" >&2
+    echo "    C) Variáveis de ambiente: AUTH_ADMIN_USERNAME/AUTH_ADMIN_PASSWORD" >&2
+    echo "       no .env antes do primeiro start (remova após o primeiro login)" >&2
+    echo >&2
+    echo "  A senha do banco NÃO aparece neste resumo nem no log — está apenas" >&2
+    echo "  no .env (DATABASE_URL), com permissão 0600." >&2
+    echo "${C_BOLD}  ══════════════════════════════════════════════════════════════${C_RESET}" >&2
 }
 
 # ----------------------------------------------------------------------------
@@ -996,8 +1076,11 @@ security_self_check() {
 main() {
     parse_args "$@"
     setup_logging
-    echo "==============================================================" | tee -a "$INSTALL_LOG" >/dev/null
+    echo >&2
+    echo "==============================================================" >&2
     info "SisPatrimônio Pro — Instalador Linux v${APP_VERSION_INSTALLER} ($(date '+%Y-%m-%d %H:%M:%S'))"
+    echo "==============================================================" >&2
+    echo >&2
 
     STEP="Parâmetros e validação"
     validate_inputs
@@ -1014,21 +1097,22 @@ main() {
     STEP="Confirmação de recriação de banco"
     confirm_recreate_db
 
-    ensure_packages
-    ensure_repo
-    ensure_venv
-    build_database_url
-    ensure_database
-    ensure_env_file
-    test_db_connection
-    ensure_service_user
-    ensure_systemd_unit
-    pre_start_sanity
-    stop_service_if_running
-    init_database
-    start_and_health_check
-    post_install_checks
-    security_self_check
+    run_step "Pacotes do sistema (Python, Git, MariaDB)"  ensure_packages
+    run_step "Código-fonte (clone)"                       ensure_repo
+    run_step "Ambiente virtual e dependências"            ensure_venv
+    run_step "Montagem da URL do banco"                   build_database_url
+    run_step "Banco de dados (criação/validação)"         ensure_database
+    run_step "Arquivo de configuração .env"               ensure_env_file
+    run_step "Teste de conexão com o banco"               test_db_connection
+    run_step "Usuário e permissões do serviço"            ensure_service_user
+    run_step "Unidade systemd"                            ensure_systemd_unit
+    run_step "Sanity pré-start"                           pre_start_sanity
+    run_step "Parada do serviço de rodada anterior"       stop_service_if_running
+    run_step "Inicialização do schema (init_db)"          init_database
+    run_step "Start + health check"                       start_and_health_check
+    run_step "Bateria pós-instalação"                     post_install_checks
+    run_step "Auditoria de segurança"                     security_self_check
+
     print_summary
     ok "Concluído."
 }
