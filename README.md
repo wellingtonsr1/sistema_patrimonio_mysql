@@ -341,6 +341,58 @@ Endpoints principais:
  /ajuda
 ```
 
+### 4. Inicar com o sistema
+Criar o serviço systemd
+```
+sudo nano /etc/systemd/system/sispatrimonio.service
+```
+
+Coloque
+```
+[Unit]
+Description=SisPatrimônio Pro
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wellington
+Group=wellington
+WorkingDirectory=/opt/SisPratrimonioPro
+EnvironmentFile=/opt/SisPratrimonioPro/.env
+ExecStart=/opt/SisPratrimonioPro/.venv/bin/python /opt/SisPratrimonioPro/run.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Recarregar o systemd
+```
+sudo systemctl daemon-reload
+```
+
+Ativar para iniciar com o Linux
+```
+sudo systemctl enable sispatrimoniopro
+```
+
+Iniciar agora
+```
+sudo systemctl start sispatrimoniopro
+```
+
+Verificar
+```
+sudo systemctl status sispatrimoniopro
+```
+
+Você deve encontrar
+```
+Active: active (running)
+```
+
 > Para instalação completa em uma máquina nova, consulte a documentação em `docs/`.
 
 ---
