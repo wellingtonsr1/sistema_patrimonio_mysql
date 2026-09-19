@@ -85,6 +85,14 @@ ok()    { printf '\e[32m[ OK ]\e[0m %s\n' "$*"; }
 warn()  { printf '\e[33m[ !! ]\e[0m %s\n' "$*"; }
 err()   { printf '\e[31m[ XX ]\e[0m %s\n' "$*" >&2; }
 
+tty_printf() {  # prompt direto no terminal — bypass do tee (sem buffering; nunca vai ao log)
+    if [ -e /dev/tty ]; then
+        printf '%s' "$*" > /dev/tty
+    else
+        printf '%s' "$*"
+    fi
+}
+
 on_error() {
     local exit_code=$?
     err "Falha na etapa: ${STEP:-desconhecida} (exit $exit_code, linha $1)."
@@ -108,21 +116,23 @@ run_step() {  # rotula a etapa atual para o trap ERR
 # Coleta de senha SEM ECO (SR-001, R2): prompt vai ao log ANTES do read;
 # leitura dentro de janela set +x (defesa contra xtrace acidental)
 # ----------------------------------------------------------------------------
-prompt_secret() {  # $1=prompt  →  echo na stdout da função (capturado pelo chamador)
+prompt_secret() {  # $1=prompt  →  senha na stdout da função (capturado pelo chamador)
+    # Vazio NAS DUAS entradas = "gerar automaticamente" (retorna vazio; o chamador gera).
+    # Prompts via /dev/tty: stdout está sob tee (buffering esconderia o prompt sem \n).
+    # NUNCA reativar set -x aqui: xtrace herdado por subshells imprimiria a senha no stderr
+    # → log (violação SR-001 detectada na revisão).
     local prompt="$1" value confirm
-    printf '%s' "$prompt"
-    set +x
+    tty_printf "$prompt"
     read -rs value
-    printf '\n'
-    printf '%s' "Confirme a senha: "
+    tty_printf $'\n'
+    tty_printf "Confirme a senha (vazio nas duas = gerar automaticamente): "
     read -rs confirm
-    printf '\n'
-    set -x 2>/dev/null || true
-    if [ -z "$value" ]; then
-        die "Senha vazia. Operação abortada."
+    tty_printf $'\n'
+    if [ -z "$value" ] && [ -z "$confirm" ]; then
+        return 0  # chamador decide gerar
     fi
-    if [ "$value" != "$confirm" ]; then
-        die "As senhas não conferem. Operação abortada."
+    if [ -z "$value" ] || [ "$value" != "$confirm" ]; then
+        die "As senhas não conferem (ou primeira vazia e confirmação preenchida). Operação abortada."
     fi
     printf '%s' "$value"
 }
@@ -244,10 +254,12 @@ collect_secrets() {  # modo interativo: coleta senha (sem eco) ou marca para ger
             warn "Banco '$DB_NAME' já existe e será REUTILIZADO (nada será apagado)."
             warn "Pressione ENTER para gerar/confirmar senha conforme o fluxo (ou Ctrl+C para abortar)."
         fi
-        DB_PASSWORD="$(prompt_secret 'Senha do banco (mín. 12 caracteres; vazio = gerar automaticamente): ')"
+        DB_PASSWORD="$(prompt_secret 'Senha do banco (mín. 12 caracteres; ENTER vazio nas duas = gerar automaticamente): ')"
         if [ -z "$DB_PASSWORD" ]; then
             DB_PASSWORD="$(generate_secret)"
             ok "Senha do banco gerada automaticamente (gravada apenas no .env)."
+        elif [ "${#DB_PASSWORD}" -lt 12 ]; then
+            die "Senha manual do banco deve ter no mínimo 12 caracteres (ou deixe vazia para gerar)."
         fi
     fi
 }
@@ -263,7 +275,7 @@ confirm_plan() {  # R12: confirmação final antes da primeira mutação (intera
     echo "  Serviço:        $SERVICE_NAME (usuário Linux $SERVICE_USER)"
     [ "$RECREATE_DB" = "true" ] && warn "  *** --recreate-db ATIVO: o banco '$DB_NAME' será APAGADO e recriado ***"
     echo
-    printf 'Confirmar e iniciar a instalação? (s/N): '
+    tty_printf 'Confirmar e iniciar a instalação? (s/N): '
     read -r answer
     case "$answer" in
         s|S|sim|SIM|y|Y) ok "Confirmado." ;;
@@ -505,9 +517,9 @@ confirm_recreate_db() {  # R13/D2: aviso + dupla confirmação digitando o nome 
     warn "MODO DESTRUTIVO: --recreate-db APAGARÁ o banco '$DB_NAME'"
     warn "e TODOS os seus dados. Esta ação é IRREVERSÍVEL."
     warn "=============================================================="
-    printf 'Digite o nome do banco para confirmar (1/2): '
+    tty_printf 'Digite o nome do banco para confirmar (1/2): '
     read -r c1
-    printf 'Digite novamente (2/2): '
+    tty_printf 'Digite novamente (2/2): '
     read -r c2
     [ "$c1" = "$DB_NAME" ] && [ "$c2" = "$DB_NAME" ] || die "Confirmação divergente. Operação abortada — nada foi alterado."
     ok "Dupla confirmação recebida."
@@ -613,7 +625,7 @@ ensure_env_file() {
         ok "Backup criado: $bak"
         # Completa apenas chaves ausentes (merge consentido no interativo)
         if [ "$NON_INTERACTIVE" != "true" ]; then
-            printf 'Completar chaves ausentes no .env existente com os valores desta instalação? (s/N): '
+            tty_printf 'Completar chaves ausentes no .env existente com os valores desta instalação? (s/N): '
             read -r ans
             case "$ans" in
                 s|S|sim|SIM|y|Y)
