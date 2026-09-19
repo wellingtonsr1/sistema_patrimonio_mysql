@@ -375,9 +375,7 @@ detect_host() {
     if [ -z "$BANCO_SERVICE_DETECTED" ] && command -v mysqld >/dev/null 2>&1; then
         BANCO_SERVICE_DETECTED="mysql.service"
     fi
-    BANCO_CLIENT_CMD=""
-    command -v mysql >/dev/null 2>&1 && BANCO_CLIENT_CMD="mysql"
-    command -v mariadb >/dev/null 2>&1 && BANCO_CLIENT_CMD="mariadb"
+    detect_db_client
     if [ -n "$BANCO_SERVICE_DETECTED" ]; then
         ok "Servidor de banco detectado: $BANCO_SERVICE_DETECTED (será REUTILIZADO)."
     else
@@ -436,6 +434,11 @@ ensure_packages() {
     if [ -z "$BANCO_SERVICE_DETECTED" ]; then
         BANCO_SERVICE_DETECTED="mariadb.service"
     fi
+    # Re-detecção OBRIGATÓRIA aqui: em instalação fresca o servidor de banco
+    # acabou de ser instalado e o cliente não existia na detecção inicial
+    detect_db_client
+    [ -n "$BANCO_CLIENT_CMD" ] || die "Cliente SQL (mariadb/mysql) não encontrado mesmo após a instalação dos pacotes."
+    ok "Cliente de banco: $BANCO_CLIENT_CMD"
     if ! systemctl is-active --quiet "$BANCO_SERVICE_DETECTED"; then
         $SUDO systemctl enable --now "$BANCO_SERVICE_DETECTED"
     fi
@@ -446,6 +449,17 @@ ensure_packages() {
 # ----------------------------------------------------------------------------
 # Banco (FR-006/FR-007, R5/R13): MYSQL_PWD no ambiente — NUNCA argv
 # ----------------------------------------------------------------------------
+detect_db_client() {  # cliente SQL real (D3); vazio = ausente. Reexecutada
+                      # após instalar o servidor (instalação fresca: a detecção
+                      # inicial roda SEM SGBD e o cliente só existe depois)
+    BANCO_CLIENT_CMD=""
+    if command -v mariadb >/dev/null 2>&1; then
+        BANCO_CLIENT_CMD="mariadb"
+    elif command -v mysql >/dev/null 2>&1; then
+        BANCO_CLIENT_CMD="mysql"
+    fi
+}
+
 db_client() {  # executa SQL com credencial no ambiente (senha nunca em argv/log)
     local sql="$1"
     if [ -S /run/mysqld/mysqld.sock ] && [ "$DB_HOST" = "$DEFAULT_DB_HOST" ]; then
