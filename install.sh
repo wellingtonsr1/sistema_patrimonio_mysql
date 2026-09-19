@@ -508,7 +508,9 @@ ensure_database() {
         ok "Banco '$DB_NAME' criado (utf8mb4/utf8mb4_unicode_ci)."
     fi
 
-    # Usuário: reutiliza se existir (senha só alterada com confirmação explícita)
+    # Usuário: reutiliza se existir, com ALINHAMENTO de senha (caso real:
+    # usuário de rodada anterior com senha antiga + .env desta execução =>
+    # init_db() falhava com Access denied e3q8)
     local user_exists
     user_exists="$("$BANCO_CLIENT_CMD" -N -B -e "SELECT COUNT(*) FROM mysql.user WHERE User='$DB_USER' AND Host='localhost';")"
     if [ "$user_exists" = "0" ]; then
@@ -518,11 +520,27 @@ ensure_database() {
         DB_PASSWORD_CHANGED="true"
         ok "Usuário '$DB_USER'@'localhost' criado."
     else
-        ok "Usuário '$DB_USER'@'localhost' já existe — reutilizado (senha preservada)."
-        if [ "$NON_INTERACTIVE" != "true" ] && [ "$RECREATE_DB" = "true" ]; then
+        ok "Usuário '$DB_USER'@'localhost' já existe — reutilizado."
+        # Testa a senha REAL do usuário (login como o próprio usuário)
+        if env MYSQL_PWD="$DB_PASSWORD" "$BANCO_CLIENT_CMD" --user="$DB_USER" -N -B -e "SELECT 1;" >/dev/null 2>&1; then
+            ok "Senha do usuário confere com a desta execução."
+        elif [ "$NON_INTERACTIVE" = "true" ] || [ "$RECREATE_DB" = "true" ]; then
             set_placeholder_password
             DB_PASSWORD_CHANGED="true"
-            ok "Senha do usuário '$DB_USER' atualizada (contexto --recreate-db)."
+            ok "Senha do usuário '$DB_USER' alinhada à desta execução."
+        else
+            tty_printf "Senha do usuário do banco DIVERGE da digitada. Atualizá-la para a desta execução? (S/n): "
+            read -r ans
+            case "$ans" in
+                n|N|nao|não|no)
+                    warn "Senha do usuário preservada — o .env usará a senha digitada; init_db() pode falhar com Access denied."
+                    ;;
+                *)
+                    set_placeholder_password
+                    DB_PASSWORD_CHANGED="true"
+                    ok "Senha do usuário '$DB_USER' atualizada para a desta execução."
+                    ;;
+            esac
         fi
     fi
 
