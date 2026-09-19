@@ -823,6 +823,23 @@ pre_start_sanity() {  # falha ANTES do start nomeando o arquivo ausente (evita
 # boot do app falhar antes do create_all, o instalador declara sucesso com o
 # banco vazio e o app só quebra depois — traceback 'backup_config doesn't
 # exist' observado em instalação real). Idempotente: create_all nunca destrói.
+stop_service_if_running() {  # corrida 1050: serviço de rodada anterior em
+    # crash-loop (Restart=on-failure) executa init_db() a cada boot; se estiver
+    # de pé quando o instalador roda o init_db(), ambos avaliam "tabela não
+    # existe" ao mesmo tempo e o perdedor leva 1050 "Table already exists"
+    STEP="Parada do serviço (evita corrida com init_db do app)"
+    if systemctl list-unit-files 2>/dev/null | grep -q "^${SERVICE_NAME}\.service"; then
+        if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+            $SUDO systemctl stop "$SERVICE_NAME"
+            ok "Serviço $SERVICE_NAME parado (rodada anterior) — reativado ao final."
+        else
+            ok "Serviço $SERVICE_NAME instalado, mas inativo — nada a parar."
+        fi
+    else
+        ok "Serviço $SERVICE_NAME ainda não instalado — nada a parar (primeira instalação)."
+    fi
+}
+
 init_database() {
     STEP="Inicialização do schema do banco (init_db)"
     info "Executando init_db() do projeto (create_all + migrações leves)..."
@@ -1007,6 +1024,7 @@ main() {
     ensure_service_user
     ensure_systemd_unit
     pre_start_sanity
+    stop_service_if_running
     init_database
     start_and_health_check
     post_install_checks

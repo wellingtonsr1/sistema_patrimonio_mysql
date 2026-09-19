@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import QueuePool
 from app.config import DATABASE_URL
@@ -98,10 +99,33 @@ def _ensure_schema_migrations():
         conn.commit()
 
 
+def _create_all_tolerante_corrida() -> None:
+    """create_all tolerante à corrida entre processos no mesmo banco.
+
+    Cenário real (feature 027): o instalador executa init_db() enquanto o
+    serviço systemd de uma rodada anterior ainda está em crash-loop
+    (Restart=on-failure, rodando init_db() a cada boot). Os dois processos
+    avaliam "tabela não existe" ao mesmo tempo e o perdedor da corrida recebe
+    OperationalError 1050 "Table ... already exists" ao emitir o CREATE TABLE.
+
+    Nesse caso a tabela foi criada pelo outro processo — resultado idêntico
+    ao do checkfirst. Basta repetir o create_all uma vez: os demais objetos
+    pendentes são criados e o estado final é o mesmo. Repetição única evita
+    mascarar erros persistentes (segunda falha 1050 = colisão real, relançada).
+    """
+    try:
+        Base.metadata.create_all(bind=engine)
+    except OperationalError as exc:
+        if exc.orig is not None and getattr(exc.orig, "args", None) and exc.orig.args[0] == 1050:
+            Base.metadata.create_all(bind=engine)
+            return
+        raise
+
+
 def init_db():
     """Inicializa as tabelas do banco de dados"""
     from app import models  # noqa: F401
     from app.models.enums import _register_all_enums  # noqa: F401
     _register_all_enums()
-    Base.metadata.create_all(bind=engine)
+    _create_all_tolerante_corrida()
     _ensure_schema_migrations()
