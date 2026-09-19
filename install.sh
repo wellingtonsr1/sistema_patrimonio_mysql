@@ -33,8 +33,8 @@ IFS=$'\n\t'
 readonly DEFAULT_REPO_URL="https://github.com/wellingtonsr1/sistema_patrimonio_mysql.git"
 readonly DEFAULT_BRANCH="main"
 readonly DEFAULT_INSTALL_DIR="/opt/SisPatrimonioPro"
-readonly DEFAULT_DB_NAME="sispatrimonio"
-readonly DEFAULT_DB_USER="sispat"
+readonly DEFAULT_DB_NAME="sispatrimoniopro"
+readonly DEFAULT_DB_USER="patrimonio"
 readonly DEFAULT_DB_HOST="localhost"
 readonly DEFAULT_DB_PORT="3306"
 readonly DEFAULT_APP_HOST="0.0.0.0"   # default de código (192.168.0.9) é específico do operador
@@ -66,6 +66,7 @@ SERVICE_NAME="$DEFAULT_SERVICE_NAME"
 SERVICE_USER="$DEFAULT_SERVICE_USER"
 SERVICE_GROUP="$DEFAULT_SERVICE_GROUP"
 GENERATE_DB_PASSWORD="false"
+DB_PASSWORD_CHANGED="false"   # true quando o usuário do banco foi criado/recriado nesta execução
 
 STEP=""
 BANCO_SERVICE_DETECTED=""
@@ -500,11 +501,13 @@ ensure_database() {
         local esc
         esc="$(sql_escape "$DB_PASSWORD")"
         "$BANCO_CLIENT_CMD" -e "CREATE USER '$DB_USER'@'localhost' IDENTIFIED BY '$esc';"
+        DB_PASSWORD_CHANGED="true"
         ok "Usuário '$DB_USER'@'localhost' criado."
     else
         ok "Usuário '$DB_USER'@'localhost' já existe — reutilizado (senha preservada)."
         if [ "$NON_INTERACTIVE" != "true" ] && [ "$RECREATE_DB" = "true" ]; then
             set_placeholder_password
+            DB_PASSWORD_CHANGED="true"
             ok "Senha do usuário '$DB_USER' atualizada (contexto --recreate-db)."
         fi
     fi
@@ -604,7 +607,9 @@ ensure_venv() {
 # ----------------------------------------------------------------------------
 test_db_connection() {
     STEP="Teste de conexão com o banco (engine do projeto)"
-    "$INSTALL_DIR/.venv/bin/python" - "$DB_NAME" <<PYEOF
+    # CWD = diretório do projeto: `from app.config import ...` exige o pacote app
+    # importável (equivalente ao WorkingDirectory da unit; falhou em CWD arbitrário)
+    ( cd "$INSTALL_DIR" && "$INSTALL_DIR/.venv/bin/python" - "$DB_NAME" <<PYEOF
 import sys
 from app.config import DATABASE_URL
 from sqlalchemy import create_engine, text
@@ -615,6 +620,7 @@ print("BANCO:", c.execute(text("SELECT DATABASE()")).scalar())
 assert c.execute(text("SELECT DATABASE()")).scalar() == sys.argv[1], "banco inesperado"
 c.close()
 PYEOF
+    )
     ok "Conexão validada via DATABASE_URL (mariadb+pymysql)."
 }
 
@@ -631,21 +637,36 @@ ensure_env_file() {
         warn ".env existente — NUNCA é sobrescrito."
         $SUDO cp -a "$env_file" "$bak"
         ok "Backup criado: $bak"
-        # Completa apenas chaves ausentes (merge consentido no interativo)
-        if [ "$NON_INTERACTIVE" != "true" ]; then
-            tty_printf 'Completar chaves ausentes no .env existente com os valores desta instalação? (s/N): '
+        # Caso real: reexecução após falha no meio da instalação — o .env da rodada
+        # anterior aponta para a senha ANTERIOR (ou não existe ainda). Oferece atualizar
+        # APENAS o DATABASE_URL quando o banco foi criado/recriado NESTA execução.
+        if [ "$NON_INTERACTIVE" != "true" ] && [ "$DB_PASSWORD_CHANGED" = "true" ]; then
+            tty_printf 'DATABASE_URL do .env aponta para senha diferente da desta execução. Atualizar apenas o DATABASE_URL? (s/N): '
             read -r ans
             case "$ans" in
                 s|S|sim|SIM|y|Y)
-                    grep -q '^DATABASE_URL=' "$env_file" || echo "DATABASE_URL=$DATABASE_URL_BUILT" | $SUDO tee -a "$env_file" >/dev/null
-                    grep -q '^APP_HOST='     "$env_file" || echo "APP_HOST=$APP_HOST" | $SUDO tee -a "$env_file" >/dev/null
-                    grep -q '^APP_PORT='     "$env_file" || echo "APP_PORT=$APP_PORT" | $SUDO tee -a "$env_file" >/dev/null
-                    ok "Chaves ausentes adicionadas ao .env existente."
+                    $SUDO sed -i "s|^DATABASE_URL=.*|DATABASE_URL=$DATABASE_URL_BUILT|" "$env_file"
+                    ok "DATABASE_URL atualizado no .env existente (demais chaves preservadas)."
                     ;;
                 *) warn ".env mantido sem alterações (valores existentes preservados)." ;;
             esac
         else
-            warn "Modo não interativo: .env mantido sem alterações (valores existentes preservados)."
+            # Comportamento original: completa apenas chaves ausentes (merge consentido)
+            if [ "$NON_INTERACTIVE" != "true" ]; then
+                tty_printf 'Completar chaves ausentes no .env existente com os valores desta instalação? (s/N): '
+                read -r ans
+                case "$ans" in
+                    s|S|sim|SIM|y|Y)
+                        grep -q '^DATABASE_URL=' "$env_file" || echo "DATABASE_URL=$DATABASE_URL_BUILT" | $SUDO tee -a "$env_file" >/dev/null
+                        grep -q '^APP_HOST='     "$env_file" || echo "APP_HOST=$APP_HOST" | $SUDO tee -a "$env_file" >/dev/null
+                        grep -q '^APP_PORT='     "$env_file" || echo "APP_PORT=$APP_PORT" | $SUDO tee -a "$env_file" >/dev/null
+                        ok "Chaves ausentes adicionadas ao .env existente."
+                        ;;
+                    *) warn ".env mantido sem alterações (valores existentes preservados)." ;;
+                esac
+            else
+                warn "Modo não interativo: .env mantido sem alterações (valores existentes preservados)."
+            fi
         fi
         chmod 600 "$env_file"
         return
