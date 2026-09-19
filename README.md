@@ -399,6 +399,38 @@ Active: active (running)
 
 ## 🖥️ Instalação em uma máquina nova
 
+### Instalador automatizado (recomendado — feature 027)
+
+Em um servidor **Debian/Ubuntu (ou derivada com `apt` + systemd)**, o instalador automatizado prepara tudo — Python ≥ 3.10, Git, MariaDB, banco/usuário, clone, venv, dependências, `.env`, serviço `systemd` e verificação via `/health` — de forma **idempotente** (pode ser executado novamente; banco existente **nunca** é apagado):
+
+```bash
+git clone https://github.com/wellingtonsr1/sistema_patrimonio_mysql.git
+cd sistema_patrimonio_mysql
+sudo bash install.sh                 # modo interativo (pergunta com defaults)
+```
+
+Modo automatizado (sem prompts — exige os parâmetros obrigatórios):
+
+```bash
+sudo bash install.sh --non-interactive \
+  --db-name sispatrimonio --db-user sispat --generate-db-password
+```
+
+| Opção | Default | Função |
+|---|---|---|
+| `--install-dir` | `/opt/SisPatrimonioPro` | Diretório de instalação |
+| `--repo` / `--branch` | repositório oficial / `main` | Origem do código |
+| `--db-name` / `--db-user` | `sispatrimonio` / `sispat` | Banco e usuário da aplicação |
+| `--db-password` \| `--generate-db-password` | — | Senha do banco (fornecida ou gerada; vai direto ao `.env`) |
+| `--app-host` / `--app-port` | `0.0.0.0` / `8000` | Bind da aplicação |
+| `--service-name` / `--service-user` | `sispatrimoniopro` / `sispatrimonio` | Serviço systemd e usuário Linux dedicado |
+| `--recreate-db` | — | **Destrutivo**: apaga e recria o banco da aplicação — só no modo interativo, com dupla confirmação |
+| `--update` | — | Reservado (ainda não implementado) |
+
+Garantias do instalador: senha coletada sem eco ou gerada criptograficamente (nunca em log/argv), `.env` criado com permissão `600`, serviço rodando com **usuário dedicado sem login** e privilégios do banco **apenas no banco da aplicação**; criação de tabelas fica a cargo do `init_db()` existente no start do serviço (o instalador não cria schema). Log da instalação: `/var/log/sispatrimonio-install.log` (sem credenciais).
+
+### Fluxo manual (alternativa)
+
 Fluxo resumido:
 
 1. Instalar Python 3.10+.

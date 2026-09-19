@@ -125,6 +125,34 @@ pip install -r requirements.txt
 python run.py                 # http://127.0.0.1:8000 · Swagger em /docs
 ```
 
+### Instalação de produção automatizada (feature 027)
+
+Em servidor **Debian/Ubuntu + systemd**, o instalador `install.sh` (na raiz do repositório) prepara o ambiente completo de produção: Python ≥ 3.10, Git, MariaDB/MySQL (reutiliza o que já existir; instala MariaDB apenas se nenhum servidor for detectado), banco + usuário dedicados (privilégios somente no banco da aplicação), clone em `/opt/SisPatrimonioPro` (default), venv + `requirements.txt`, `.env` (0600, com `APP_HOST`/`APP_PORT` explícitos), serviço systemd com **usuário dedicado sem login** e verificação final via `/health`.
+
+```bash
+sudo bash install.sh                                            # interativo
+sudo bash install.sh --non-interactive --db-name X --db-user Y \
+  --generate-db-password                                        # automatizado
+```
+
+Operação do serviço instalado:
+
+```bash
+systemctl status  sispatrimoniopro
+systemctl restart sispatrimoniopro
+journalctl -u     sispatrimoniopro -f
+```
+
+Regras operacionais do instalador:
+
+- **Idempotente**: pode ser reexecutado — cada etapa reutiliza o que já existe; banco existente **nunca** é apagado (recriação só via `--recreate-db` no modo interativo, com dupla confirmação digitando o nome do banco);
+- `.env` existente nunca é sobrescrito (backup `.env.bak-<timestamp>` antes de qualquer alteração consentida);
+- Log da instalação: `/var/log/sispatrimonio-install.log` (0600, sem credenciais — senhas vão apenas ao `.env`);
+- O instalador **não cria tabelas/schema** — a criação fica a cargo do `init_db()` idempotente no start do serviço (mecanismo existente);
+- `--update` é reconhecido mas **ainda não implementado** (evolução futura — use o fluxo manual de atualização do README);
+- HTTPS/reverse proxy (nginx) está fora do escopo do instalador — produção inicial em HTTP na rede interna; `AUTH_COOKIE_SECURE` permanece configurável no `.env`;
+- Configuração pós-instalação (host/porta): edite `APP_HOST`/`APP_PORT` no `.env` e `systemctl restart` — os defaults de `app/config.py` são fallback, não fonte efetiva.
+
 ### Criação do primeiro administrador
 
 O SisPatrimônio Pro possui **três formas** de criar o primeiro administrador:
