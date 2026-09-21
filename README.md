@@ -1117,6 +1117,7 @@ Documentação técnica disponível:
 ```text
 docs/
 ├── ARQUITETURA_E_MANUTENCAO.md
+├── BACKUP_AUTOMATICO_TESTES.md
 ├── GUIA_DE_MANUTENCAO.md
 ```
 
