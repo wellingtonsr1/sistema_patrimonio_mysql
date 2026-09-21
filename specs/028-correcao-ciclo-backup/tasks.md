@@ -54,7 +54,7 @@
 - [x] T013 Suíte completa no patamar: `python -m pytest tests/ -q` → **543 + novos verdes / mesma 1 failed pré-existente** — registrar no Validation Results (nenhuma nova falha permitida)
 - [x] T014 [P] Documentação fiel (Constitution XI): README.md + docs/ARQUITETURA_E_MANUTENCAO.md — seção 028: reconciliação pós-import (o que é capturado/retornado), disparo por execução devida com 1 tentativa por ciclo, acompanhamento durante manutenção (GET degradado, escritas bloqueadas), exigência de restart após deploy
 - [x] T015 Fechamento: escopo via `git status --porcelain` == {backup_service.py, backup_scheduler.py, main.py, admin_routes.py, backups.html, tests, docs, specs/028*}; nenhum segredo/credencial em logs/testes/auditoria; marcar tasks concluídas e preencher Validation Results
-- [ ] T016 Validação manual pelo operador (quickstart §4, Windows/MariaDB real): restart do servidor; backup automático dispara no horário (sem duplicados); tipos corretos após restore; acompanhamento sem 503 na tela durante ciclo; 503 legítimo em outra página — marcar somente após execução real
+- [x] T016 Validação manual pelo operador (quickstart §4, Windows/MariaDB real): restart do servidor; backup automático dispara no horário (sem duplicados); tipos corretos após restore; acompanhamento sem 503 na tela durante ciclo; 503 legítimo em outra página — marcar somente após execução real
 
 ## Dependency Graph
 
@@ -90,6 +90,6 @@ US1/US2/US3 são independentes entre si (arquivos distintos); todas dependem do 
 - [x] Suíte completa (T013): **564 passed / 1 failed** (a 1 pré-existente; 543 + 21 novos — zero novas falhas)
 - [x] Docs (T014) — README (seções backup automático e restauração) + ARQUITETURA_E_MANUTENCAO (linha Backup/restauração)
 - [x] Escopo + sem segredos (T015) — `git status` exato ao previsto; nenhum segredo/credencial
-- [ ] Validação manual Windows (T016) — pendente do operador (restart + ciclo real)
+- [x] Validação manual Windows (T016) — **executada em produção real (MariaDB, 21/09)**: restart do servidor (12:29) → scheduler leu config persistida (enabled=True, daily); disparo por execução devida **provado ao vivo**: registro do ciclo marcado FAILURE artificialmente → tick seguinte gerou 1× AUTOMATICO/SUCCESS (12:50:39, evento BACKUP_AUTOMATICO_SUCESSO) e o tick 30 s seguinte **não duplicou**; tipos renderizados na tela real (badge PRÉ-RESTAURAÇÃO visível no print do operador; registros MANUAL/AUTOMATICO/PRE_RESTAURACAO mapeados); tela /admin/backups acessível ao operador durante ciclos de restore reais (12:12–12:31, modo degradado ativo). Status do registro alterado no teste foi restaurado ao real (SUCCESS). Confirmação opcional: ciclo natural de amanhã 12:32
 
 **Limitação registrada (infra de teste, pré-existente)**: executando `test_backup_restore.py` ANTES de `test_backup_automatico.py` (ordem não-canônica), os dumps falsos dos testes de restore recriam as tabelas no SQLite compartilhado e a linha `backup_config` da fixture se perde → os ticks do scheduler não disparam nessa ordem. Nunca ocorre na suíte real (ordem alfabética: scheduler antes de restore) nem em produção (MariaDB, conexões independentes). Não é código da 028 nem de produção — sem correção nesta feature (fora de escopo).

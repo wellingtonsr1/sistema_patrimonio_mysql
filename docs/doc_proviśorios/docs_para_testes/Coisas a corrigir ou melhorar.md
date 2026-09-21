@@ -162,3 +162,19 @@ E colocaria como regra principal:
 Implementar somente o mecanismo de backup, sem implementar ainda restauração automática, agendamento ou alterações na arquitetura do banco. Analisar primeiro a estrutura atual do SisPatrimônio Pro, identificar o banco utilizado, arquivos persistidos, configurações, mecanismo de auditoria, RBAC e ambiente de execução. Fazer a menor alteração possível.
 
 Isso é particularmente importante no seu caso porque você está consolidando a migração para MariaDB/MySQL. A spec deve ser feita já considerando o banco definitivo, e não criar uma solução específica para o SQLite antigo.
+
+
+Como conferir que a correção " pegou"
+O card Backup Automático na tela mostra "Próxima execução" — depois de salvar, ele passa a exibir a data/hora nova. É o sinal visual de que a config efetiva já é a corrigida.
+
+Resumo do caso concreto de hoje
+Você salvou 12:32 com o ciclo de hoje já cumprido (12:50) → nada dispara hoje, amanhã 12:32 dispara 1×. Se o horário certo fosse outro, basta corrigir no ⚙ e olhar a "Próxima execução" — sem restart, sem risco de duplicar.
+
+A única forma de "re-forçar" o disparo no mesmo dia seria o artifício que usei no teste (marcar o registro como FAILURE direto no banco) — isso não é caminho operacional e não recomendo como rotina; existe o "Gerar backup agora" justamente para a necessidade imediata.
+
+Se preferir outra semântica — por exemplo, mudança de horário para mais tarde no mesmo dia re-agenda e dispara (com anti-duplicação) — dá para especificar como feature pequena; hoje o comportamento é o aprovado na 028.
+
+Quer que eu melhore a visibilidade disso (ex.: card mostrando "ciclo de hoje já cumprido — próxima execução amanhã 12:32") para esses diagnósticos ficarem óbvios na tela?
+
+
+OBS:Se preferir que mudança de horário para mais tarde no mesmo dia re-dispare o backup (sem esperar o ciclo seguinte), isso é uma alteração de semântica possível — com proteção contra duplicados — mas foge da regra aprovada; posso especificá-la como feature separada. Também posso melhorar a observabilidade (log INFO por decisão do tick e/ou mostrar "motivo" no card quando o ciclo já foi cumprido), que teria tornado esse diagnóstico óbvio na tela.
