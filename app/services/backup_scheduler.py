@@ -26,7 +26,7 @@ política de timezone. Persistência e comparação sempre em UTC.
 import logging
 import threading
 from datetime import datetime, timedelta
-from typing import Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set
 
 from app.config import (
     BACKUP_AUTO_ENABLED,
@@ -57,6 +57,9 @@ from app.services.backup_service import (
     get_backup_path,
 )
 from app.utils.time_utils import now_utc, utc_to_recife
+
+if TYPE_CHECKING:  # 028/R5: somente tipagem — sem ciclo de imports em runtime
+    from app.services.backup_config_service import EffectiveBackupConfig
 
 logger = logging.getLogger(__name__)
 
@@ -260,6 +263,13 @@ _stop_event: Optional[threading.Event] = None
 _scheduler_thread: Optional[threading.Thread] = None
 _catchup_done = False
 _last_result: Optional[Dict] = None
+
+# 028 (US2/R3): ciclos JÁ TENTADOS neste processo (chave = início UTC da janela
+# do ciclo via _cycle_window_utc). Garante: 1 tentativa por ciclo (sem retry a
+# cada 30 s após falha), sem dupla execução catch-up × disparo normal (FR-013)
+# e sem consumir o ciclo quando o disparo é adiado por restore. Em memória —
+# crash/restart limpa por construção (filosofia 019).
+_attempted_cycle_keys: Set[datetime] = set()
 
 # Sobrescrevível nos testes (research R12)
 _clock: Callable[[], datetime] = now_utc
@@ -780,6 +790,71 @@ def _apply_retention_after_cycle() -> None:
 # Thread agendadora (R1) — start/stop idempotentes via lifespan (contract §8)
 # ============================================================================
 
+
+def _evaluate_tick(now: datetime) -> None:
+    """Uma avaliação de disparo do loop (028/R3 — semântica de execução devida).
+
+    Substitui a condição impossível `agora >= _next_run_utc(agora)` (research
+    D3 — a função devolve sempre ocorrência estritamente futura, recalculada a
+    cada tick, logo o disparo por horário nunca ocorria). Critério correto, o
+    mesmo do catch-up (D4): o horário do ciclo corrente já passou E o ciclo não
+    tem SUCCESS — e o ciclo ainda não foi tentado neste processo.
+
+    Com enabled=False: nada dispara e nada é marcado (reabilitar no mesmo ciclo
+    passa a poder disparar). Adiamento por restore NÃO marca o ciclo (adiamento
+    ≠ tentativa). Falha do disparo MARCA (1 tentativa por ciclo — sem tempestade).
+    """
+    # 021: fonte única renovada POR TICK (paridade com o loop — alteração pela
+    # tela aplica-se sem reinício). Nunca levanta (crash-safe).
+    refresh_effective_config()
+    if not _eff().auto_enabled:
+        return
+
+    start_utc, _ = _cycle_window_utc(now)
+    with _AUTO_LOCK:
+        already_attempted = start_utc in _attempted_cycle_keys
+    if already_attempted:
+        return
+
+    # Devido? (sessão própria e curta por tick — padrão refresh_effective_config)
+    db = SessionLocal()
+    try:
+        due = _should_catch_up(now, db)
+    finally:
+        db.close()
+    if not due:
+        return
+
+    # 028: restauração em andamento → ADIAMENTO sem consumir o ciclo (adiamento
+    # ≠ tentativa): o mesmo ciclo dispara quando a restauração terminar. A
+    # guarda interna de _run_scheduled_backup permanece (defesa em profundidade).
+    if backup_service.restore_in_progress():
+        logger.warning(
+            "Backup automático adiado: restauração em andamento — "
+            "o ciclo corrente ainda pode executar após a conclusão."
+        )
+        return
+
+    # Marca ANTES de disparar: evita corrida catch-up × disparo normal e retry
+    # a cada 30 s. Anti-crescimento: mantém apenas o ciclo corrente.
+    with _AUTO_LOCK:
+        _attempted_cycle_keys.clear()
+        _attempted_cycle_keys.add(start_utc)
+
+    threading.Thread(
+        target=_run_scheduled_backup,
+        name="backup-auto-worker-028",
+        daemon=True,
+    ).start()
+
+
+def _mark_cycle_attempted(now: datetime) -> None:
+    """Marca o ciclo corrente como tentado (usado pelo catch-up — 028/R3)."""
+    start_utc, _ = _cycle_window_utc(now)
+    with _AUTO_LOCK:
+        _attempted_cycle_keys.clear()
+        _attempted_cycle_keys.add(start_utc)
+
 def _scheduler_loop(stop: threading.Event) -> None:
     """Loop de verificação: dispara o worker no horário configurado (R1/R5).
 
@@ -816,6 +891,9 @@ def _scheduler_loop(stop: threading.Event) -> None:
                         )
                         if stop.wait(timeout=_CATCHUP_DELAY_SECONDS):
                             break
+                        # 028: catch-up marca o ciclo — o disparo normal do
+                        # MESMO ciclo torna-se no-op (sem dupla execução, FR-013).
+                        _mark_cycle_attempted(_clock())
                         threading.Thread(
                             target=_run_scheduled_backup,
                             name="backup-auto-catchup-020",
@@ -823,13 +901,9 @@ def _scheduler_loop(stop: threading.Event) -> None:
                         ).start()
 
             if enabled:
-                next_run = _next_run_utc(_clock())
-                if _clock() >= next_run:
-                    threading.Thread(
-                        target=_run_scheduled_backup,
-                        name="backup-auto-worker-020",
-                        daemon=True,
-                    ).start()
+                # 028 (US2/R3): disparo por EXECUÇÃO DEVIDA (não mais pela
+                # "próxima ocorrência futura" — condição impossível, research D3).
+                _evaluate_tick(_clock())
         except Exception:  # o loop NUNCA morre por exceção (crash-safety)
             logger.exception("Erro no loop do agendador de backup (ciclo segue).")
         stop.wait(timeout=_TICK_SECONDS)

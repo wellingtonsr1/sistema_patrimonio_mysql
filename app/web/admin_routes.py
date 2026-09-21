@@ -808,13 +808,38 @@ def admin_backups(
     error: Optional[str] = None,
     info: Optional[str] = None,
 ):
-    backups = BackupService.list_backups()
     # 020 (US7, contract §7): indicadores aditivos — reutiliza permissão e
     # template existentes; rotas POST/manual/download intocadas.
     from app.services.backup_scheduler import (
         retention_monitoring_summary,
         scheduler_status,
     )
+
+    # FEATURE 028 (US3/R4): durante a restauração, a tela é servida em MODO
+    # DEGRADADO — ZERO queries de banco (o pool está drenado/banco em
+    # substituição durante o import; research D7). Mantém restore_status
+    # (banner/polling da 019) e auto_status (scheduler_status nunca levanta).
+    # A checagem vem ANTES de qualquer acesso a dados (list_backups incluído).
+    if backup_service.restore_status().get("active"):
+        return templates.TemplateResponse(
+            request=request,
+            name="admin/backups.html",
+            context={
+                "backups": [],
+                "success": success,
+                "error": error,
+                "info": info,
+                "restore_status": backup_service.restore_status(),
+                "auto_status": scheduler_status(),
+                "retention_summary": {},
+                "types_by_filename": {},
+                "config_form": None,
+                "listing_unavailable": True,
+                "active_tab": "admin",
+            },
+        )
+
+    backups = BackupService.list_backups()
 
     types_by_filename = {
         r.filename: r.backup_type

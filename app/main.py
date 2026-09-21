@@ -78,7 +78,16 @@ async def maintenance_mode_middleware(request: Request, call_next):
 
     if backup_service.maintenance_mode.get("active"):
         path = request.url.path
-        if not any(path.startswith(p) for p in _MAINTENANCE_WHITELIST_PREFIXES):
+        # FEATURE 028 (US3/R4): isenção SOMENTE-LEITURA e ESPECÍFICA — a tela de
+        # acompanhamento da restauração (/admin/backups, caminho EXATO, GET/HEAD)
+        # precisa responder durante o ciclo (a mensagem do POST promete "acompanhe
+        # nesta tela"). Não entra na tupla de PREFIXOS: prefixo isentaria POSTs
+        # (gerar/restaurar/configurações — FR-018). O middleware NÃO concede
+        # acesso: autenticação e permissão da rota continuam valendo.
+        read_only_backups = (
+            path == "/admin/backups" and request.method in ("GET", "HEAD")
+        )
+        if not any(path.startswith(p) for p in _MAINTENANCE_WHITELIST_PREFIXES) and not read_only_backups:
             return templates.TemplateResponse(
                 request=request,
                 name="admin/503.html",

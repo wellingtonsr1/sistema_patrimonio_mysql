@@ -1213,3 +1213,115 @@ def test_018_us3_config_le_apos_load_dotenv():
             f"{var} é lida ANTES de load_dotenv() em app/config.py — "
             "o valor do .env nunca seria carregado (bug da feature 018)"
         )
+
+
+# ============================================================================
+# FEATURE 028 — US3: acompanhamento da restauração sem 503 indevido
+# ============================================================================
+
+def _activate_maintenance_028(monkeypatch):
+    """Simula ciclo de restauração em andamento (manutenção ativa)."""
+    from app.services import backup_service
+
+    monkeypatch.setattr(
+        backup_service, "maintenance_mode",
+        {"active": True, "phase": "importando", "started_at": "18/09/2026 12:00:00",
+         "target_file": "backup_20260918_120000_000001.sql.gz"},
+    )
+    monkeypatch.setattr(backup_service, "_RESTORE_IN_PROGRESS", True)
+
+
+def test_us3_get_backups_200_durante_manutencao(client, monkeypatch):
+    """Cenário 1: manutenção ativa → GET /admin/backups responde 200 (não 503)."""
+    _activate_maintenance_028(monkeypatch)
+    resp = client.get("/admin/backups")
+    assert resp.status_code == 200, resp.text[:300]
+    body = resp.text
+    assert "Restauração" in body or "restauração" in body
+
+
+def test_us3_modo_degradado_sem_queries(client, db_session, monkeypatch):
+    """Cenário 2: modo degradado NÃO executa queries de listagem/config."""
+    from app.services import backup_service
+
+    _activate_maintenance_028(monkeypatch)
+
+    def _boom_query(*a, **k):
+        raise AssertionError("modo degradado não deve consultar o banco")
+
+    monkeypatch.setattr(
+        backup_service.BackupService, "list_backups", staticmethod(_boom_query)
+    )
+    resp = client.get("/admin/backups")
+    assert resp.status_code == 200
+    body = resp.text
+    assert "Listagem indisponível" in body
+
+
+def test_us3_post_gerar_bloqueado_durante_manutencao(client, monkeypatch):
+    """Cenário 3: POST de escrita continua 503 durante a manutenção (FR-018)."""
+    _activate_maintenance_028(monkeypatch)
+    resp = client.post("/admin/backups/gerar", follow_redirects=False)
+    assert resp.status_code == 503
+
+
+def test_us3_post_restaurar_bloqueado_durante_manutencao(client, monkeypatch):
+    """Cenário 4: POST de restauração continua 503 (nenhum POST isento)."""
+    _activate_maintenance_028(monkeypatch)
+    resp = client.post(
+        "/admin/backups/backup_20260918_120000_000001.sql.gz/restaurar",
+        follow_redirects=False,
+    )
+    assert resp.status_code == 503
+
+
+def test_us3_sem_permissao_continua_bloqueado(client, db_session, monkeypatch):
+    """Cenário 5: isenção não concede acesso — sem permissão → negado existente."""
+    from tests.test_rbac import _login, _make_user
+
+    # Login ANTES do ciclo: durante a manutenção, POST de login é bloqueado
+    # (comportamento correto — apenas o operador já autenticado acompanha).
+    # Usuário sem NENHUMA role → nenhuma permissão (deny by default).
+    _make_user(db_session, "semger028")
+    _login(client, "semger028")
+
+    _activate_maintenance_028(monkeypatch)
+    resp = client.get("/admin/backups")
+    # A isenção permite chegar à rota; a dependency da rota nega (403) ou o
+    # redirect de sessão/permissão atua (302). Nunca 200 (sem acesso indevido)
+    # e — após a correção do middleware — não pode ser 503 para quem já
+    # passou pela isenção com sessão válida.
+    assert resp.status_code in (403, 302), (resp.status_code, resp.text[:200])
+
+
+def test_us3_outra_pagina_admin_503_legitimo(client, monkeypatch):
+    """Cenário 6: páginas fora do fluxo continuam recebendo manutenção."""
+    _activate_maintenance_028(monkeypatch)
+    resp = client.get("/admin/usuarios")
+    assert resp.status_code == 503
+
+
+def test_us3_status_restaurar_whitelist_permanece(client, monkeypatch):
+    """Isenção não afeta a whitelist da 019: status do restore segue acessível."""
+    from app.services import backup_service
+
+    _activate_maintenance_028(monkeypatch)
+    resp = client.get("/admin/backups/restaurar/status")
+    assert resp.status_code == 200
+
+
+def test_us3_apos_ciclo_tela_volta_ao_normal(client, db_session, monkeypatch):
+    """Cenário 8: fim do ciclo (manutenção inativa) → tela normal completa."""
+    from app.config import BACKUP_DIR
+    from app.services import backup_service
+
+    name = "backup_20260918_120000_000010.sql.gz"
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+    (BACKUP_DIR / name).write_bytes(_gz_bytes(FAKE_DUMP_CONTENT))
+
+    # ciclo encerrado (manutenção inativa — nada a fazer)
+    assert backup_service.maintenance_mode.get("active") in (False, None)
+    resp = client.get("/admin/backups")
+    assert resp.status_code == 200
+    assert name in resp.text
+    assert "listagem indisponível" not in resp.text

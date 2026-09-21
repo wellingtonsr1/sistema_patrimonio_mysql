@@ -301,6 +301,13 @@
                         </a>
                     </td>
                 </tr>
+                {% else %}
+                {# 028 US3: estado vazio — em manutenção a listagem é indisponível (modo degradado) #}
+                <tr>
+                    <td colspan="7" class="text-center text-muted small py-3">
+                        {% if listing_unavailable %}Listagem indisponível durante a restauração — acompanhe o ciclo no indicador acima.{% else %}Nenhum backup encontrado.{% endif %}
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -308,7 +315,8 @@
     {% else %}
     <div class="text-center text-muted py-5">
         <i class="bi bi-archive fs-1 d-block mb-2"></i>
-        Nenhum backup gerado ainda.
+        {# 028 US3: em manutenção a listagem é indisponível (modo degradado) #}
+        {% if listing_unavailable %}Listagem indisponível durante a restauração — acompanhe o ciclo no indicador acima.{% else %}Nenhum backup gerado ainda.{% endif %}
     </div>
     {% endif %}
 </div>

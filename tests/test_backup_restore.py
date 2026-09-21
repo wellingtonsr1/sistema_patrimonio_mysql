@@ -1173,3 +1173,205 @@ def test_019_estadoNaoPersisteEntreProcessos(db_session, monkeypatch):
     finally:
         # reload substituiu símbolos; restaura estado limpo para os próximos testes
         backup_service.maintenance_mode["active"] = False
+
+
+# ============================================================================
+# FEATURE 028 — US1: reconciliação pós-import preserva o tipo dos backups
+# ============================================================================
+
+from datetime import datetime as _dt28
+
+from app.models.backup_record import BackupRecord as _BackupRecord28
+
+
+def _wiping_import(path, *, is_gzip=False):
+    """Import fake que SIMULA a substituição do banco pelo dump: apaga todos
+    os BackupRecord (o snapshot restaurado não os contém — causa A da 028)."""
+    from app.services import backup_service
+
+    db = backup_service.SessionLocal()
+    try:
+        db.query(_BackupRecord28).delete()
+        db.commit()
+    finally:
+        db.close()
+
+
+def _type_corrupting_import(target_filename, wrong_type):
+    """Import fake que substitui o banco mantendo um registro com tipo corrompido
+    (simula snapshot que diverge do estado capturado)."""
+
+    def _imp(path, *, is_gzip=False):
+        from app.services import backup_service
+
+        db = backup_service.SessionLocal()
+        try:
+            db.query(_BackupRecord28).delete()
+            db.add(
+                _BackupRecord28(
+                    filename=target_filename,
+                    backup_type=wrong_type,
+                    status="SUCCESS",
+                    timestamp=_dt28(2026, 9, 18, 10, 0, 0),
+                )
+            )
+            db.commit()
+        finally:
+            db.close()
+
+    return _imp
+
+
+def _add_record(db, filename, backup_type, *, timestamp=None, sha256=None,
+                size_bytes=None, removed_at=None):
+    row = _BackupRecord28(
+        filename=filename,
+        backup_type=backup_type,
+        status="SUCCESS",
+        timestamp=timestamp or _dt28(2026, 9, 18, 11, 0, 0),
+        size_bytes=size_bytes if size_bytes is not None else 1234,
+        sha256=sha256,
+        removed_at=removed_at,
+    )
+    db.add(row)
+    db.commit()
+    return row
+
+
+def _get_record(db, filename):
+    db.expire_all()
+    return (
+        db.query(_BackupRecord28).filter(_BackupRecord28.filename == filename).first()
+    )
+
+
+def test_us1_registro_perdido_e_recuperado_com_tipo_original(db_session, monkeypatch):
+    """Cenários 1/2: restore substitui o banco; arquivo MANUAL continua MANUAL."""
+    from app.services.audit_service import ACTION_BACKUP_RESTORE_SUCCESS
+
+    _patch_worker_sessions(monkeypatch)
+    manual_name = "backup_20260918_110000_000001.sql.gz"
+    _make_backup_file(manual_name, b"-- manual payload 028")
+    _add_record(
+        db_session, manual_name, "MANUAL",
+        timestamp=_dt28(2026, 9, 18, 11, 0, 0), sha256="a" * 64, size_bytes=4321,
+    )
+
+    target = _make_backup_file("backup_20260918_115500_000002.sql.gz", b"-- target 028")
+    result = BackupService.restore_backup(
+        db_session, _make_user(db_session, "rst028", role_names=["Administrador"]),
+        "127.0.0.1", target, import_executor=_wiping_import,
+    )
+    assert result["agendado"] is True
+    assert _wait_worker_finished()
+
+    rec = _get_record(db_session, manual_name)
+    assert rec is not None, "registro MANUAL perdido no import deve ser reconciliado"
+    assert rec.backup_type == "MANUAL"
+    assert rec.status == "SUCCESS"
+    assert rec.timestamp == _dt28(2026, 9, 18, 11, 0, 0)
+    assert rec.sha256 == "a" * 64
+    assert rec.size_bytes == 4321
+    assert rec.removed_at is None
+    # Ciclo seguiu normal
+    assert len(_audit_entries(db_session, ACTION_BACKUP_RESTORE_SUCCESS)) == 1
+
+
+def test_us1_pre_restauracao_permanece_pre_restauracao(db_session, monkeypatch):
+    """Cenário 2/6: o registro do próprio pré-restauração sobrevive com o tipo certo."""
+    from app.services.audit_service import ACTION_BACKUP_PRE_RESTORE
+
+    _patch_worker_sessions(monkeypatch)
+    target = _make_backup_file("backup_20260918_115501_000003.sql.gz", b"-- target 028b")
+    result = BackupService.restore_backup(
+        db_session, _make_user(db_session, "rst028b", role_names=["Administrador"]),
+        "127.0.0.1", target, import_executor=_wiping_import,
+    )
+    assert _wait_worker_finished()
+
+    security_name = _new_data(_audit_entries(db_session, ACTION_BACKUP_PRE_RESTORE)[0])[
+        "backup_seguranca"
+    ]
+    rec = _get_record(db_session, security_name)
+    assert rec is not None, "pré-restauração deve ser reconciliado após o import"
+    assert rec.backup_type == "PRE_RESTAURACAO"  # nunca reinterpretado como MANUAL
+
+
+def test_us1_tipo_divergente_e_corrigido_por_update(db_session, monkeypatch):
+    """Cenário 3/6: snapshot com tipo divergente → UPDATE devolve o tipo capturado."""
+    _patch_worker_sessions(monkeypatch)
+    auto_name = "backup_20260918_110000_000004.sql.gz"
+    _make_backup_file(auto_name, b"-- auto payload 028")
+    _add_record(db_session, auto_name, "AUTOMATICO")
+
+    target = _make_backup_file("backup_20260918_115502_000005.sql.gz", b"-- target 028c")
+    result = BackupService.restore_backup(
+        db_session, _make_user(db_session, "rst028c", role_names=["Administrador"]),
+        "127.0.0.1", target,
+        import_executor=_type_corrupting_import(auto_name, "MANUAL"),
+    )
+    assert _wait_worker_finished()
+
+    rec = _get_record(db_session, auto_name)
+    assert rec is not None
+    assert rec.backup_type == "AUTOMATICO", "tipo capturado deve vencer o divergente"
+    assert _get_record(db_session, "backup_20260918_115502_000005.sql.gz") is None  # fantasma do import não reaparece
+
+
+def test_us1_falha_de_reconciliacao_nao_afeta_o_ciclo(db_session, monkeypatch):
+    """Cenário 4: reconciliação é best-effort — sucesso/auditoria/liberação intactos."""
+    from app.services.audit_service import ACTION_BACKUP_RESTORE_SUCCESS
+
+    _patch_worker_sessions(monkeypatch)
+    manual_name = "backup_20260918_110000_000006.sql.gz"
+    _make_backup_file(manual_name, b"-- payload 028d")
+    _add_record(db_session, manual_name, "MANUAL")
+
+    def _boom(snapshot):
+        raise RuntimeError("reconciliação falhou (simulado)")
+
+    monkeypatch.setattr(
+        __import__("app.services.backup_service", fromlist=["_reconcile_backup_records"]),
+        "_reconcile_backup_records",
+        _boom,
+    )
+
+    target = _make_backup_file("backup_20260918_115503_000007.sql.gz", b"-- target 028d")
+    result = BackupService.restore_backup(
+        db_session, _make_user(db_session, "rst028d", role_names=["Administrador"]),
+        "127.0.0.1", target, import_executor=_wiping_import,
+    )
+    assert _wait_worker_finished()
+    assert len(_audit_entries(db_session, ACTION_BACKUP_RESTORE_SUCCESS)) == 1
+    from app.services import backup_service
+
+    assert backup_service.maintenance_mode["active"] is False
+    with backup_service._RESTORE_LOCK:
+        assert backup_service._RESTORE_IN_PROGRESS is False
+
+
+def test_us1_sem_registro_para_arquivo_inexistente_e_sem_duplicados(db_session, monkeypatch):
+    """Cenários 5/7: arquivo inexistente → nenhum INSERT; UNIQUE filename respeitada."""
+    _patch_worker_sessions(monkeypatch)
+    ghost = "backup_20260918_110000_000008.sql.gz"  # registro SEM arquivo no disco
+    _add_record(db_session, ghost, "MANUAL")
+    real_name = "backup_20260918_110000_000009.sql.gz"
+    _make_backup_file(real_name, b"-- payload 028e")
+    _add_record(db_session, real_name, "AUTOMATICO")
+
+    target = _make_backup_file("backup_20260918_115504_000010.sql.gz", b"-- target 028e")
+    result = BackupService.restore_backup(
+        db_session, _make_user(db_session, "rst028e", role_names=["Administrador"]),
+        "127.0.0.1", target, import_executor=_wiping_import,
+    )
+    assert _wait_worker_finished()
+
+    db_session.expire_all()
+    total_ghost = (
+        db_session.query(_BackupRecord28).filter(_BackupRecord28.filename == ghost).count()
+    )
+    assert total_ghost == 0, "sem arquivo no disco não deve haver re-inserção"
+    total_real = (
+        db_session.query(_BackupRecord28).filter(_BackupRecord28.filename == real_name).count()
+    )
+    assert total_real == 1, "UNIQUE filename: exatamente 1 registro reconciliado"

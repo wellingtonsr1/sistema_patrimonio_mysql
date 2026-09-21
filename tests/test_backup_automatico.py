@@ -437,3 +437,231 @@ def test_erro_inesperado_nunca_propaga(db_session, fresh_scheduler, monkeypatch)
     monkeypatch.setattr(BackupService, "generate_backup", staticmethod(_boom))
     summary = fresh_scheduler._run_scheduled_backup()
     assert summary["ok"] is False
+
+
+# ============================================================================
+# FEATURE 028 — US2: disparo por execução devida no _scheduler_loop
+# ============================================================================
+
+
+@pytest.fixture(autouse=True)
+def _reset_028_state():
+    """Isolamento 028: estado de módulo entre testes (marca de ciclo + snapshot
+    da config efetiva) — sem isso, a marca de um teste vaza para o seguinte."""
+    backup_scheduler._attempted_cycle_keys.clear()
+    backup_scheduler._current_effective = None
+    yield
+    backup_scheduler._attempted_cycle_keys.clear()
+    backup_scheduler._current_effective = None
+
+
+def _direct_loop_iteration(scheduler, now_utc_dt, monkeypatch=None):
+    """Executa UMA iteração da lógica de disparo do loop, SINCRONA (sem thread real).
+
+    Usa o helper `_evaluate_tick` extraído do `_scheduler_loop` (refactor
+    seguro: mesmo comportamento, testável — T008) com o spawn de worker
+    substituído por execução direta (a fixture compartilha 1 sessão entre
+    testes — thread real corromperia o estado da Session).
+    """
+    from app.services import backup_service
+
+    if monkeypatch is not None:
+        orig_thread = scheduler.threading.Thread
+
+        def _sync_thread(*a, **k):
+            target = k.pop("target")
+            target()
+            return orig_thread(target=lambda: None, **k)
+
+        monkeypatch.setattr(scheduler.threading, "Thread", _sync_thread)
+    scheduler._evaluate_tick(now_utc_dt)
+
+
+def test_us2_loop_dispara_no_horario_devido(db_session, fresh_scheduler, monkeypatch):
+    """Cenário 1: horário do ciclo já passou sem SUCCESS → dispara 1x."""
+    from app.utils.time_utils import local_to_utc
+    from datetime import datetime as dt
+
+    called = []
+    real_generate = BackupService.generate_backup
+
+    def _spy_generate(db, user, ip_address=None, **kwargs):
+        called.append(kwargs.get("backup_type"))
+        return real_generate(db, user, ip_address, **kwargs, dump_executor=_fake_dump)
+
+    monkeypatch.setattr(BackupService, "generate_backup", staticmethod(_spy_generate))
+
+    now = local_to_utc(dt(2026, 9, 18, 2, 5))  # 02:05 local; agendado 02:00
+    _direct_loop_iteration(fresh_scheduler, now, monkeypatch)
+
+    assert called == ["AUTOMATICO"]
+    record = (
+        db_session.query(BackupRecord)
+        .filter(BackupRecord.backup_type == "AUTOMATICO", BackupRecord.status == "SUCCESS")
+        .one()
+    )
+    assert record is not None
+
+
+def test_us2_loop_nao_duplica_no_mesmo_ciclo(db_session, fresh_scheduler, monkeypatch):
+    """Cenário 2: tick seguinte (30 s) após SUCCESS → nenhum segundo backup."""
+    from app.utils.time_utils import local_to_utc
+    from datetime import datetime as dt
+
+    calls = []
+    real_generate = BackupService.generate_backup
+
+    def _spy_generate(db, user, ip_address=None, **kwargs):
+        calls.append(1)
+        return real_generate(db, user, ip_address, **kwargs, dump_executor=_fake_dump)
+
+    monkeypatch.setattr(BackupService, "generate_backup", staticmethod(_spy_generate))
+
+    _direct_loop_iteration(fresh_scheduler, local_to_utc(dt(2026, 9, 18, 2, 0, 30)), monkeypatch)
+    assert len(calls) == 1
+    _direct_loop_iteration(fresh_scheduler, local_to_utc(dt(2026, 9, 18, 2, 1, 0)), monkeypatch)
+    assert len(calls) == 1, "segundo tick do mesmo ciclo não deve disparar"
+
+
+def test_us2_loop_semanal_somente_no_dia_configurado(db_session, fresh_scheduler, monkeypatch):
+    """Cenário 3: weekly weekday=6 (sábado) → sexta não dispara; sábado dispara."""
+    from app.utils.time_utils import local_to_utc
+    from datetime import datetime as dt
+    from app.services.backup_config_service import get_backup_config
+
+    row = get_backup_config(db_session)
+    row.schedule = "weekly"
+    row.weekday = 6  # 0=domingo .. 6=sábado (vocabulário da config)
+    row.time = "02:00"
+    db_session.commit()
+
+    calls = []
+    real_generate = BackupService.generate_backup
+
+    def _spy_generate(db, user, ip_address=None, **kwargs):
+        calls.append(1)
+        return real_generate(db, user, ip_address, **kwargs, dump_executor=_fake_dump)
+
+    monkeypatch.setattr(BackupService, "generate_backup", staticmethod(_spy_generate))
+
+    _direct_loop_iteration(fresh_scheduler, local_to_utc(dt(2026, 9, 18, 2, 5)), monkeypatch)  # sexta
+    assert calls == []
+    _direct_loop_iteration(fresh_scheduler, local_to_utc(dt(2026, 9, 19, 2, 5)), monkeypatch)  # sábado
+    assert len(calls) == 1
+
+
+def test_us2_catchup_e_loop_nao_duplicam_o_ciclo(db_session, fresh_scheduler, monkeypatch):
+    """Cenário 4: catch-up marca o ciclo → disparo normal do mesmo ciclo é no-op."""
+    from app.utils.time_utils import local_to_utc
+    from datetime import datetime as dt
+
+    calls = []
+    real_generate = BackupService.generate_backup
+
+    def _spy_generate(db, user, ip_address=None, **kwargs):
+        calls.append(1)
+        return real_generate(db, user, ip_address, **kwargs, dump_executor=_fake_dump)
+
+    monkeypatch.setattr(BackupService, "generate_backup", staticmethod(_spy_generate))
+
+    # Caminho REAL do catch-up no loop: marca o ciclo + executa (T008)
+    from app.utils.time_utils import local_to_utc as _l2u
+
+    fresh_scheduler._mark_cycle_attempted(_l2u(dt(2026, 9, 18, 2, 0)))
+    summary = fresh_scheduler._run_scheduled_backup()
+    assert summary["ok"] is True
+    assert len(calls) == 1
+
+    # disparo normal no MESMO ciclo (horário já passou) → no-op (já tentado)
+    _direct_loop_iteration(fresh_scheduler, local_to_utc(dt(2026, 9, 18, 2, 10)), monkeypatch)
+    assert len(calls) == 1, "marca de ciclo deve impedir a dupla execução"
+
+
+def test_us2_desabilitado_nao_dispara_e_nao_marca(db_session, fresh_scheduler, monkeypatch):
+    """Cenário 5: enabled=False → nada dispara e nada é marcado (reabilita no mesmo ciclo → dispara)."""
+    from app.utils.time_utils import local_to_utc
+    from datetime import datetime as dt
+    from app.services.backup_config_service import get_backup_config
+
+    row = get_backup_config(db_session)
+    row.auto_enabled = False
+    db_session.commit()
+
+    calls = []
+    real_generate = BackupService.generate_backup
+
+    def _spy_generate(db, user, ip_address=None, **kwargs):
+        calls.append(1)
+        return real_generate(db, user, ip_address, **kwargs, dump_executor=_fake_dump)
+
+    monkeypatch.setattr(BackupService, "generate_backup", staticmethod(_spy_generate))
+
+    _direct_loop_iteration(fresh_scheduler, local_to_utc(dt(2026, 9, 18, 2, 5)), monkeypatch)
+    assert calls == []
+
+    # Reabilitação pelo mesmo padrão de sessões do scheduler (escritor e
+    # leitor são sessões separadas — como a rota web × scheduler em produção;
+    # no SQLite :memory: StaticPool a sessão compartilhada do fixture não
+    # pode ser intercalada com o ciclo refresh/close do tick).
+    db2 = backup_scheduler.SessionLocal()
+    try:
+        from app.services.backup_config_service import get_backup_config as _gbc
+
+        row2 = _gbc(db2)
+        row2.auto_enabled = True
+        db2.commit()
+    finally:
+        db2.close()
+    _direct_loop_iteration(fresh_scheduler, local_to_utc(dt(2026, 9, 18, 2, 6)), monkeypatch)
+    assert len(calls) == 1
+
+
+def test_us2_restore_em_andamento_adia_e_preserva_ciclo(db_session, fresh_scheduler, monkeypatch):
+    """Cenário 6: restore ativo → adiamento (guarda 020) e ciclo NÃO consumido."""
+    from app.utils.time_utils import local_to_utc
+    from datetime import datetime as dt
+    from app.services import backup_service as _bs_mod
+
+    calls = []
+    real_generate = BackupService.generate_backup
+
+    def _spy_generate(db, user, ip_address=None, **kwargs):
+        calls.append(1)
+        return real_generate(db, user, ip_address, **kwargs, dump_executor=_fake_dump)
+
+    monkeypatch.setattr(BackupService, "generate_backup", staticmethod(_spy_generate))
+
+    monkeypatch.setattr(_bs_mod, "restore_in_progress", lambda: True)
+    _direct_loop_iteration(fresh_scheduler, local_to_utc(dt(2026, 9, 18, 2, 5)), monkeypatch)
+    assert calls == []  # adiado
+
+    monkeypatch.setattr(_bs_mod, "restore_in_progress", lambda: False)
+    _direct_loop_iteration(fresh_scheduler, local_to_utc(dt(2026, 9, 18, 2, 6)), monkeypatch)
+    assert len(calls) == 1
+
+
+def test_us2_falha_do_ciclo_nao_gera_retry_a_cada_30s(db_session, fresh_scheduler, monkeypatch):
+    """Cenário 7: falha no disparo → 1 tentativa por ciclo (sem tempestade)."""
+    from app.utils.time_utils import local_to_utc
+    from datetime import datetime as dt
+
+    calls = []
+
+    def _boom(db, user, ip_address=None, **kwargs):
+        calls.append(1)
+        raise backup_service.BackupError("falha simulada 028")
+
+    monkeypatch.setattr(BackupService, "generate_backup", staticmethod(_boom))
+
+    _direct_loop_iteration(fresh_scheduler, local_to_utc(dt(2026, 9, 18, 2, 5)), monkeypatch)
+    assert len(calls) == 1
+    _direct_loop_iteration(fresh_scheduler, local_to_utc(dt(2026, 9, 18, 2, 5, 30)), monkeypatch)
+    _direct_loop_iteration(fresh_scheduler, local_to_utc(dt(2026, 9, 18, 2, 6)), monkeypatch)
+    assert len(calls) == 1, "ciclo já tentado (falha) não tenta de novo"
+
+
+def test_us2_scheduler_status_intacto(db_session, fresh_scheduler):
+    """Cenário 8: status/next_run_local continua funcionando (exibição)."""
+    status = fresh_scheduler.scheduler_status()
+    assert status["enabled"] is True
+    assert status["next_run_local"] is not None

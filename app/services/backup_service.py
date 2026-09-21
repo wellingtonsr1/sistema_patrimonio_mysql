@@ -1092,6 +1092,89 @@ def _worker_audit(*, action: str, ip_address: Optional[str], result: str,
         db.close()
 
 
+# --------------------------------------------------------------------------
+# FEATURE 028 — US1: reconciliação de BackupRecord pós-import (contracts §1.2)
+# O import substitui o conteúdo do banco pelo snapshot do dump, que não contém
+# registros criados após a sua geração (research D1/D2). O worker captura o
+# estado ATIVO antes do import e o reconcilia depois — sem inferência por nome,
+# sem fallback para MANUAL, sem tocar removed_at/removed_reason (retenção).
+# --------------------------------------------------------------------------
+
+
+def _capture_backup_snapshot() -> Dict[str, Dict]:
+    """Snapshot em memória dos registros ATIVOS (removed_at IS NULL).
+
+    Sessão própria e curta (padrão do worker). Chave: filename; valor:
+    campos recuperáveis do registro. Inclui o pré-restauração criado na
+    mesma janela do ciclo (commitado por generate_backup antes da captura).
+    """
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(BackupRecord)
+            .filter(BackupRecord.removed_at.is_(None))
+            .all()
+        )
+        return {
+            r.filename: {
+                "backup_type": r.backup_type,
+                "status": r.status,
+                "timestamp": r.timestamp,
+                "size_bytes": r.size_bytes,
+                "sha256": r.sha256,
+            }
+            for r in rows
+        }
+    finally:
+        db.close()
+
+
+def _reconcile_backup_records(snapshot: Dict[str, Dict]) -> None:
+    """Reconcilia o snapshot pós-import (best-effort — worker engole exceção).
+
+    Para cada arquivo do snapshot AINDA PRESENTE no disco: registro existente
+    → UPDATE apenas dos campos divergentes; registro inexistente → INSERT com
+    os dados capturados (UNIQUE de filename respeitada — nunca duplica).
+    Arquivo inexistente → nenhuma re-inserção. removed_at/removed_reason
+    NUNCA são gravados aqui (exclusivos da retenção — contract §1.2).
+    """
+    if not snapshot:
+        return
+    db = SessionLocal()
+    try:
+        existing = {
+            r.filename: r
+            for r in db.query(BackupRecord)
+            .filter(BackupRecord.filename.in_(list(snapshot.keys())))
+            .all()
+        }
+        for filename, data in snapshot.items():
+            try:
+                if not get_backup_path(filename).is_file():
+                    continue  # arquivo sumiu (retenção/limpeza) — nada a fazer
+            except FileNotFoundError:
+                continue
+            row = existing.get(filename)
+            if row is not None:
+                for field in ("backup_type", "status", "timestamp", "size_bytes", "sha256"):
+                    if getattr(row, field) != data.get(field):
+                        setattr(row, field, data.get(field))
+            else:
+                db.add(
+                    BackupRecord(
+                        filename=filename,
+                        backup_type=data.get("backup_type"),
+                        status=data.get("status"),
+                        timestamp=data.get("timestamp"),
+                        size_bytes=data.get("size_bytes"),
+                        sha256=data.get("sha256"),
+                    )
+                )
+        db.commit()
+    finally:
+        db.close()
+
+
 def _execute_restore_cycle(
     filename: str,
     ip_address: Optional[str],
@@ -1112,6 +1195,7 @@ def _execute_restore_cycle(
     global _RESTORE_IN_PROGRESS
     do_import = import_executor or _run_mysql_import
     security_name: Optional[str] = None
+    _snapshot_028: Optional[Dict[str, Dict]] = None  # 028: captura pré-import
     try:
         _worker_audit(
             action=ACTION_BACKUP_RESTORE_STARTED,
@@ -1156,6 +1240,15 @@ def _execute_restore_cycle(
             new_data={"backup": filename, "backup_seguranca": security_name},
             user_id=user_id,
         )
+
+        # 028 (US1): captura do estado ATIVO antes da substituição do banco
+        # (inclui o próprio pré-restauração). Falha de captura nunca quebra o
+        # ciclo — reconciliação simplesmente não ocorre (best-effort).
+        try:
+            _snapshot_028 = _capture_backup_snapshot()
+        except Exception:
+            _snapshot_028 = None
+            logger.exception("Falha ao capturar snapshot de BackupRecord pré-import.")
 
         # DRENAGEM DO POOL (FR-003/R1): sem conexões vivas do processo web,
         # os DROP/CREATE do dump não encontram metadata lock da própria app.
@@ -1228,6 +1321,15 @@ def _execute_restore_cycle(
         maintenance_mode["last_ok"] = False
         maintenance_mode["last_message"] = description
     finally:
+        # 028 (US1): reconciliação ANTES da liberação (contrato §1.2) — o banco
+        # foi substituído nos caminhos de sucesso E de falha pós-import. Em
+        # falhas ANTES do import o snapshot é None e a reconciliação não ocorre.
+        # Best-effort: nunca altera resultado/auditoria/liberação.
+        if _snapshot_028:
+            try:
+                _reconcile_backup_records(_snapshot_028)
+            except Exception:
+                logger.exception("Falha na reconciliação de BackupRecord pós-import (best-effort).")
         # Liberação GARANTIDA (FR-009/FR-011/FR-012): slot + manutenção
         _maintenance_set(False)
         with _RESTORE_LOCK:
