@@ -59,11 +59,11 @@ find "$TMPDIR" -mindepth 1 -maxdepth 1 \
     ! -name SPEC-KIT-SISTEMA-ATUAL.md \
     -exec rm -rf {} +
 
-# 3b-1) dentro de docs/: mantém SOMENTE os .md oficiais — exclui a pasta de
-# documentos provisórios (doc_proviśorios, nome com caractere não-ASCII, por
-# isso o casamento por prefixo com curinga e não string literal) e não-.md
+# 3b-1) dentro de docs/: remove a pasta de documentos provisórios (doc_proviśorios,
+# nome com caractere não-ASCII — casamento por prefixo com curinga) e não-.md
 find "$TMPDIR/docs" -mindepth 1 -maxdepth 1 \
-    ! -name "doc_provi"* ! -name "*.md" -exec rm -rf {} + 2>/dev/null || true
+    \( -name "doc_provi"* -o ! -name "*.md" \) \
+    -exec rm -rf {} + 2>/dev/null || true
 
 # 3b-2) data/: apenas a estrutura de pastas (backups/logs vazios).
 # Patrimonio.db (legado SQLite) e logs NAO entram no snapshot.
