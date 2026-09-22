@@ -67,6 +67,9 @@ for %%F in ("%TMPDIR%\*") do (
     if /i not "%%~nxF"==".gitignore" if /i not "%%~nxF"=="README.md" if /i not "%%~nxF"=="requirements.txt" if /i not "%%~nxF"=="run.py" if /i not "%%~nxF"=="seed_demo.py" if /i not "%%~nxF"=="sistema_patrimonio.png" if /i not "%%~nxF"=="SPEC-KIT-SISTEMA-ATUAL.md" del /q "%%F"
 )
 
+REM 3b-2) pasta data/ (runtime) copiada do ambiente de dev
+if exist "data" xcopy /e /i /q /y "data" "%TMPDIR%\data\" >nul
+
 REM 3c) publicacao: commit da arvore filtrada e push forcado no PRO
 git -C "%TMPDIR%" init -q -b %PUBLISH_BRANCH%
 git -C "%TMPDIR%" add -A
