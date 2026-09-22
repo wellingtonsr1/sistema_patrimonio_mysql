@@ -67,28 +67,17 @@ for %%F in ("%TMPDIR%\*") do (
     if /i not "%%~nxF"==".gitignore" if /i not "%%~nxF"=="README.md" if /i not "%%~nxF"=="requirements.txt" if /i not "%%~nxF"=="run.py" if /i not "%%~nxF"=="seed_demo.py" if /i not "%%~nxF"=="sistema_patrimonio.png" if /i not "%%~nxF"=="SPEC-KIT-SISTEMA-ATUAL.md" del /q "%%F"
 )
 
-REM 3c) limpa o branch de publicacao anterior (clone nu e forcado)
-set BARE=%TMPDIR%\_bare.git
-git clone --bare -q "%PRO_REPO%" "%BARE%" 2>nul
-if exist "%BARE%" (
-    git -C "%BARE%" remote remove origin >nul 2>&1
-    git -C "%TMPDIR%" init -q -b %PUBLISH_BRANCH%
-    git -C "%TMPDIR%" remote add origin "%BARE%"
-    git -C "%TMPDIR%" fetch -q origin %PUBLISH_BRANCH% 2>nul
-    git -C "%TMPDIR%" reset -q --soft FETCH_HEAD 2>nul
-) else (
-    git -C "%TMPDIR%" init -q -b %PUBLISH_BRANCH%
-)
-
-REM 3d) commit do snapshot + push forcadamente no PRO
-for /f %%i in ('git rev-parse --short HEAD') do set DEVHASH=%%i
+REM 3c) publicacao: commit da arvore filtrada e push forcado no PRO
+git -C "%TMPDIR%" init -q -b %PUBLISH_BRANCH%
 git -C "%TMPDIR%" add -A
-git -C "%TMPDIR%" commit -q -m "%~1 (snapshot de producao de %COMPUTERNAME%, commit dev %DEVHASH%)" 2>nul
-if not errorlevel 1 (
-    git -C "%TMPDIR%" log --oneline -1
-) else (
-    echo [ok] Nenhuma diferenca para o SisPatrimonioPro.
+for /f %%i in ('git rev-parse --short HEAD') do set DEVHASH=%%i
+git -C "%TMPDIR%" commit -q -m "%~1 (snapshot de producao de %COMPUTERNAME%, commit dev %DEVHASH%)"
+if errorlevel 1 (
+    echo ERRO: falha ao commitar o snapshot.
+    rmdir /s /q "%TMPDIR%"
+    exit /b 1
 )
+git -C "%TMPDIR%" log --oneline -1
 
 echo [..] Enviando para SisPatrimonioPro...
 git -C "%TMPDIR%" push -q --force origin HEAD:refs/heads/%PUBLISH_BRANCH%
