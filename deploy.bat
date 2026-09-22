@@ -74,7 +74,9 @@ if exist "data" (
 
 REM 3c) publicacao: commit da arvore filtrada e push forcado no PRO
 git -C "%TMPDIR%" init -q -b %PUBLISH_BRANCH%
+REM data/ e runtime gitignored na dev - aqui entra de proposito no snapshot
 git -C "%TMPDIR%" add -A
+git -C "%TMPDIR%" add -f data 2>nul
 for /f %%i in ('git rev-parse --short HEAD') do set DEVHASH=%%i
 git -C "%TMPDIR%" commit -q -m "%~1 (snapshot de producao de %COMPUTERNAME%, commit dev %DEVHASH%)"
 if errorlevel 1 (
