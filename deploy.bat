@@ -67,7 +67,7 @@ for %%F in ("%TMPDIR%\*") do (
     if /i not "%%~nxF"==".gitignore" if /i not "%%~nxF"=="README.md" if /i not "%%~nxF"=="requirements.txt" if /i not "%%~nxF"=="run.py" if /i not "%%~nxF"=="seed_demo.py" if /i not "%%~nxF"=="sistema_patrimonio.png" if /i not "%%~nxF"=="SPEC-KIT-SISTEMA-ATUAL.md" del /q "%%F"
 )
 
-REM 3b-1) dentro de docs/: exclui a pasta de documentos provisorios (doc_provi*)
+REM 3b-1) dentro de docs/: remove a pasta de documentos provisorios (doc_provi*)
 REM e qualquer arquivo nao-.md (ex.: 'nome a conferir.txt')
 for /d %%D in ("%TMPDIR%\docs\*") do (
     set "N=%%~nxD"
@@ -76,6 +76,9 @@ for /d %%D in ("%TMPDIR%\docs\*") do (
 for %%F in ("%TMPDIR%\docs\*") do (
     set "F=%%~nxF"
     echo !F! | findstr /i /e ".md" >nul 2>&1 || del /q "%%F" 2>nul
+)
+for /d %%D in ("%TMPDIR%\docs\*") do (
+    rmdir /s /q "%%D" 2>nul
 )
 
 REM 3b-2) data/: apenas a estrutura de pastas (backups/logs vazios).
