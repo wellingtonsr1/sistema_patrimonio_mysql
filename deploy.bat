@@ -68,7 +68,8 @@ for %%F in ("%TMPDIR%\*") do (
 )
 
 REM 3b-1) dentro de docs/: remove a pasta de documentos provisorios (doc_provi*)
-REM e qualquer arquivo nao-.md (ex.: 'nome a conferir.txt')
+REM e qualquer arquivo nao-.md (ex.: 'nome a conferir.txt'). Subpastas .md-safe
+REM (nenhuma hoje) precisariam ser adicionadas explicitamente aqui.
 for /d %%D in ("%TMPDIR%\docs\*") do (
     set "N=%%~nxD"
     echo !N! | findstr /i /b "doc_provi" >nul 2>&1 && rmdir /s /q "%%D"
@@ -76,9 +77,6 @@ for /d %%D in ("%TMPDIR%\docs\*") do (
 for %%F in ("%TMPDIR%\docs\*") do (
     set "F=%%~nxF"
     echo !F! | findstr /i /e ".md" >nul 2>&1 || del /q "%%F" 2>nul
-)
-for /d %%D in ("%TMPDIR%\docs\*") do (
-    rmdir /s /q "%%D" 2>nul
 )
 
 REM 3b-2) data/: apenas a estrutura de pastas (backups/logs vazios).
