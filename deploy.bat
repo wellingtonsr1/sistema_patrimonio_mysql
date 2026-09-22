@@ -76,7 +76,7 @@ for /d %%D in ("%TMPDIR%\docs\*") do (
 )
 for %%F in ("%TMPDIR%\docs\*") do (
     set "F=%%~nxF"
-    echo !F! | findstr /i /e ".md" >nul 2>&1 || del /q "%%F" 2>nul
+    echo !F! | findstr /i ".md" >nul 2>&1 || del /q "%%F" 2>nul
 )
 
 REM 3b-2) data/: apenas a estrutura de pastas (backups/logs vazios).
