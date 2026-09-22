@@ -68,7 +68,9 @@ for %%F in ("%TMPDIR%\*") do (
 )
 
 REM 3b-2) pasta data/ (runtime) copiada do ambiente de dev
-if exist "data" xcopy /e /i /q /y "data" "%TMPDIR%\data\" >nul
+if exist "data" (
+    xcopy /e /i /q /y "data" "%TMPDIR%\data\" >nul
+)
 
 REM 3c) publicacao: commit da arvore filtrada e push forcado no PRO
 git -C "%TMPDIR%" init -q -b %PUBLISH_BRANCH%
