@@ -188,13 +188,13 @@
             <input type="hidden" name="skip_duplicates" value="{{ 'true' if skip_duplicates else 'false' }}">
 
             <div class="d-flex align-items-center justify-content-end gap-3">
+                <a href="/locations/import" class="btn btn-ghost btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                </a>
                 <button type="submit" class="btn btn-primary btn-lg">
                     <i class="bi bi-check-lg me-1"></i>Confirmar Importação
                     <span class="badge bg-white text-primary ms-2">{{ preview.new_items }}</span>
                 </button>
-                <a href="/locations/import" class="btn btn-ghost btn-lg">
-                    <i class="bi bi-x-lg me-1"></i>Cancelar
-                </a>
             </div>
         </form>
     </div>
