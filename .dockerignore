@@ -1,0 +1,21 @@
+# Ignorado do contexto Docker (imagem enxuta; o que entra e a whitelist do Dockerfile)
+.git
+.github
+.specify
+.freebuff
+specs
+tests
+TASKS
+deploy.bat
+deploy.sh
+.env
+.env.*
+!.env.example
+data/
+**/__pycache__
+**/*.pyc
+.venv
+venv
+*.db
+*.sqlite
+docs/doc_provi*

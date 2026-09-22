@@ -1,0 +1,28 @@
+Linha 8: colaborador 'Antonio Araújo Neto' não encontrado no cadastro de colaboradores
+Linha 14: colaborador 'Dahise Santos' não encontrado no cadastro de colaboradores
+Linha 21: colaborador 'Fabíola de Carvalho Barreto' não encontrado no cadastro de colaboradores
+Linha 23: colaborador 'Gessica Nieskier S. Ventura e Alencar' não encontrado no cadastro de colaboradores
+Linha 24: colaborador 'Greicy Pessoa R. Crispim' não encontrado no cadastro de colaboradores
+Linha 25: colaborador 'Greicy Pessoa R. Crispim' não encontrado no cadastro de colaboradores
+Linha 26: colaborador 'Hailton Lima' não encontrado no cadastro de colaboradores
+Linha 31: colaborador 'Jackceline Dias' não encontrado no cadastro de colaboradores
+Linha 33: colaborador 'Janaina Fernandes' não encontrado no cadastro de colaboradores
+Linha 34: colaborador 'Jandui Machado' não encontrado no cadastro de colaboradores
+Linha 35: colaborador 'Jefferson Batista' não encontrado no cadastro de colaboradores
+Linha 36: colaborador 'Jerfeson Matias' não encontrado no cadastro de colaboradores
+Linha 38: colaborador 'José Antônio Gonçalves Cabral' não encontrado no cadastro de colaboradores
+Linha 39: colaborador 'José William' não encontrado no cadastro de colaboradores
+Linha 44: colaborador 'Larissa Martins de Albuquerque' não encontrado no cadastro de colaboradores
+Linha 47: colaborador 'Letícia Magela' não encontrado no cadastro de colaboradores
+Linha 49: colaborador 'Luana Fernanda de Lima Santos' não encontrado no cadastro de colaboradores
+Linha 52: colaborador 'mariaeduarda' não encontrado no cadastro de colaboradores
+Linha 53: colaborador 'Mariana Souto Soares' não encontrado no cadastro de colaboradores
+Linha 54: colaborador 'Matheus Araujo' não encontrado no cadastro de colaboradores
+Linha 60: colaborador 'Renan Brayner Cavalcante' não encontrado no cadastro de colaboradores
+Linha 62: colaborador 'Rodrigo Carvalho' não encontrado no cadastro de colaboradores
+Linha 63: colaborador 'Rodrigo Dantas' não encontrado no cadastro de colaboradores
+Linha 65: colaborador 'Samuel Norat' não encontrado no cadastro de colaboradores
+Linha 66: colaborador 'Sandra Maria de Cunha Almeida' não encontrado no cadastro de colaboradores
+Linha 69: colaborador 'Tatiana Silva' não encontrado no cadastro de colaboradores
+Linha 70: colaborador 'Thaiane Rabelo da Costa' não encontrado no cadastro de colaboradores
+Linha 73: colaborador 'Victor Matheus F. Coutinho' não encontrado no cadastro de colaboradores
