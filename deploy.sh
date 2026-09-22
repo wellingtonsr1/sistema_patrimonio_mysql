@@ -67,7 +67,9 @@ touch "$TMPDIR/data/backups/.gitkeep" "$TMPDIR/data/logs/.gitkeep"
 
 # 3c) publicacao: commit da arvore filtrada e push forcado no PRO
 git -C "$TMPDIR" init -q -b "$PUBLISH_BRANCH" || fail "falha ao init do snapshot." "$TMPDIR"
+# data/ e runtime gitignored na dev - aqui entra de proposito no snapshot
 git -C "$TMPDIR" add -A
+git -C "$TMPDIR" add -f data 2>/dev/null || true
 DEVHASH="$(git rev-parse --short HEAD)"
 git -C "$TMPDIR" commit -q -m "$MSG (snapshot de producao de $(hostname), commit dev $DEVHASH)" \
     || fail "falha ao commitar o snapshot." "$TMPDIR"
