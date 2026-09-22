@@ -69,10 +69,11 @@ for %%F in ("%TMPDIR%\*") do (
 
 REM 3b-2) data/: apenas a estrutura de pastas (backups/logs vazios).
 REM Patrimonio.db (legado SQLite) e logs NAO entram no snapshot.
-if exist "data" (
-    if not exist "%TMPDIR%\data\backups" mkdir "%TMPDIR%\data\backups"
-    if not exist "%TMPDIR%\data\logs" mkdir "%TMPDIR%\data\logs"
-)
+REM .gitkeep mantem as pastas vazias visiveis no git.
+if not exist "%TMPDIR%\data\backups" mkdir "%TMPDIR%\data\backups"
+if not exist "%TMPDIR%\data\logs" mkdir "%TMPDIR%\data\logs"
+type nul > "%TMPDIR%\data\backups\.gitkeep"
+type nul > "%TMPDIR%\data\logs\.gitkeep"
 
 REM 3c) publicacao: commit da arvore filtrada e push forcado no PRO
 git -C "%TMPDIR%" init -q -b %PUBLISH_BRANCH%
