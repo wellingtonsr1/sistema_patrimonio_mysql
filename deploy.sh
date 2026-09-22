@@ -1,95 +1,196 @@
 #!/usr/bin/env bash
 # ============================================================
-#  Deploy do SisPatrimonio - publicacao nos 2 GitHub (Linux/macOS)
+#  Deploy do SisPatrimônio — publicação nos 2 GitHub (Linux/macOS)
 #
-#  Uso:  ./deploy.sh "mensagem do commit"
+#  Uso:
+#    ./deploy.sh "mensagem"            # publicar (commit + dev + snapshot PRO)
+#    ./deploy.sh pre                   # prévia: pendentes e última publicação
+#    ./deploy.sh historico [N]         # últimas N publicações no PRO (padrão 10)
+#    ./deploy.sh rollback <hash>       # volta o PRO para o snapshot de <hash>
+#                                      #   (hash da DEV citado na mensagem do snapshot)
 #
-#  1) commit local (se houver mudancas) na pasta de dev
-#  2) push do historico COMPLETO -> github.com/wellingtonsr1/sistema_patrimonio_mysql
-#  3) publicacao do SNAPSHOT FILTRADO (whitelist) -> github.com/wellingtonsr1/SisPatrimonioPro
-#     (repo de producao: apenas app/ data/ docs/ .gitignore README.md
-#      requirements.txt run.py seed_demo.py sistema_patrimonio.png
-#      SPEC-KIT-SISTEMA-ATUAL.md)
+#  Etapas da publicação:
+#    1) commit local (se houver mudanças) na pasta de dev
+#    2) push do histórico COMPLETO -> sistema_patrimonio_mysql
+#    3) snapshot filtrado (whitelist) -> SisPatrimonioPro
 #
-#  Requer: git, tar. O branch de publicacao e sempre "main".
+#  Requer: git, tar. Branch de publicação: "main".
 # ============================================================
 set -u
-
 cd "$(dirname "$0")" || exit 1
 
-if [ $# -lt 1 ] || [ -z "$1" ]; then
-    echo 'Uso: ./deploy.sh "mensagem do commit"'
-    exit 1
-fi
-MSG="$1"
-
 PRO_REPO="git@github.com:wellingtonsr1/SisPatrimonioPro.git"
+DEV_REPO_NAME="sistema_patrimonio_mysql"
 PUBLISH_BRANCH="main"
 
-fail() {
-    echo "ERRO: $1" >&2
-    [ -n "${2:-}" ] && rm -rf "$2"
-    exit 1
+# ---------- UX de terminal ----------
+if [ -t 1 ]; then
+    C_RESET=$'\033[0m'; C_BOLD=$'\033[1m'; C_DIM=$'\033[2m'
+    C_OK=$'\033[32m'; C_ERR=$'\033[31m'; C_WARN=$'\033[33m'; C_INFO=$'\033[36m'
+else
+    C_RESET=""; C_BOLD=""; C_DIM=""; C_OK=""; C_ERR=""; C_WARN=""; C_INFO=""
+fi
+step_n=0
+step()  { step_n=$((step_n+1)); printf '\n%s[%d/3]%s %s\n' "$C_INFO" "$step_n" "$C_RESET" "$1"; }
+ok()    { printf '  %s[OK]%s %s\n' "$C_OK" "$C_RESET" "$1"; }
+info()  { printf '  %s>%s %s\n' "$C_DIM" "$C_RESET" "$1"; }
+warn()  { printf '  %s[!]%s %s\n' "$C_WARN" "$C_RESET" "$1"; }
+fail()  { printf '\n  %s[ERRO]%s %s\n' "$C_ERR" "$C_RESET" "$1" >&2
+          [ -n "${2:-}" ] && rm -rf "$2"
+          printf '\n%s✖ Deploy abortado.%s\n' "$C_ERR" "$C_RESET" >&2
+          exit 1; }
+banner() { printf '%s════════════════════════════════════════════════%s\n' "$C_BOLD" "$C_RESET"
+          printf '%s  SisPatrimônio Pro — Deploy%s\n' "$C_BOLD" "$C_RESET"
+          printf '%s════════════════════════════════════════════════%s\n\n' "$C_BOLD" "$C_RESET"; }
+
+usage() {
+    banner
+    printf 'Uso:\n'
+    printf '  %s./deploy.sh \"mensagem\"%s   publicar (commit + dev + snapshot PRO)\n' "$C_BOLD" "$C_RESET"
+    printf '  %s./deploy.sh pre%s          prévia do que será publicado\n' "$C_BOLD" "$C_RESET"
+    printf '  %s./deploy.sh historico [N]%s últimas N publicações no PRO (padrão 10)\n' "$C_BOLD" "$C_RESET"
+    printf '  %s./deploy.sh rollback <hash>%s volta o PRO ao snapshot da dev <hash>\n\n' "$C_BOLD" "$C_RESET"
 }
 
-# ---------- 1) Commit na dev ----------
-if [ -n "$(git status --porcelain)" ]; then
-    git add -A || fail "falha ao adicionar arquivos."
-    git commit -m "$MSG" || fail "falha ao commitar. Nada foi enviado."
-else
-    echo "[ok] Sem mudancas novas na dev."
-fi
+# ---------- prévia ----------
+do_pre() {
+    banner
+    printf '%sPRÉVIA%s — estado da dev vs GitHub\n\n' "$C_BOLD" "$C_RESET"
+    local pend
+    pend="$(git status --porcelain)"
+    if [ -n "$pend" ]; then
+        printf '%sPendentes na dev (serão commitados):%s\n' "$C_WARN" "$C_RESET"
+        printf '%s\n' "$pend" | sed 's/^/  /'
+    else
+        ok "árvore limpa — nada a commitar"
+    fi
+    git fetch origin main -q 2>/dev/null
+    local localh remoteh
+    localh="$(git rev-parse --short HEAD)"
+    remoteh="$(git rev-parse --short origin/main 2>/dev/null || echo '?')"
+    printf '\n  dev local  : %s\n  dev GitHub : %s\n' "$localh" "$remoteh"
+    [ "$localh" = "$remoteh" ] && ok "dev sincronizada com o GitHub" || warn "dev local está à frente do GitHub (o publicar envia)"
+    echo
+    git fetch "$PRO_REPO" "$PUBLISH_BRANCH" -q 2>/dev/null
+    local proh
+    proh="$(git rev-parse --short FETCH_HEAD 2>/dev/null || echo '?')"
+    printf '  PRO atual  : %s' "$proh"
+    if [ "$proh" != "?" ]; then
+        local devref
+        devref="$(git log -1 --format=%s FETCH_HEAD 2>/dev/null | grep -o 'commit dev [0-9a-f]*' | cut -d' ' -f3 || true)"
+        [ -n "$devref" ] && printf '  %s(gerado da dev %s)%s' "$C_DIM" "$devref" "$C_RESET"
+    fi
+    printf '\n'
+    if [ -n "$(git status --porcelain)" ] || [ "$localh" != "$remoteh" ]; then
+        printf '\n%s> rode: ./deploy.sh \"sua mensagem\"%s\n' "$C_BOLD" "$C_RESET"
+    fi
+}
 
-# ---------- 2) Push do historico completo (dev GitHub) ----------
-echo "[..] Enviando historico completo para sistema_patrimonio_mysql..."
-git push origin HEAD:refs/heads/main || fail "falha no push para origin. Publicacao cancelada."
+# ---------- histórico ----------
+do_historico() {
+    local n="${1:-10}"
+    banner
+    printf '%sHISTÓRICO%s — últimas %s publicações no SisPatrimonioPro\n\n' "$C_BOLD" "$C_RESET" "$n"
+    git fetch "$PRO_REPO" "$PUBLISH_BRANCH" -q 2>/dev/null || fail "não consegui acessar $PRO_REPO"
+    git log --format='%h|%ci|%s' -"$n" FETCH_HEAD | while IFS='|' read -r h date subj; do
+        local devref=""
+        devref="$(printf '%s' "$subj" | grep -o 'commit dev [0-9a-f]*' | cut -d' ' -f3 || true)"
+        printf '  %s%s%s  %s\n' "$C_BOLD" "$h" "$C_RESET" "${date% +0000}"
+        printf '      %s\n' "$subj"
+        [ -n "$devref" ] && printf '      %s↳ dev: %s%s\n' "$C_DIM" "$devref" "$C_RESET"
+        echo
+    done
+    printf '%sDica: rollback usa o hash da DEV (↳).%s\n' "$C_DIM" "$C_RESET"
+}
 
-# ---------- 3) Snapshot filtrado para o SisPatrimonioPro ----------
-echo "[..] Publicando snapshot filtrado no SisPatrimonioPro..."
+# ---------- rollback ----------
+do_rollback() {
+    local target="${1:-}"
+    [ -z "$target" ] && usage && fail "rollback exige o hash da DEV (veja ./deploy.sh historico)"
+    banner
+    printf '%sROLLBACK%s — restaurando o PRO para o snapshot da dev %s%s%s\n\n' "$C_BOLD" "$C_RESET" "$C_BOLD" "$target" "$C_RESET"
+    git cat-file -e "$target^{commit}" 2>/dev/null || fail "hash $target não existe na dev local."
+    step "Gerando o snapshot da dev $target (mesma whitelist)"
+    local TMPDIR
+    TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/sispat_rb_XXXXXX")" || fail "sem diretório temporário."
+    git archive "$target" | tar -x -C "$TMPDIR" || fail "falha ao extrair a árvore." "$TMPDIR"
+    find "$TMPDIR" -mindepth 1 -maxdepth 1 \
+        ! -name app ! -name data ! -name docs \
+        ! -name .gitignore ! -name README.md ! -name requirements.txt \
+        ! -name run.py ! -name seed_demo.py ! -name sistema_patrimonio.png \
+        ! -name SPEC-KIT-SISTEMA-ATUAL.md \
+        -exec rm -rf {} +
+    find "$TMPDIR/docs" -mindepth 1 -maxdepth 1 \
+        \( -name "doc_provi"* -o ! -name "*.md" \) \
+        -exec rm -rf {} + 2>/dev/null || true
+    mkdir -p "$TMPDIR/data/backups" "$TMPDIR/data/logs"
+    touch "$TMPDIR/data/backups/.gitkeep" "$TMPDIR/data/logs/.gitkeep"
+    ok "árvore filtrada pronta"
+    step "Publicando rollback no SisPatrimonioPro"
+    git -C "$TMPDIR" init -q -b "$PUBLISH_BRANCH"
+    git -C "$TMPDIR" add -A
+    git -C "$TMPDIR" add -f data 2>/dev/null || true
+    git -C "$TMPDIR" commit -q -m "ROLLBACK para a dev $target (publicado de $(hostname))"
+    git -C "$TMPDIR" log --oneline -1
+    git -C "$TMPDIR" push -q --force "$PRO_REPO" "HEAD:refs/heads/$PUBLISH_BRANCH" \
+        || fail "falha no push do rollback." "$TMPDIR"
+    ok "PRO restaurado para o conteúdo da dev $target"
+    rm -rf "$TMPDIR"
+    printf '\n%s✔ Rollback concluído.%s Na produção: %sgit pull%s e reinicie o serviço.\n' "$C_OK" "$C_RESET" "$C_BOLD" "$C_RESET"
+}
 
-# 3a) arvore temporaria com o commit atual
-TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/sispat_deploy_XXXXXX")" || fail "falha ao criar diretorio temporario."
-git archive HEAD | tar -x -C "$TMPDIR" || fail "falha ao extrair a arvore do commit." "$TMPDIR"
+# ---------- publicar ----------
+do_publicar() {
+    local MSG="$1"
+    banner
+    step "Commit na dev"
+    if [ -n "$(git status --porcelain)" ]; then
+        git add -A || fail "falha ao adicionar arquivos."
+        git commit -m "$MSG" || fail "falha ao commitar. Nada foi enviado."
+        ok "commit criado: $(git rev-parse --short HEAD)"
+    else
+        warn "sem mudanças novas na dev (seguindo para publicar)"
+    fi
+    step "Enviando histórico completo para $DEV_REPO_NAME"
+    git push origin HEAD:refs/heads/main || fail "falha no push para origin. Publicação cancelada."
+    ok "dev atualizada no GitHub ($(git rev-parse --short HEAD))"
+    step "Publicando snapshot filtrado no SisPatrimonioPro"
+    local TMPDIR
+    TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/sispat_deploy_XXXXXX")" || fail "sem diretório temporário."
+    git archive HEAD | tar -x -C "$TMPDIR" || fail "falha ao extrair a árvore do commit." "$TMPDIR"
+    find "$TMPDIR" -mindepth 1 -maxdepth 1 \
+        ! -name app ! -name data ! -name docs \
+        ! -name .gitignore ! -name README.md ! -name requirements.txt \
+        ! -name run.py ! -name seed_demo.py ! -name sistema_patrimonio.png \
+        ! -name SPEC-KIT-SISTEMA-ATUAL.md \
+        -exec rm -rf {} +
+    find "$TMPDIR/docs" -mindepth 1 -maxdepth 1 \
+        \( -name "doc_provi"* -o ! -name "*.md" \) \
+        -exec rm -rf {} + 2>/dev/null || true
+    mkdir -p "$TMPDIR/data/backups" "$TMPDIR/data/logs"
+    touch "$TMPDIR/data/backups/.gitkeep" "$TMPDIR/data/logs/.gitkeep"
+    git -C "$TMPDIR" init -q -b "$PUBLISH_BRANCH"
+    git -C "$TMPDIR" add -A
+    git -C "$TMPDIR" add -f data 2>/dev/null || true
+    local DEVHASH
+    DEVHASH="$(git rev-parse --short HEAD)"
+    git -C "$TMPDIR" commit -q -m "$MSG (snapshot de produção de $(hostname), commit dev $DEVHASH)" \
+        || fail "falha ao commitar o snapshot." "$TMPDIR"
+    ok "snapshot pronto ($TMPDIR → 1 commit)"
+    git -C "$TMPDIR" push -q --force "$PRO_REPO" "HEAD:refs/heads/$PUBLISH_BRANCH" \
+        || fail "falha no push para SisPatrimonioPro. O GitHub da dev já está atualizado." "$TMPDIR"
+    ok "PRO publicado: $(git -C "$TMPDIR" log --oneline -1 | cut -c1-60)…"
+    rm -rf "$TMPDIR"
+    printf '\n%s════════════════════════════════════════════════%s\n' "$C_BOLD" "$C_RESET"
+    printf '%s✔ Deploy concluído%s — dev %s · PRO %s\n' "$C_OK" "$C_RESET" "$DEVHASH" "$(git rev-parse --short FETCH_HEAD 2>/dev/null || echo '?')"
+    printf '%s════════════════════════════════════════════════%s\n' "$C_BOLD" "$C_RESET"
+}
 
-# 3b) whitelist: remove tudo que nao esta na lista de producao
-find "$TMPDIR" -mindepth 1 -maxdepth 1 \
-    ! -name app ! -name data ! -name docs \
-    ! -name .gitignore ! -name README.md ! -name requirements.txt \
-    ! -name run.py ! -name seed_demo.py ! -name sistema_patrimonio.png \
-    ! -name SPEC-KIT-SISTEMA-ATUAL.md \
-    -exec rm -rf {} +
-
-# 3b-1) dentro de docs/: remove a pasta de documentos provisórios (doc_proviśorios,
-# nome com caractere não-ASCII — casamento por prefixo com curinga) e não-.md
-find "$TMPDIR/docs" -mindepth 1 -maxdepth 1 \
-    \( -name "doc_provi"* -o ! -name "*.md" \) \
-    -exec rm -rf {} + 2>/dev/null || true
-
-# 3b-2) data/: apenas a estrutura de pastas (backups/logs vazios).
-# Patrimonio.db (legado SQLite) e logs NAO entram no snapshot.
-# .gitkeep mantem as pastas vazias visiveis no git.
-mkdir -p "$TMPDIR/data/backups" "$TMPDIR/data/logs"
-touch "$TMPDIR/data/backups/.gitkeep" "$TMPDIR/data/logs/.gitkeep"
-
-# 3c) publicacao: commit da arvore filtrada e push forcado no PRO
-git -C "$TMPDIR" init -q -b "$PUBLISH_BRANCH" || fail "falha ao init do snapshot." "$TMPDIR"
-# data/ e runtime gitignored na dev - aqui entra de proposito no snapshot
-git -C "$TMPDIR" add -A
-git -C "$TMPDIR" add -f data 2>/dev/null || true
-DEVHASH="$(git rev-parse --short HEAD)"
-git -C "$TMPDIR" commit -q -m "$MSG (snapshot de producao de $(hostname), commit dev $DEVHASH)" \
-    || fail "falha ao commitar o snapshot." "$TMPDIR"
-git -C "$TMPDIR" log --oneline -1
-
-echo "[..] Enviando para SisPatrimonioPro..."
-git -C "$TMPDIR" push -q --force "$PRO_REPO" "HEAD:refs/heads/$PUBLISH_BRANCH" \
-    || fail "falha no push para SisPatrimonioPro. O GitHub da dev ja esta atualizado." "$TMPDIR"
-
-# 3d) limpeza
-rm -rf "$TMPDIR"
-
-echo ""
-echo "[ok] Deploy concluido:"
-git log --oneline -1
-echo "     - Dev (historico completo): sistema_patrimonio_mysql  [OK]"
-echo "     - Producao (snapshot filtrado): SisPatrimonioPro      [OK]"
+# ---------- roteamento ----------
+case "${1:-}" in
+    pre)        do_pre ;;
+    historico)  do_historico "${2:-10}" ;;
+    rollback)   shift; do_rollback "${1:-}" ;;
+    ""|-h|--help|help) usage ;;
+    *)          do_publicar "$1" ;;
+esac
