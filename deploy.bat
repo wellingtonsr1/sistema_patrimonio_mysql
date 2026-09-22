@@ -80,7 +80,7 @@ if errorlevel 1 (
 git -C "%TMPDIR%" log --oneline -1
 
 echo [..] Enviando para SisPatrimonioPro...
-git -C "%TMPDIR%" push -q --force origin HEAD:refs/heads/%PUBLISH_BRANCH%
+git -C "%TMPDIR%" push -q --force "%PRO_REPO%" HEAD:refs/heads/%PUBLISH_BRANCH%
 if errorlevel 1 (
     echo ERRO: falha no push para SisPatrimonioPro. O GitHub da dev ja esta atualizado.
     rmdir /s /q "%TMPDIR%"
