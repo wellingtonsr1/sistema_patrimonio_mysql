@@ -59,6 +59,12 @@ find "$TMPDIR" -mindepth 1 -maxdepth 1 \
     ! -name SPEC-KIT-SISTEMA-ATUAL.md \
     -exec rm -rf {} +
 
+# 3b-1) dentro de docs/, exclui a pasta de documentos provisórios (doc_provi*)
+# e qualquer não-.md (ex.: "nome a conferir.txt")
+find "$TMPDIR/docs" -mindepth 1 -maxdepth 1 \
+    ! -name 'doc_provi*' ! -name '*.md' \
+    -exec rm -rf {} + 2>/dev/null || true
+
 # 3b-2) data/: apenas a estrutura de pastas (backups/logs vazios).
 # Patrimonio.db (legado SQLite) e logs NAO entram no snapshot.
 # .gitkeep mantem as pastas vazias visiveis no git.

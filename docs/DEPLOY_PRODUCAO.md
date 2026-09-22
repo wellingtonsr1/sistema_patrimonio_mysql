@@ -194,7 +194,91 @@ deploy.bat "Reversão de <hash>"           # republica o snapshot corrigido no P
 
 ---
 
-## 9. Checklist de primeira implantação
+## 9. Implantação via Docker (alternativa às Seções 2–5)
+
+O repositório inclui `Dockerfile` + `docker-compose.yml` (app + MariaDB juntos). Nesse modo, **não** há venv nem serviço do host — o Docker cuida de tudo.
+
+### 9.1 Pré-requisitos
+
+| Item | Requisito |
+|---|---|
+| Docker | Engine 24+ com `docker compose` (v2) disponível |
+| Porta | 8000 livre no host (ou ajuste o mapeamento no compose) |
+| Código | o snapshot de produção já traz `Dockerfile` e `docker-compose.yml` |
+
+> Backup/restauração **funcionam dentro do container**: a imagem já instala `default-mysql-client` (mysqldump) — sem necessidade de `MYSQLDUMP_PATH`.
+
+### 9.2 Configuração (`.env` do compose)
+
+Crie o `.env` **ao lado do `docker-compose.yml`** (não versionado) com apenas:
+
+```ini
+SECRET_KEY=<python -c "import secrets; print(secrets.token_hex(32))">
+DB_PASSWORD=<senha do banco>
+TZ=America/Recife
+```
+
+O `DATABASE_URL` **não** vai no `.env`: o compose monta automaticamente `mariadb+pymysql://sispatrimonio:$DB_PASSWORD@db:3306/sispatrimonio_pro` (host do banco é o serviço `db`). Agendamento do backup automático (opcional): `BACKUP_AUTO_ENABLED=true`, `BACKUP_AUTO_SCHEDULE`, `BACKUP_AUTO_TIME` também no `.env`.
+
+### 9.3 Primeira subida
+
+```bash
+docker compose up -d --build
+docker compose logs -f app      # "iniciado com sucesso" => http://localhost:8000
+```
+
+O healthcheck do MariaDB segura o app até o banco aceitar conexões (sem erro de boot). Persistência: **`db-data`** (dados do banco) e **`app-data`** (`/app/data` — backups e logs) sobrevivem a `down`/recriação.
+
+### 9.4 Migração do banco atual (servidor MariaDB existente → Docker)
+
+O banco do compose nasce **vazio**. Para trazer os dados do servidor atual:
+
+```bash
+# no servidor ATUAL: exporte um backup
+mysqldump --single-transaction --routines --triggers \
+  -u usuario -p sispatrimonio_pro > migra.sql
+
+# no servidor DOCKER: suba o app, restaure pela interface
+# (Administração → Backups → Restaurar, enviando o .sql.gz/.sql)
+#   OU direto no container:
+docker compose exec -T db mariadb -u sispatrimonio -p$DB_PASSWORD sispatrimonio_pro < migra.sql
+```
+
+Depois confira: contagem de bens/colaboradores, login e um **backup manual** pela tela (que já fica no volume `app-data`).
+
+### 9.5 Atualização de versão (Docker)
+
+```bash
+git pull                        # novo snapshot do SisPatrimonioPro
+docker compose up -d --build    # recria a imagem do app e reinicia
+```
+
+O banco **não** é tocado (volume `db-data` permanece). Rollback: `git checkout <hash-da-dev>` + `up -d --build` (o mesmo mecanismo da Seção 8).
+
+### 9.6 Backup e restauração no modo Docker
+
+- **Pela interface** (recomendado): Administração → Backups — o `mysqldump` interno da imagem grava em `/app/data/backups` (volume `app-data`);
+- **Arquivos na máquina host**: o volume `app-data` fica em `/var/lib/docker/volumes/<projeto>_app-data/_data` — copie esse diretório na sua rotina de backup do servidor;
+- **Dump manual direto**:
+
+```bash
+docker compose exec db sh -c 'exec mariadb-dump --single-transaction -u root -p"$MARIADB_ROOT_PASSWORD" sispatrimonio_pro' > backup-manual.sql
+```
+
+- **Restauração**: use a tela (que roda o import em processo separado, feature 019) ou `docker compose exec -T db mariadb ... < arquivo.sql` (9.4).
+
+### 9.7 Checklist Docker
+
+- [ ] `.env` do compose criado (SECRET_KEY, DB_PASSWORD, TZ)
+- [ ] `docker compose up -d --build` sem erro; `logs -f app` mostra inicialização limpa
+- [ ] Login funciona em `http://<host>:8000`
+- [ ] Banco migrado (9.4) e dados conferidos
+- [ ] Backup manual gerado e visível na tela (volume `app-data`)
+- [ ] Rotina de cópia do volume `app-data` + dump do `db` agendada no servidor
+
+---
+
+## 10. Checklist de primeira implantação (modo serviço, Seções 2–5)
 
 - [ ] `git clone` concluído (`SisPatrimonioPro` — snapshot de produção)
 - [ ] Conteúdo conferido: `app/`, `docs/`, arquivos da raiz e `data/` só com `.gitkeep`
