@@ -1,4 +1,4 @@
-tombamento,responsavel,equipamento,número de séria,categoria,fornecedor,tipo,modelo,departamento
+tombamento,responsavel,equipamento,número de séria,categoria,fornecedor,tipo,modelo,locations
 IPMJP1456, ,Computador,A84286,Informática / Microcomputadores,Arquimedes Automacao e Informatica Ltda,Desktop,Arquimedes Corporativo-A,IPMJP - Divisão de Previdência
 PMJP679450, ,Computador,1030151010064,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Superitendência Adjunta
 PMJP663548,Aldineide Alves Barbosa,Computador,1030150050159,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Setor de Análise de Benefícios
@@ -9,8 +9,8 @@ IPMJP1464,Antonio Araújo Neto,Computador,A84286,Informática / Microcomputadore
 PMJP661693,Ayrton Ciraulo Neto,Computador, Ltd.,Informática / Microcomputadores,Gigabyte Technology Co.,Desktop,Desktop,IPMJP - Gabinete da Superintendência
 PMJP679433,Ayrton Ciraulo Neto,Computador,1030151020041,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Setor de Arquivo
 IPMJP1458,Camila Pires de Sá Mariz Maia,Computador,A84287,Informática / Microcomputadores,Arquimedes Automacao e Informatica Ltda,Desktop,Arquimedes Corporativo-A,IPMJP - Setor de Gestão de Pessoal
-IPMJP1449,Carlos Eduardo dos Santos Farias,Computador,A84282,Informática / Microcomputadores,Arquimedes Automacao e Informatica Ltda,Desktop,Arquimedes Corporativo-A,
-IPMJP1450,Clara Rodrigues Albuquerque Sousa,Computador,A84280,Informática / Microcomputadores,Arquimedes Automacao e Informatica Ltda,Desktop,Arquimedes Corporativo-A,
+IPMJP1449,Carlos Eduardo dos Santos Farias,Computador,A84282,Informática / Microcomputadores,Arquimedes Automacao e Informatica Ltda,Desktop,Arquimedes Corporativo-A,IPMJP - Assessoria Jurídica
+IPMJP1450,Clara Rodrigues Albuquerque Sousa,Computador,A84280,Informática / Microcomputadores,Arquimedes Automacao e Informatica Ltda,Desktop,Arquimedes Corporativo-A,IPMJP - Assessoria Jurídica
 PMJP661907,Dahise Santos,Computador, Ltd.,Informática / Microcomputadores,Gigabyte Technology Co.,Desktop,Desktop,IPMJP - Seção de Suporte
 PMJP661706,Daniela Araujo Agostinho Fortes,Computador, Ltd.,Informática / Microcomputadores,Gigabyte Technology Co.,Desktop,Desktop,IPMJP - Seção de Folha de Benefícios
 PMJP679180,Diego Fernandes Herminio,Computador,1030151010122,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Seção de Compensação Previdenciária
@@ -21,8 +21,7 @@ PMJP679403,Ernesto Fialho Pessoa,Computador,1030151020044,Informática / Microco
 IPMJP663094,Fabíola de Carvalho Barreto,Computador,1030150040173,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Seção de Folha de Benefícios
 PMJP679248,Fernanda Queiroga de Sousa,Computador,1030151010091,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Setor de Cálculo
 PMJP680019,Gessica Nieskier S. Ventura e Alencar,Computador,1030151040169,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Seção de Compensação Previdenciária
-PMJP663093,Greicy Pessoa R. Crispim,Computador,1030150040025,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Superitendência Adjunta
-PMJP679405,Greicy Pessoa R. Crispim,Computador,1030151010079,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Divisão de Previdência
+PMJP679405,Greicy Pessoa R. Crispim,Computador,1030151010079,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Divisão Administrativa e Financeira
 IPMJP1461,Hailton Lima,Computador,A84266,Informática / Microcomputadores,Arquimedes Automacao e Informatica Ltda,Desktop,Arquimedes Corporativo-A,IPMJP - Setor de Cálculo
 PMJP661898,Henrique de Paiva Araujo Pontes,Computador, Ltd.,Informática / Microcomputadores,Gigabyte Technology Co.,Desktop,Desktop,IPMJP - Seção de Desenvolvimento
 PMJP661856,Higor Delgado Leite Benicio,Computador, Ltd.,Informática / Microcomputadores,Gigabyte Technology Co.,Desktop,Desktop,IPMJP - Divisão de Tecnologia da Informação
@@ -51,7 +50,7 @@ IPMJP1466,Luziane Alves Heckendorff,Computador,A84278,Informática / Microcomput
 PMJP679198,Maria Dione Dias Barbosa,Computador,1030151010081,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Divisão de Previdência
 IPMJP6631519,mariaeduarda,Computador,1030150030054,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Fundo Municipal de Previdência
 IPMJP1434,Mariana Souto Soares,Computador,A84285,Informática / Microcomputadores,Arquimedes Automacao e Informatica Ltda,Desktop,Arquimedes Corporativo-A,IPMJP - Assessoria Jurídica
-PMJP661720,Matheus Araujo,Computador, Ltd.,Informática / Microcomputadores,Gigabyte Technology Co.,Desktop,Desktop,
+PMJP661720,Matheus Araujo,Computador, Ltd.,Informática / Microcomputadores,Gigabyte Technology Co.,Desktop,Desktop,IPMJP - Seção de Suporte
 IPMJP1437,Micael de Araújo Silva,Computador,A84274,Informática / Microcomputadores,Arquimedes Automacao e Informatica Ltda,Desktop,Arquimedes Corporativo-A,IPMJP - Divisão de Previdência
 PMJP679430,Milena Medeiros de Alencar Feitosa Coutinho Torres,Computador,1030151020126,Informática / Microcomputadores,Daten Tecnologia Ltda,Desktop,DC3E-U,IPMJP - Acessoria de Controle Interno
 IPMJP1463,Mychelle Desiree Gomes Cabral,Computador,A84290,Informática / Microcomputadores,Arquimedes Automacao e Informatica Ltda,Desktop,Arquimedes Corporativo-A,IPMJP - Divisão de Previdência
