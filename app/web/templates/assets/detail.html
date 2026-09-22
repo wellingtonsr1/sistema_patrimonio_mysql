@@ -181,7 +181,7 @@
                     <h5 class="fw-bold mb-1" style="font-size:1rem;letter-spacing:-.01em;">
                         <i class="bi bi-clock-history me-1" style="color:var(--c-primary-text);"></i>Trilha de Fluxo & Movimentações
                     </h5>
-                    <span class="text-muted small">Histórico auditável e imutável de todas as transferências</span>
+                    <span class="text-muted small">Histórico auditável e imutável — do evento mais recente (topo) para o mais antigo</span>
                 </div>
                 {% if asset.status.value != 'BAIXADO' and can('movimentacao.criar') %}
                 <a href="/movements/new?asset_id={{ asset.id }}" class="btn btn-primary btn-sm">

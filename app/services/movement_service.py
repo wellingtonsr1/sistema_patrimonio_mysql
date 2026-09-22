@@ -17,6 +17,49 @@ from app.config import COMPANY_NAME, COMPANY_CNPJ, COMPANY_ADDRESS
 
 class MovementService:
     @staticmethod
+    def resolve_movement_type(
+        current_location_id: Optional[int],
+        current_custodian_id: Optional[int],
+        dest_location_id: Optional[int],
+        dest_custodian_id: Optional[int],
+    ) -> Optional[MovementType]:
+        """
+        Feature 029 — Decide o tipo de movimentação existente a partir da
+        diferença entre o estado atual (local/custodiante) e o destino desejado.
+
+        Método PURO: não consulta o banco, não muta estado, não grava nada —
+        a execução (validações VAL-002..VAL-008, snapshots, termo, commit)
+        continua exclusivamente em create_movement, que permanece a fonte
+        das regras (a matriz aqui é apenas consultável/reutilizável).
+
+        Tabela de decisão:
+        | local atual × destino | custodiante atual × destino        | resultado          |
+        |-----------------------|------------------------------------|--------------------|
+        | igual (inclusive None)| igual (inclusive None)             | None               |
+        | igual                 | diferente (destino não None)       | ALOCACAO_CAUTELA   |
+        | diferente             | igual (não None)                   | TRANSFERENCIA_LOCAL|
+        | diferente             | diferente (destino não None)       | ALOCACAO_CAUTELA   |
+        | estoque (sem custodiante) → custodiante | qualquer local   | ALOCACAO_CAUTELA   |
+
+        Devolução ao estoque (custodiante → None) NÃO é decidível aqui: é
+        operação manual (DEVOLUCAO_ESTOQUE) e não é disparada por carga CSV.
+        """
+        location_same = (current_location_id or None) == (dest_location_id or None)
+        custodian_same = (current_custodian_id or None) == (dest_custodian_id or None)
+
+        if location_same and custodian_same:
+            return None  # nenhuma alteração efetiva (semântica VAL-002)
+        if dest_custodian_id and not custodian_same:
+            # entrega a colaborador (novo ou a partir do estoque) → cautela/termo
+            return MovementType.ALLOCATION
+        if not dest_custodian_id and not custodian_same:
+            # destino sem custodiante com custodiante atual: custódia não é
+            # alterável por carga (devolução é manual) — sem movimentação
+            return None
+        # custódia preservada: só resta mudança de local → transferência
+        return MovementType.TRANSFER
+
+    @staticmethod
     def create_movement(db: Session, data: MovementCreate) -> Movement:
         """
         Executa e grava de forma atômica uma nova movimentação de equipamento,

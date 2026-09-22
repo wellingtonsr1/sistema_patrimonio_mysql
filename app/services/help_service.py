@@ -339,6 +339,21 @@ ARTICLES: List[Dict] = [
                     "para correção."
                 ),
             },
+            {
+                "heading": "Colaborador responsável e histórico no Fluxo",
+                "body": (
+                    "O CSV pode incluir a coluna Custodiante (também aceita como colaborador ou "
+                    "responsável) com o nome do colaborador já cadastrado — a importação nunca cria "
+                    "colaborador; nome não cadastrado vira erro de linha. Quando a linha informa "
+                    "colaborador e/ou localização, o bem recebe automaticamente o histórico no Fluxo: "
+                    "a entrada no acervo e, quando há colaborador, a Alocação/Cautela com o Termo de "
+                    "Responsabilidade (o termo segue a numeração padrão do sistema). O operador dessas "
+                    "movimentações é o usuário que executou a importação. Reimportar o mesmo arquivo "
+                    "sem mudanças não duplica movimentações; mudança real de colaborador/local gera o "
+                    "registro correspondente no Fluxo. A devolução ao estoque continua sendo feita "
+                    "manualmente pelo Fluxo & Movimentação."
+                ),
+            },
         ],
     },
     {

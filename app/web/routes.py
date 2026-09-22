@@ -557,7 +557,10 @@ def confirm_import_assets(
         )
 
     try:
-        result = execute_import(rows, db, skip_duplicates=skip_duplicates)
+        # Feature 029 — o operador das movimentações é o usuário autenticado
+        _user = getattr(request.state, "user", None)
+        _operator = (_user.full_name or _user.username) if _user else None
+        result = execute_import(rows, db, skip_duplicates=skip_duplicates, operator_name=_operator)
     except Exception as e:
         return templates.TemplateResponse(
             request=request,

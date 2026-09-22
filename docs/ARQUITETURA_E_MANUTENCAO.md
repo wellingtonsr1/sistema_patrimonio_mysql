@@ -589,6 +589,23 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
     valores BR (`1.234,56`), datas `DD/MM/AAAA` ou `AAAA-MM-DD`; fluxo web em duas etapas
     (preview → confirm) e endpoint direto `/api/v1/assets/import/csv`; opção
     `skip_duplicates` (ignora ou **atualiza** o existente).
+  - **Integração da importação com o Fluxo (feature 029):** a coluna `Custodiante`/`colaborador`
+    (aliases `custodiante`/`custodian`/`colaborador`/`responsavel`) é resolvida pelo cadastro de
+    colaboradores (precedência de matrícula; nome exato com `order_by(Custodian.id)` — nunca
+    cria colaborador; inexistente = erro de linha). Bem novo recebe `ENTRADA_AQUISICAO` com
+    snapshots reais (origem "Fornecedor / Entrada Inicial" / "Almoxarifado Geral", termo
+    `TR-INIC-<ano>-<id>`); a custódia do CSV é aplicada **exclusivamente** via
+    `MovementService.create_movement` (`ALOCACAO_CAUTELA` com termo sequencial `TR-<ano>-<seq>`,
+    status `EM_USO`) usando o novo método estático puro `resolve_movement_type` — a matriz
+    de decisão permanece centralizada no `MovementService` e `create_movement` é intocado.
+    O operador das movimentações é o usuário autenticado que executou a importação
+    (`full_name` ou `username`, repassado pelas rotas web/API). Reimportação idêntica
+    (mesmos local e custodiante) **não** gera movimentação; mudança real de custódia/local gera
+    o histórico correspondente (entrega → `ALOCACAO_CAUTELA`; só local com mesmo responsável →
+    `TRANSFERENCIA_LOCAL`); CSV sem custodiante na reimportação mantém a custódia atual
+    (devolução continua manual). Unidade transacional por linha (commit/rollback por linha;
+    erro de linha não deixa estado parcial nem impede as demais). Auditoria `IMPORTACAO`
+    das rotas permanece independente das movimentações. Testes: `tests/test_import_asset_movements.py`.
   - **Etiquetas** (`GET /assets/labels`, handler `assets_labels` em `app/web/routes.py`):
     seleção em lote com os mesmos filtros da listagem; seleção persistida na URL
     (`?selected=<ids>`); folha renderizada client-side a partir de payload embutido na página;

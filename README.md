@@ -34,6 +34,7 @@
 - **Depreciação linear:** regra de negócio atualmente adotada pelo sistema: 20% ao ano sobre o valor de aquisição.
 - Busca e filtros por status, categoria, setor e custodiante.
 - **Importação em massa via CSV** de equipamentos, colaboradores e locais, com pré-visualização e confirmação.
+- **Importação integrada ao Fluxo:** o CSV de equipamentos aceita a coluna `Custodiante`/`colaborador` (colaborador já cadastrado; nome inexistente vira erro de linha). A importação gera o histórico patrimonial no Fluxo — entrada do bem e, quando há colaborador, Alocação/Cautela com Termo de Responsabilidade no padrão do sistema — registrando o usuário que executou a importação como operador. Reimportação idêntica não duplica movimentações; mudança real de colaborador/local gera o registro correspondente (ver docs/ARQUITETURA_E_MANUTENCAO.md §Patrimônio & Equipamentos).
 
 ### 3. 📋 Inventário Patrimonial
 

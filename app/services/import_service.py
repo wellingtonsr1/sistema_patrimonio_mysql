@@ -30,9 +30,12 @@ from app.utils.time_utils import now_utc
 from app.models.enums import AssetCategory, AssetCondition, AssetStatus
 from app.models.asset import Asset
 from app.models.movement import Movement
+from app.models.custodian import Custodian
 from app.models.enums import MovementType
 from app.schemas.asset import AssetCreate
+from app.schemas.movement import MovementCreate
 from app.services.location_service import LocationService
+from app.services.movement_service import MovementService
 
 
 # Mapeamento de nomes amigáveis → valores do enum AssetCategory
@@ -287,6 +290,13 @@ COLUMN_ALIASES = {
     "location": "localizacao",
     "local": "localizacao",
     "locations": "localizacao",
+    # custodiante/colaborador (Feature 029 — resolvido pelo cadastro de
+    # colaboradores; normalizado para a chave canônica "custodiante")
+    "custodiante": "custodiante",
+    "custodian": "custodiante",
+    "colaborador": "custodiante",
+    "responsavel": "custodiante",
+    "responsável": "custodiante",
 }
 
 
@@ -374,16 +384,50 @@ def preview_import(rows: List[Dict[str, str]], db: Session) -> Dict:
     }
 
 
+def _resolver_custodiante(db: Session, nome_raw: str) -> Optional[Custodian]:
+    """
+    Feature 029 — Resolve a coluna de custodiante pelo cadastro existente.
+
+    Precedência: matrícula (registration_code, identificador oficial único)
+    quando o valor corresponde a uma matrícula; senão nome exato (ilike) com
+    order_by(Custodian.id) para primeira ocorrência determinística em nomes
+    duplicados. NUNCA cria colaborador.
+    """
+    nome = nome_raw.strip()
+    if not nome:
+        return None
+    by_code = db.query(Custodian).filter(Custodian.registration_code == nome).first()
+    if by_code:
+        return by_code
+    return (
+        db.query(Custodian)
+        .filter(Custodian.name.ilike(nome))
+        .order_by(Custodian.id.asc())
+        .first()
+    )
+
+
 def execute_import(
     rows: List[Dict[str, str]],
     db: Session,
     skip_duplicates: bool = True,
-    operator_name: str = "Importação CSV",
+    operator_name: Optional[str] = None,
 ) -> Dict:
     """
     Executa a importação em massa.
     Retorna dict com 'imported', 'skipped', 'errors'.
+
+    Feature 029 — o estado do bem e o histórico patrimonial derivam da mesma
+    operação de domínio: a entrada segue o padrão do cadastro manual
+    (ENTRADA_AQUISICAO com snapshots reais) e a custódia informada no CSV é
+    aplicada exclusivamente via MovementService.create_movement (matriz
+    existente, tipos existentes, termo sequencial padrão). O operador das
+    movimentações é o usuário autenticado que executou a importação
+    (operator_name; fallback de compatibilidade: "Importação CSV").
+    Unidade transacional por linha: commit por linha; erro de linha não deixa
+    estado parcial e não impede as demais linhas.
     """
+    operator = (operator_name or "Importação CSV").strip() or "Importação CSV"
     imported = 0
     skipped = 0
     errors = []
@@ -407,6 +451,7 @@ def execute_import(
             location = None
             location_name = None
             location_id = None
+            location_snapshot = None
             loc_raw = (
                 row.get("localizacao")
                 or row.get("localization")
@@ -419,10 +464,34 @@ def execute_import(
                 if location:
                     location_name = location.name
                     location_id = location.id
+                    # Feature 029 — snapshot no formato canônico usado pelo
+                    # motor de movimentações e pelo cadastro manual
+                    # ("filial - departamento (nome)"), para o Fluxo exibir
+                    # o mesmo local sempre da mesma forma
+                    location_snapshot = (
+                        f"{location.branch} - {location.department} ({location.name})"
+                    )
                 else:
                     errors.append(
                         f"Linha {i}: local '{loc_raw}' não encontrado no cadastro de locais"
                     )
+                    db.rollback()
+                    continue
+
+            # Feature 029 — resolver custodiante pela coluna Custodiante
+            # (nome/matrícula do cadastro; vazio ou só espaços = ausência)
+            custodiante = None
+            custodiante_id = None
+            cust_raw = (row.get("custodiante") or "").strip()
+            if cust_raw:
+                custodiante = _resolver_custodiante(db, cust_raw)
+                if custodiante:
+                    custodiante_id = custodiante.id
+                else:
+                    errors.append(
+                        f"Linha {i}: colaborador '{cust_raw}' não encontrado no cadastro de colaboradores"
+                    )
+                    db.rollback()
                     continue
 
             # Verificar duplicata
@@ -462,6 +531,33 @@ def execute_import(
                 if notes:
                     existing.notes = notes
                 db.flush()
+
+                # Feature 029 — reimportação: aplicar custódia somente quando
+                # há mudança efetiva, via motor de movimentações (matriz
+                # centralizada em MovementService). CSV sem custodiante =
+                # manter custódia atual (devolução é operação manual).
+                m_type = MovementService.resolve_movement_type(
+                    existing.location_id,
+                    existing.custodian_id,
+                    location_id,
+                    custodiante_id,
+                )
+                if m_type is not None:
+                    MovementService.create_movement(
+                        db,
+                        MovementCreate(
+                            asset_id=existing.id,
+                            movement_type=m_type,
+                            destination_location_id=location_id,
+                            destination_custodian_id=custodiante_id,
+                            reason=(
+                                f"Movimentação derivada da reimportação CSV (linha {i})"
+                            ),
+                            operator_name=operator,
+                            generate_term=(m_type == MovementType.ALLOCATION),
+                        ),
+                    )
+                db.commit()
                 imported += 1
                 continue
 
@@ -480,7 +576,9 @@ def execute_import(
                     )
                     continue
 
-            # Criar novo asset
+            # Criar novo asset — status inicial sempre disponível: a custódia
+            # do CSV, quando informada, é aplicada pelo motor de movimentações
+            # logo após a entrada (Feature 029 — nunca fabricada aqui)
             asset = Asset(
                 tag=tag,
                 name=name,
@@ -500,38 +598,60 @@ def execute_import(
             db.add(asset)
             db.flush()
 
-            # Registrar movimentação de entrada
+            # Registrar movimentação de entrada — mesmo padrão do cadastro
+            # manual (AssetService.create): snapshots reais de origem/destino,
+            # operador informado e termo TR-INIC (a entrada não é cautela)
             movement = Movement(
                 asset_id=asset.id,
                 movement_type=MovementType.ACQUISITION,
                 timestamp=now_utc(),
-                origin_location_name="Importação CSV",
-                origin_custodian_name="Sistema",
-                destination_location_name=location_name or "Estoque Central",
+                origin_location_name="Fornecedor / Entrada Inicial",
+                origin_custodian_name="Almoxarifado Geral",
+                destination_location_name=location_snapshot or "Estoque Central",
+                destination_location_id=location_id,
                 destination_custodian_name=None,
-                previous_status=asset.status,
+                destination_custodian_id=None,
+                previous_status=None,
                 new_status=AssetStatus.AVAILABLE,
                 previous_condition=None,
                 new_condition=condition,
-                reason=f"Cadastro em massa via importação CSV (Linha {i})",
-                operator_name=operator_name,
-                term_code=f"TR-CSV-{datetime.now().year}-{asset.id:04d}",
-                notes=f"Importado do arquivo CSV — Linha {i}",
+                reason=(
+                    f"Tombamento inicial e incorporação ao patrimônio via "
+                    f"importação CSV (linha {i})"
+                ),
+                operator_name=operator,
+                term_code=f"TR-INIC-{datetime.now().year}-{asset.id:04d}",
+                notes="Registro automático de cadastro inicial do bem (importação CSV).",
             )
             db.add(movement)
+
+            # Feature 029 — custódia do CSV aplicada exclusivamente pelo motor
+            # de movimentações (alocação/cautela com termo sequencial padrão)
+            if custodiante_id:
+                MovementService.create_movement(
+                    db,
+                    MovementCreate(
+                        asset_id=asset.id,
+                        movement_type=MovementType.ALLOCATION,
+                        destination_location_id=location_id,
+                        destination_custodian_id=custodiante_id,
+                        reason=(
+                            f"Entrega/cautela derivada da importação CSV (linha {i})"
+                        ),
+                        operator_name=operator,
+                        generate_term=True,
+                    ),
+                )
+            else:
+                # Bem novo sem custodiante: fecha a unidade da linha aqui
+                # (com custodiante, create_movement já fez o commit da linha)
+                db.commit()
             imported += 1
 
         except Exception as e:
+            db.rollback()
             errors.append(f"Linha {i}: {str(e)}")
             continue
-
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
-        # Se o commit falhou, retornar o que foi processado até o momento
-        # e incluir o erro na lista
-        errors.append("Erro ao salvar os dados no banco.")
 
     return {
         "imported": imported,

@@ -654,6 +654,11 @@ border-info { border-color: var(--color-info) !important; }
   border-radius: 1px;
 }
 
+/* Feature 029 — a linha do tempo é exibida do mais recente para o mais antigo
+   (dados ordenados desc no get_timeline_for_asset). O gradiente da guia é
+   invertido por item: o card mais novo fica "no topo" da leitura, então a
+   linha visualmente decresce no tempo (verde/primário em cima → neutro embaixo
+   por item), reforçando a leitura de cima (recente) para baixo (antigo). */
 .modern-timeline-item { position: relative; margin-bottom: 1.25rem; }
 .modern-timeline-item:last-child { margin-bottom: 0; }
 
@@ -672,6 +677,13 @@ border-info { border-color: var(--color-info) !important; }
   z-index: 1;
   box-shadow: 0 0 0 3px var(--color-surface);
   transition: transform .15s var(--ease);
+}
+
+/* Indicador de recência: o evento mais recente da trilha recebe um marcador
+   destacado no lugar do dot padrão (leitura clara de cima = mais recente). */
+.modern-timeline-item:first-child .modern-timeline-dot {
+  background: var(--color-primary);
+  color: var(--color-surface);
 }
 .modern-timeline-item:hover .modern-timeline-dot { transform: scale(1.15); }
 
