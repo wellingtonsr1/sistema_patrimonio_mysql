@@ -471,14 +471,14 @@ Fluxo resumido:
 9. Executar `python run.py`.
 10. Criar o primeiro administrador por uma das formas disponíveis.
 
-Exemplo de banco:
+Exemplo de banco (Pode ser preciso executar com privilégio de administrador):
 
 ```sql
-CREATE DATABASE sispatrimonio
+CREATE DATABASE sispatrimoniopro
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-CREATE USER 'sispat'@'%' IDENTIFIED BY 'SENHA_FORTE';
+CREATE USER 'patrimonio'@'%' IDENTIFIED BY 'SENHA_FORTE';
 
 GRANT ALL PRIVILEGES ON sispatrimonio.* TO 'sispat'@'%';
 
