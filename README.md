@@ -1119,6 +1119,7 @@ Documentação técnica disponível:
 docs/
 ├── ARQUITETURA_E_MANUTENCAO.md
 ├── BACKUP_AUTOMATICO_TESTES.md
+├── DEPLOY_PRODUCAO.md
 ├── GUIA_DE_MANUTENCAO.md
 ```
 
