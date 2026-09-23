@@ -25,6 +25,7 @@ from app.models.ad_group_role import ADGroupRole
 from app.models.setup_claim import SetupClaim
 from app.models.inventario import Inventario, InventarioItem
 from app.models.notification import EmailConfig, Notification
+from app.models.onedoc_integration import OneDocIntegration
 
 __all__ = [
     "AssetStatus",

@@ -133,6 +133,16 @@
                     <label class="form-label">Observações Detalhadas</label>
                     <textarea name="notes" class="form-control" rows="2" placeholder="Informações complementares para o termo ou histórico..."></textarea>
                 </div>
+                {% if onedoc_enabled %}
+                <!-- Feature 031 — Integração 1Doc: campo somente nos tipos elegíveis (Q5) -->
+                <div class="col-12" id="onedoc-field-wrap" style="display:none;">
+                    <label class="form-label">
+                        Processo 1Doc <span class="text-danger">*</span>
+                        <span class="help-tip" data-bs-toggle="tooltip" data-bs-placement="top" title="Número do processo administrativo 1Doc (já criado pelo setor de Patrimônio) onde a comunicação desta movimentação será incluída."><i class="bi bi-question-circle"></i></span>
+                    </label>
+                    <input type="text" name="onedoc_process_number" id="onedoc_process_number" class="form-control" placeholder="Ex: 2026/000123" maxlength="60">
+                </div>
+                {% endif %}
             </div>
 
             <div class="d-flex justify-content-end gap-2 border-top pt-3">
@@ -144,4 +154,28 @@
         </form>
     </div>
 </div>
+
+{% if onedoc_enabled %}
+<script>
+// Feature 031 — Integração 1Doc: campo visível somente nos tipos elegíveis
+// (cautela e transferência — decisão Q5). Toggle client-side sem framework.
+(function () {
+    var ELIGIBLE = { ALOCACAO_CAUTELA: true, TRANSFERENCIA_LOCAL: true };
+    var radios = document.querySelectorAll('input[name="movement_type"]');
+    var wrap = document.getElementById("onedoc-field-wrap");
+    var input = document.getElementById("onedoc_process_number");
+    if (!wrap || !radios.length) return;
+
+    function toggle() {
+        var selected = document.querySelector('input[name="movement_type"]:checked');
+        var show = !!(selected && ELIGIBLE[selected.value]);
+        wrap.style.display = show ? "" : "none";
+        if (input) input.required = show;
+        if (!show && input) input.value = "";
+    }
+    radios.forEach(function (r) { r.addEventListener("change", toggle); });
+    toggle();
+})();
+</script>
+{% endif %}
 {% endblock %}

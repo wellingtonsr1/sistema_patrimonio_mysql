@@ -937,6 +937,53 @@ def admin_backup_config_form(request: Request, db: Session = Depends(get_db)):
 # CONFIGURAÇÃO DE NOTIFICAÇÕES POR E-MAIL (feature 030) — notificacoes.gerenciar
 # ===========================================================================
 
+@admin_router.get("/admin/integracao-1doc", response_class=HTMLResponse, dependencies=[Depends(require_permission("integracao1doc.reprocessar", web=True))])
+def admin_onedoc_lista(request: Request, db: Session = Depends(get_db)):
+    """Lista integrações 1Doc (031/FR-018: tela MÍNIMA — veículo de execução do
+    reprocessamento FR-011, não painel de monitoramento; analyze I1)."""
+    from app.models.onedoc_integration import OneDocIntegration
+
+    integracoes = (
+        db.query(OneDocIntegration)
+        .order_by(OneDocIntegration.id.desc())
+        .limit(200)
+        .all()
+    )
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/onedoc.html",
+        context={
+            "integracoes": integracoes,
+            "success": request.query_params.get("success"),
+            "error": request.query_params.get("error"),
+            "active_tab": "admin",
+        },
+    )
+
+
+@admin_router.post("/admin/integracao-1doc/{integration_id}/reprocessar", dependencies=[Depends(require_permission("integracao1doc.reprocessar", web=True))])
+def admin_onedoc_reprocessar(
+    request: Request,
+    integration_id: int,
+    db: Session = Depends(get_db),
+):
+    """Reprocessa integração FAILED (031/FR-011, decisão Q4): permissão
+    dedicada sem concessão default; idempotente; auditado com usuário real."""
+    from app.services import onedoc_service as _os
+
+    ok, message = _os.reprocess(
+        db,
+        integration_id,
+        user=request.state.user,
+        ip_address=_client_ip(request),
+    )
+    params = "success" if ok else "error"
+    return RedirectResponse(
+        url=f"/admin/integracao-1doc?{params}={_quote(message)}",
+        status_code=303,
+    )
+
+
 @admin_router.get("/admin/notificacoes", response_class=HTMLResponse, dependencies=[Depends(require_permission("notificacoes.gerenciar", web=True))])
 def admin_notificacoes_form(request: Request, db: Session = Depends(get_db)):
     """Formulário de notificações (030): estado atual, leitura pura (sem criar singleton)."""

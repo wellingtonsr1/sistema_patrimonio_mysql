@@ -557,6 +557,7 @@ def execute_import(
                             generate_term=(m_type == MovementType.ALLOCATION),
                         ),
                         notify=False,  # 030/RN-002: lote CSV não notifica
+                        onedoc_enforce=False,  # 031/Q1: lote CSV não exige processo nem integra
                     )
                 db.commit()
                 imported += 1

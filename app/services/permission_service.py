@@ -87,6 +87,7 @@ PERMISSION_CATALOG: List[dict] = [
 
     # --- Notificações por e-mail (feature 030) ---
     {"name": "notificacoes.gerenciar", "module": "Notificações", "label": "Gerenciar notificações", "description": "Ativar/desativar notificações por e-mail e definir os destinatários do setor de Patrimônio."},
+    {"name": "integracao1doc.reprocessar", "module": "Integração 1Doc", "label": "Reprocessar integração 1Doc", "description": "Reprocessar a inclusão de comunicações de movimentação no processo 1Doc que falharam."},
 ]
 
 # Perfis padrão (seed idempotente). Cada perfil referencia permissões pelo nome.

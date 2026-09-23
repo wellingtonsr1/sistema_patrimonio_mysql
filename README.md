@@ -793,6 +793,42 @@ Nenhum evento contém credenciais SMTP (Constitution VI — precedente `AD_BIND_
 
 ---
 
+## 📄 Integração 1Doc (feature 031)
+
+Inclusão automática de uma **comunicação no processo 1Doc** (já criado pelo setor de Patrimônio) após a conclusão de movimentações elegíveis, com a tabela no modelo do setor (Descrição do Material / Tombamento / Origem / Destino) gerada dos dados oficiais. O usuário **não redigita** os dados no 1Doc; a assinatura permanece no fluxo próprio do 1Doc.
+
+### Comportamento
+
+- **Disparo**: somente após a movimentação ser validada e persistida (pós-commit, após o e-mail da 030) — falha externa **nunca** reverte ou bloqueia a movimentação;
+- **Tipos integrados**: cautela (`ALOCACAO_CAUTELA`) e transferência de local (`TRANSFERENCIA_LOCAL`) — decisão Q1; devolução, manutenções, baixa, ajustes e aquisição **não** interagem com o 1Doc;
+- **Processo 1Doc**: obrigatório nos tipos elegíveis quando a integração está ativa (FR-002); validação de existência via API quando suportada (decisão Q2 — sem suporte, modo tolerante);
+- **Conteúdo**: saudação por horário + tabela de 4 colunas preenchida exclusivamente com dados da movimentação — sem link de consulta nesta versão (FR-017);
+- **Idempotência**: no máximo 1 comunicação por movimentação (vínculo único no banco; sucesso sem ID da mensagem registra `SENT` com identificador desconhecido — decisão Q3);
+- **Falha**: registrada com erro **sanitizado** (sem token/credenciais) e recuperável por **reprocessamento manual** (permissão dedicada, sem concessão default — decisão Q4);
+- **Default**: **desativado** (`ONEDOC_ENABLED=false`).
+
+### Configuração (`.env`, exclusivamente no ambiente)
+
+```env
+ONEDOC_ENABLED=false
+ONEDOC_API_URL=
+ONEDOC_API_TOKEN=<segredo — somente no ambiente, nunca no banco ou tela>
+ONEDOC_CONNECT_TIMEOUT=3
+ONEDOC_READ_TIMEOUT=10
+ONEDOC_MAX_ATTEMPTS=3
+```
+
+> **Pré-requisito de produção**: o contrato real da API 1Doc (autenticação, consulta de processo, inclusão de comunicação — itens C-1..C-4 da spec) deve ser confirmado junto ao fornecedor antes de ligar a integração; nenhum endpoint foi inventado.
+
+### Auditoria da integração
+
+- `INTEGRACAO_1DOC_SOLICITADA` / `INTEGRACAO_1DOC_ENVIADA` / `INTEGRACAO_1DOC_FALHOU` — automáticos (ator = serviço);
+- `INTEGRACAO_1DOC_REPROCESSADA` — reprocessamento manual (identifica o usuário).
+
+Nenhum evento contém token ou credenciais (Constitution VI).
+
+---
+
 ## 🧾 Auditoria
 
 `audit_logs` registra, conforme o evento:
@@ -807,6 +843,7 @@ Nenhum evento contém credenciais SMTP (Constitution VI — precedente `AD_BIND_
 - alterações de perfis e permissões;
 - movimentações patrimoniais;
 - notificações por e-mail (enviada/falhou/configuração — feature 030);
+- integração 1Doc (solicitada/enviada/falhou/reprocessada — feature 031);
 - importações;
 - acessos negados;
 - eventos da integração AD.

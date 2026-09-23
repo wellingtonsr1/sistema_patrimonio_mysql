@@ -15,6 +15,14 @@ from app.schemas.movement import MovementCreate, MovementFilter
 from app.config import COMPANY_NAME, COMPANY_CNPJ, COMPANY_ADDRESS
 
 
+def _onedoc_notifiable_types():
+    """Tipos elegíveis para o 1Doc (Q1) — carregado preguiçosamente para
+    evitar importação circular (onedoc_service importa models deste pacote)."""
+    from app.services.onedoc_service import NOTIFICABLE_TYPES
+
+    return NOTIFICABLE_TYPES
+
+
 class MovementService:
     @staticmethod
     def resolve_movement_type(
@@ -66,6 +74,8 @@ class MovementService:
         notify: bool = True,
         operator: Optional[str] = None,
         ip_address: Optional[str] = None,
+        onedoc_process_number: Optional[str] = None,
+        onedoc_enforce: bool = True,
     ) -> Movement:
         """
         Executa e grava de forma atômica uma nova movimentação de equipamento,
@@ -85,6 +95,35 @@ class MovementService:
 
         if asset.status == AssetStatus.WRITTEN_OFF and data.movement_type != MovementType.ACQUISITION:
             raise ValueError("Não é possível movimentar um equipamento que já foi baixado/descartado.")
+
+        # ====================================================================
+        # Feature 031 — Integração 1Doc (validação FR-002/Q2, ANTES de qualquer
+        # escrita). Somente com integração ativa + tipo elegível (Q1) + enforce.
+        # Normalização: trim; vazio → None (contracts §2 — analyze U1: sem
+        # validação de formato na v1; formato real chega com C-2/C-4).
+        # ====================================================================
+        onedoc_process_number = (onedoc_process_number or "").strip() or None
+        if onedoc_enforce:
+            from app import config as _config
+
+            if (
+                _config.ONEDOC_ENABLED
+                and data.movement_type in _onedoc_notifiable_types()
+            ):
+                if not onedoc_process_number:
+                    raise ValueError(
+                        "Informe o número do processo 1Doc para registrar esta movimentação no 1Doc."
+                    )
+                # Q2: se a API suportar consulta (retorna False = inexistente),
+                # bloqueia ANTES de gravar; None (não suportado/indisponível)
+                # segue no modo tolerante.
+                from app.services import onedoc_service as _os
+
+                exists = _os.find_process_safe(onedoc_process_number)
+                if exists is False:
+                    raise ValueError(
+                        "O processo 1Doc informado não foi encontrado. Verifique o número e tente novamente."
+                    )
 
         # Guardar snapshots da situação anterior
         prev_status = asset.status
@@ -318,6 +357,30 @@ class MovementService:
 
                 logging.getLogger(__name__).exception(
                     "Falha inesperada no hook de notificação (movimentação %s) — movimentação preservada.",
+                    movement.id,
+                )
+
+        # ====================================================================
+        # Feature 031 — Integração 1Doc (pós-commit, best-effort; D7 do plan:
+        # APÓS o hook de e-mail, mesmo ponto de não-retorno). Falha externa
+        # NUNCA propaga (FR-007) e nunca altera a movimentação.
+        # ====================================================================
+        if onedoc_process_number:
+            try:
+                from app.services import onedoc_service as _os
+
+                _os.notify_movement(
+                    db,
+                    movement,
+                    onedoc_process_number,
+                    operator=operator,
+                    ip_address=ip_address,
+                )
+            except Exception:  # pragma: no cover — defesa final; nada escapa
+                import logging
+
+                logging.getLogger(__name__).exception(
+                    "Falha inesperada no hook de integração 1Doc (movimentação %s) — movimentação preservada.",
                     movement.id,
                 )
 

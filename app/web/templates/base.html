@@ -127,6 +127,11 @@
                 <i class="bi bi-envelope-check"></i> Notificações
             </a>
             {% endif %}
+            {% if can('integracao1doc.reprocessar') %}
+            <a class="sidebar-nav-item" href="/admin/integracao-1doc">
+                <i class="bi bi-file-earmark-text"></i> Integração 1Doc
+            </a>
+            {% endif %}
             {% endif %}
             <div class="sidebar-divider"></div>
             <a class="sidebar-nav-item" href="/ajuda">
@@ -252,6 +257,9 @@
                             {% endif %}
                             {% if can('notificacoes.gerenciar') %}
                             <li><a class="dropdown-item py-2" href="/admin/notificacoes"><i class="bi bi-envelope-check me-1" style="color:var(--color-primary);"></i>Notificações</a></li>
+                            {% endif %}
+                            {% if can('integracao1doc.reprocessar') %}
+                            <li><a class="dropdown-item py-2" href="/admin/integracao-1doc"><i class="bi bi-file-earmark-text me-1" style="color:var(--color-primary);"></i>Integração 1Doc</a></li>
                             {% endif %}
                         </ul>
                     </li>

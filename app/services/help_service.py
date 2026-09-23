@@ -22,6 +22,7 @@ Seções de um artigo (campo `sections`):
 from typing import Dict, List, Optional
 
 from app.services.help_article_030 import ARTIGO_NOTIFICACOES  # feature 030
+from app.services.help_article_031 import ARTIGO_ONEDOC  # feature 031
 
 # ============================================================================
 # ARTIGOS
@@ -1144,6 +1145,7 @@ ARTICLES: List[Dict] = [
         ],
     },
     ARTIGO_NOTIFICACOES,  # feature 030 — notificações por e-mail (administração)
+    ARTIGO_ONEDOC,  # feature 031 — integração 1Doc (administração)
     {
         "id": "restauracao-de-backup",
         "title": "Restauração de backup (administração)",

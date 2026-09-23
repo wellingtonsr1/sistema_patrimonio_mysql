@@ -162,3 +162,14 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")                # SEGREDO — some
 SMTP_FROM = os.getenv("SMTP_FROM", "")                        # remetente; fallback: SMTP_USERNAME
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").strip().lower() == "true"
 SMTP_SEND_TIMEOUT = float(os.getenv("SMTP_SEND_TIMEOUT", "10"))  # segundos (FR-016/SC-006)
+
+# =========================== Integração 1Doc (feature 031) ===========================
+# Cliente HTTP da integração com o 1Doc. Segue o padrão SMTP_* (feature 030):
+# configuração 100% por ambiente; a integração nasce DESATIVADA e só deve ser
+# ligada com o contrato real da API confirmado (research.md D4 — [PENDING C-1..C-4]).
+ONEDOC_ENABLED = os.getenv("ONEDOC_ENABLED", "false").strip().lower() == "true"
+ONEDOC_API_URL = os.getenv("ONEDOC_API_URL", "")
+ONEDOC_API_TOKEN = os.getenv("ONEDOC_API_TOKEN", "")           # SEGREDO — somente ambiente, nunca em banco/logs
+ONEDOC_CONNECT_TIMEOUT = float(os.getenv("ONEDOC_CONNECT_TIMEOUT", "3"))  # segundos (FR-013)
+ONEDOC_READ_TIMEOUT = float(os.getenv("ONEDOC_READ_TIMEOUT", "10"))       # segundos (FR-013/SC-004)
+ONEDOC_MAX_ATTEMPTS = int(os.getenv("ONEDOC_MAX_ATTEMPTS", "3"))          # teto p/ evolução worker (P-5)

@@ -137,6 +137,14 @@ web_router = APIRouter(include_in_schema=False)
 # ==========================================
 # AUTENTICAÇÃO (páginas de login/logout)
 # ==========================================
+def _onedoc_enabled() -> bool:
+    """Feature 031: flag de integração 1Doc para o template (Q5 — campo só
+    aparece nos formulários elegíveis quando a integração está ativa)."""
+    from app import config as _config
+
+    return bool(_config.ONEDOC_ENABLED)
+
+
 def _safe_next_url(value: str) -> str:
     """Permite apenas redirecionamentos internos (evita open redirect)."""
     if value and value.startswith("/") and not value.startswith("//"):
@@ -771,6 +779,7 @@ def form_new_movement(
             "conditions": AssetCondition,
             "prefill_type": m_type or "",
             "error": error or "",
+            "onedoc_enabled": _onedoc_enabled(),
             "active_tab": "movements"
         }
     )
@@ -787,6 +796,7 @@ def create_movement_form(
     reason: str = Form(...),
     operator_name: str = Form("Operador"),
     notes: Optional[str] = Form(None),
+    onedoc_process_number: Optional[str] = Form(None),  # 031: processo 1Doc (só tipos elegíveis — Q5)
     db: Session = Depends(get_db)
 ):
     cond_enum = AssetCondition(new_condition) if new_condition and new_condition in [e.value for e in AssetCondition] else None
@@ -800,7 +810,8 @@ def create_movement_form(
         reason=reason,
         operator_name=operator_name,
         notes=notes or None,
-        generate_term=True
+        generate_term=True,
+        onedoc_process_number=onedoc_process_number,  # 031: processo 1Doc (validação no service — FR-002)
     )
 
     try:

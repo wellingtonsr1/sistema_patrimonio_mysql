@@ -94,12 +94,12 @@ sistema_patrimonio/
 │   │   ├── custodians_api.py  # Colaboradores (CRUD, bens sob custódia, import CSV)
 │   │   ├── locations_api.py   # Locais (CRUD)
 │   │   └── reports_api.py     # dashboard-stats + 3 exportações CSV
-│   ├── models/                # Modelos SQLAlchemy + enums.py (fonte de verdade das tabelas; 020: + backup_records; 021: + backup_config; 030: + notification[EmailConfig, Notification])
+│   ├── models/                # Modelos SQLAlchemy + enums.py (fonte de verdade das tabelas; 020: + backup_records; 021: + backup_config; 030: + notification[EmailConfig, Notification]; 031: + onedoc_integration[OneDocIntegration])
 │   ├── schemas/               # Schemas Pydantic v2 (Create/Update/Read por entidade; user.py para /auth/me)
-│   ├── services/              # Módulos de regra de negócio (ver §8 e INVENTARIO_TECNICO.md; 020: + backup_scheduler; 021: + backup_config_service; 030: + notification_service, email_provider, email_config_service, help_article_030)
+│   ├── services/              # Módulos de regra de negócio (ver §8 e INVENTARIO_TECNICO.md; 020: + backup_scheduler; 021: + backup_config_service; 030: + notification_service, email_provider, email_config_service, help_article_030; 031: + onedoc_service, onedoc_client, onedoc_message, help_article_031)
 │   └── web/
 │       ├── routes.py          # Páginas de negócio + login/logout + configuração Jinja2Templates (context processor _inject_current_user, função can())
-│       ├── admin_routes.py    # /admin/users*, /admin/roles*, /admin/audit, /profile/password, /admin/ad*, /admin/backups*, /admin/notificacoes (030)
+│       ├── admin_routes.py    # /admin/users*, /admin/roles*, /admin/audit, /profile/password, /admin/ad*, /admin/backups*, /admin/notificacoes (030), /admin/integracao-1doc (031)
 │       ├── help_routes.py     # /ajuda e /ajuda/{article_id}
 │       ├── templates/         # Templates Jinja2 (base.html, dashboard, assets/ [inclui labels], movements/, custodians/, locations/ [inclui import], maintenances/, reports/, admin/ [inclui notificacoes.html — 030], ajuda/, profile/, setup, 403/404, login)
 │       └── static/
@@ -555,6 +555,7 @@ que sobrevive à exclusão), `action`, `module`, `resource`, `resource_id`, `res
 | Perfis | `CRIACAO_PERFIL`, `ALTERACAO_PERFIL_PERMISSOES`, `EXCLUSAO_PERFIL` |
 | Negócio | `MOVIMENTACAO`, `MANUTENCAO`, `IMPORTACAO` |
 | Notificações (030) | `NOTIFICACAO_ENVIADA`, `NOTIFICACAO_FALHOU`, `CONFIG_NOTIFICACAO_ALTERADA` (módulo `notificacoes`; emitidas com `user=None` — ator é o serviço) |
+| Integração 1Doc (031) | `INTEGRACAO_1DOC_SOLICITADA`, `INTEGRACAO_1DOC_ENVIADA`, `INTEGRACAO_1DOC_FALHOU` (módulo `integracao_1doc`; `user=None` — ator é o serviço), `INTEGRACAO_1DOC_REPROCESSADA` (identifica o usuário que reprocessou; permissão `integracao1doc.reprocessar`, sem concessão default) |
 | Segurança | `ACESSO_NEGADO` (403 de `require_permission`) |
 | Integração AD | ver §10.5 (13 eventos) |
 

@@ -14,6 +14,10 @@ class MovementCreate(BaseModel):
     operator_name: str = Field("Operador do Sistema", description="Nome de quem realizou o registro")
     notes: Optional[str] = None
     generate_term: bool = True  # Se deve gerar código de termo de cautela
+    # Feature 031 — Integração 1Doc (aditivo, default None): número do processo
+    # 1Doc informado pelo operador; obrigatório (validação no service) para os
+    # tipos elegíveis quando a integração estiver ativa (FR-001/FR-002).
+    onedoc_process_number: Optional[str] = None
 
 
 class MovementRead(BaseModel):
