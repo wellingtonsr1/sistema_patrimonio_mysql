@@ -24,6 +24,7 @@ from app.models.ad_settings import ADSettings
 from app.models.ad_group_role import ADGroupRole
 from app.models.setup_claim import SetupClaim
 from app.models.inventario import Inventario, InventarioItem
+from app.models.notification import EmailConfig, Notification
 
 __all__ = [
     "AssetStatus",
@@ -51,4 +52,6 @@ __all__ = [
     "SetupClaim",
     "Inventario",
     "InventarioItem",
+    "EmailConfig",
+    "Notification",
 ]

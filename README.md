@@ -752,6 +752,47 @@ A interface pode ocultar botões conforme permissões, mas isso é somente apres
 
 ---
 
+## 📧 Notificações por E-mail (feature 030)
+
+Aviso automático por e-mail ao setor de Patrimônio após a conclusão de movimentações patrimoniais. A notificação é um mecanismo de **ciência institucional**: nunca participa da transação da movimentação — a falha de envio não afeta a operação patrimonial.
+
+### Comportamento
+
+- **Disparo**: somente após a movimentação ser validada e persistida (pós-commit);
+- **Tipos notificados**: entrega/cautela (`ALOCACAO_CAUTELA`), transferência (`TRANSFERENCIA_LOCAL`) e devolução (`DEVOLUCAO_ESTOQUE`) concluídas por fluxo manual (web/API);
+- **Não notificam**: aquisição, manutenção, baixa, ajuste de estado e a importação em lote de CSV (a ciência dessas operações é dada pelas telas/trilha do sistema);
+- **Conteúdo**: tombamento, identificação do bem, tipo, local/responsável de origem e destino, data/hora (America/Recife) e operador — sem link de consulta nesta versão;
+- **Assunto**: `[SisPatrimônio Pro] Nova movimentação patrimonial - <TAG do bem>`;
+- **Idempotência**: no máximo 1 e-mail por movimentação (vínculo único no banco);
+- **Default**: **desativado** — sem ativação explícita, o sistema não envia nenhum e-mail.
+
+### Configuração
+
+- **Tela Administração → Notificações** (permissão `notificacoes.gerenciar`): ativa/desativa e define os destinatários (um ou mais e-mails; ativar exige pelo menos um válido). Persistido no banco, vale sem reiniciar;
+- **Servidor de e-mail (`.env`, exclusivamente no ambiente)**:
+
+```env
+SMTP_HOST=smtp.dominio.gov.br
+SMTP_PORT=587
+SMTP_USERNAME=sispatrimonio@dominio.gov.br
+SMTP_PASSWORD=<segredo — somente no ambiente, nunca no banco ou tela>
+SMTP_FROM=SisPatrimônio Pro <sispatrimonio@dominio.gov.br>
+SMTP_USE_TLS=true
+SMTP_SEND_TIMEOUT=10
+```
+
+- **Falha de envio**: a movimentação permanece concluída; a falha é registrada na trilha de auditoria (`Notificação Falhou`, com destinatários e motivo técnico sem dados sensíveis) e no estado interno da notificação (com contagem de tentativas — sem reenvio automático nesta versão).
+
+### Auditoria da notificação
+
+- `NOTIFICACAO_ENVIADA` — envio bem-sucedido (destinatários, recurso movimentação);
+- `NOTIFICACAO_FALHOU` — falha de envio ou de configuração;
+- `CONFIG_NOTIFICACAO_ALTERADA` — admin salva a configuração (antes/depois).
+
+Nenhum evento contém credenciais SMTP (Constitution VI — precedente `AD_BIND_PASSWORD`).
+
+---
+
 ## 🧾 Auditoria
 
 `audit_logs` registra, conforme o evento:
@@ -765,6 +806,7 @@ A interface pode ocultar botões conforme permissões, mas isso é somente apres
 - troca/reset de senha;
 - alterações de perfis e permissões;
 - movimentações patrimoniais;
+- notificações por e-mail (enviada/falhou/configuração — feature 030);
 - importações;
 - acessos negados;
 - eventos da integração AD.

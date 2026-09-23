@@ -144,3 +144,21 @@ AD_USER_DN = os.getenv("AD_USER_DN", "")
 AD_GROUP_BASE_DN = os.getenv("AD_GROUP_BASE_DN", "")
 AD_BIND_USER = os.getenv("AD_BIND_USER", "")                # conta de serviço (consulta)
 AD_BIND_PASSWORD = os.getenv("AD_BIND_PASSWORD", "")        # senha do serviço (somente ambiente)
+
+# ============================================================================
+# NOTIFICAÇÕES POR E-MAIL (feature 030) — parâmetros de ENVIO via SMTP.
+# Exclusivamente configuração de ambiente (bootstrap): o singleton persistido
+# (email_config — tela Administração → Notificações) guarda APENAS ativação e
+# destinatários; nada de credenciais no banco (Constitution VI — precedente
+# AD_BIND_PASSWORD). Sem SMTP_HOST configurado, o provedor de e-mail fica
+# inoperante (a notificação nasce DESATIVADA — RN-006 da spec 030).
+# NOTA: DEVE ficar APÓS load_dotenv() — as variáveis vivem no .env do servidor
+# (guarda da 018 contra o bug de posicionamento).
+# ============================================================================
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")                # identificada; tratada como sensível em logs
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")                # SEGREDO — somente ambiente, nunca em banco/logs
+SMTP_FROM = os.getenv("SMTP_FROM", "")                        # remetente; fallback: SMTP_USERNAME
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").strip().lower() == "true"
+SMTP_SEND_TIMEOUT = float(os.getenv("SMTP_SEND_TIMEOUT", "10"))  # segundos (FR-016/SC-006)

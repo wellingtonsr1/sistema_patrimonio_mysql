@@ -94,14 +94,14 @@ sistema_patrimonio/
 │   │   ├── custodians_api.py  # Colaboradores (CRUD, bens sob custódia, import CSV)
 │   │   ├── locations_api.py   # Locais (CRUD)
 │   │   └── reports_api.py     # dashboard-stats + 3 exportações CSV
-│   ├── models/                # 18 modelos SQLAlchemy + enums.py (fonte de verdade das tabelas; 020: + backup_records; 021: + backup_config)
+│   ├── models/                # Modelos SQLAlchemy + enums.py (fonte de verdade das tabelas; 020: + backup_records; 021: + backup_config; 030: + notification[EmailConfig, Notification])
 │   ├── schemas/               # Schemas Pydantic v2 (Create/Update/Read por entidade; user.py para /auth/me)
-│   ├── services/              # 19 módulos de regra de negócio (ver §8 e INVENTARIO_TECNICO.md; 020: + backup_scheduler; 021: + backup_config_service)
+│   ├── services/              # Módulos de regra de negócio (ver §8 e INVENTARIO_TECNICO.md; 020: + backup_scheduler; 021: + backup_config_service; 030: + notification_service, email_provider, email_config_service, help_article_030)
 │   └── web/
 │       ├── routes.py          # Páginas de negócio + login/logout + configuração Jinja2Templates (context processor _inject_current_user, função can())
-│       ├── admin_routes.py    # /admin/users*, /admin/roles*, /admin/audit, /profile/password, /admin/ad*
+│       ├── admin_routes.py    # /admin/users*, /admin/roles*, /admin/audit, /profile/password, /admin/ad*, /admin/backups*, /admin/notificacoes (030)
 │       ├── help_routes.py     # /ajuda e /ajuda/{article_id}
-│       ├── templates/         # 37 templates Jinja2 (base.html, dashboard, assets/ [inclui labels], movements/, custodians/, locations/ [inclui import], maintenances/, reports/, admin/, ajuda/, profile/, setup, 403/404, login)
+│       ├── templates/         # Templates Jinja2 (base.html, dashboard, assets/ [inclui labels], movements/, custodians/, locations/ [inclui import], maintenances/, reports/, admin/ [inclui notificacoes.html — 030], ajuda/, profile/, setup, 403/404, login)
 │       └── static/
 │           ├── css/style.css  # CSS customizado (tema claro/escuro)
 │           └── js/main.js     # Dark mode, tooltips, alertas, contadores animados, sidebar mobile
@@ -554,6 +554,7 @@ que sobrevive à exclusão), `action`, `module`, `resource`, `resource_id`, `res
 | Administração | `BLOQUEIO`, `DESBLOQUEIO`, `RESET_SENHA`, `TROCA_SENHA`, `ALTERACAO_PERFIL` |
 | Perfis | `CRIACAO_PERFIL`, `ALTERACAO_PERFIL_PERMISSOES`, `EXCLUSAO_PERFIL` |
 | Negócio | `MOVIMENTACAO`, `MANUTENCAO`, `IMPORTACAO` |
+| Notificações (030) | `NOTIFICACAO_ENVIADA`, `NOTIFICACAO_FALHOU`, `CONFIG_NOTIFICACAO_ALTERADA` (módulo `notificacoes`; emitidas com `user=None` — ator é o serviço) |
 | Segurança | `ACESSO_NEGADO` (403 de `require_permission`) |
 | Integração AD | ver §10.5 (13 eventos) |
 

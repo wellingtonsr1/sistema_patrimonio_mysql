@@ -556,6 +556,7 @@ def execute_import(
                             operator_name=operator,
                             generate_term=(m_type == MovementType.ALLOCATION),
                         ),
+                        notify=False,  # 030/RN-002: lote CSV não notifica
                     )
                 db.commit()
                 imported += 1
@@ -641,6 +642,7 @@ def execute_import(
                         operator_name=operator,
                         generate_term=True,
                     ),
+                    notify=False,  # 030/RN-002: lote CSV não notifica
                 )
             else:
                 # Bem novo sem custodiante: fecha a unidade da linha aqui

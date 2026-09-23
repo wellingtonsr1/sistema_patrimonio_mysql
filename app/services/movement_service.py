@@ -60,10 +60,24 @@ class MovementService:
         return MovementType.TRANSFER
 
     @staticmethod
-    def create_movement(db: Session, data: MovementCreate) -> Movement:
+    def create_movement(
+        db: Session,
+        data: MovementCreate,
+        notify: bool = True,
+        operator: Optional[str] = None,
+        ip_address: Optional[str] = None,
+    ) -> Movement:
         """
         Executa e grava de forma atômica uma nova movimentação de equipamento,
         atualizando o estado atual do bem e registrando a trilha de auditoria completa.
+
+        Feature 030 — parâmetros ADITIVOS (nenhum chamador existente muda):
+        - ``notify=True`` (default): após o commit, solicita a notificação por
+          e-mail ao serviço de notificação (best-effort — falha NUNCA afeta a
+          movimentação nem propaga erro; RN-001/FR-003). O import CSV em lote
+          passa ``notify=False`` (RN-002 — lote não notifica).
+        - ``operator``/``ip_address``: contexto opcional para chamadas diretas
+          ao service (defaults None — nenhum chamador atual é obrigado a passar).
         """
         asset = db.query(Asset).filter(Asset.id == data.asset_id).first()
         if not asset:
@@ -283,6 +297,30 @@ class MovementService:
         db.add(movement)
         db.commit()
         db.refresh(movement)
+
+        # ====================================================================
+        # Feature 030 — notificação por e-mail (pós-commit, best-effort).
+        # PONTO DE NÃO-RETORNO: a movimentação JÁ está persistida aqui; qualquer
+        # falha no bloco abaixo é capturada e NUNCA propaga (FR-002/FR-003/RN-001).
+        # ====================================================================
+        if notify:
+            try:
+                from app.services import notification_service as _ns
+
+                _ns.notify_movement(
+                    db,
+                    movement,
+                    operator=operator,
+                    ip_address=ip_address,
+                )
+            except Exception:  # pragma: no cover — defesa final; nada escapa
+                import logging
+
+                logging.getLogger(__name__).exception(
+                    "Falha inesperada no hook de notificação (movimentação %s) — movimentação preservada.",
+                    movement.id,
+                )
+
         return movement
 
     @staticmethod

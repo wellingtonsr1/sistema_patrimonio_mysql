@@ -479,7 +479,8 @@ class TestCenarioK_FalhaTransacional:
 
         original = MovementService.create_movement
 
-        def _falha(db, data):
+        # Assinatura compatível com a 030 (parâmetros aditivos notify/operator/ip_address)
+        def _falha(db, data, *args, **kwargs):
             raise ValueError("Falha simulada na movimentação")
 
         monkeypatch.setattr(MovementService, "create_movement", _falha)
@@ -513,11 +514,12 @@ class TestCenarioK_FalhaTransacional:
         chamadas = {"n": 0}
         original = MovementService.create_movement
 
-        def _falha_apos_primeira(db, data):
+        # Assinatura compatível com a 030 (parâmetros aditivos notify/operator/ip_address)
+        def _falha_apos_primeira(db, data, *args, **kwargs):
             chamadas["n"] += 1
             if chamadas["n"] > 1:
                 raise ValueError("Falha simulada na movimentação")
-            return original(db, data)
+            return original(db, data, *args, **kwargs)
 
         monkeypatch.setattr(MovementService, "create_movement", _falha_apos_primeira)
         result = execute_import(rows, db_session, skip_duplicates=False, operator_name=OPERADOR)

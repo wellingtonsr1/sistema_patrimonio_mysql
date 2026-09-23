@@ -73,6 +73,11 @@ ACTION_BACKUP_REMOVED_RETENTION = "BACKUP_REMOVIDO_RETENCAO"
 ACTION_RETENTION_FAILED = "BACKUP_RETENCAO_FALHA"
 ACTION_BACKUP_CONFIG_UPDATED = "BACKUP_CONFIGURACAO_ALTERADA"
 
+# Notificação por e-mail de movimentações (feature 030 — aditivo)
+ACTION_NOTIFICACAO_ENVIADA = "NOTIFICACAO_ENVIADA"
+ACTION_NOTIFICACAO_FALHOU = "NOTIFICACAO_FALHOU"
+ACTION_NOTIFICACAO_CONFIG = "CONFIG_NOTIFICACAO_ALTERADA"
+
 # Rótulos em linguagem natural exibidos na interface.
 # A ação gravada na trilha continua sendo o identificador (ex.: "RESET_SENHA").
 ACTION_LABELS: Dict[str, str] = {
@@ -93,6 +98,10 @@ ACTION_LABELS: Dict[str, str] = {
     ACTION_BACKUP_REMOVED_RETENTION: "Backup Removido pela Retenção",
     ACTION_RETENTION_FAILED: "Retenção de Backups Falhou",
     ACTION_BACKUP_CONFIG_UPDATED: "Configuração de Backup Alterada",
+    # Notificação por e-mail (030)
+    ACTION_NOTIFICACAO_ENVIADA: "Notificação Enviada",
+    ACTION_NOTIFICACAO_FALHOU: "Notificação Falhou",
+    ACTION_NOTIFICACAO_CONFIG: "Configuração de Notificação Alterada",
     ACTION_LOGIN: "Login",
     ACTION_LOGIN_FAILED: "Falha de Login",
     ACTION_LOGIN_LOCKED: "Login Bloqueado",

@@ -48,6 +48,7 @@ from app.services.audit_service import (
 )
 from app.services.auth_service import change_password, create_user, reset_password
 from app.services import backup_config_service
+from app.services import email_config_service  # feature 030
 from app.services import backup_service
 from app.services.backup_service import BackupService
 from app.services import ad_service
@@ -56,6 +57,7 @@ from app.services.audit_service import (
     ACTION_AD_CONNECTION_TESTED,
     ACTION_AD_SETTINGS_UPDATED,
 )
+from app.services.audit_service import ACTION_NOTIFICACAO_ENVIADA, ACTION_NOTIFICACAO_FALHOU  # feature 030 (log técnico)
 from app.web.routes import templates
 
 admin_router = APIRouter(include_in_schema=False)
@@ -928,6 +930,58 @@ def admin_backup_config_form(request: Request, db: Session = Depends(get_db)):
             "info": None,
             "active_tab": "admin",
         },
+    )
+
+
+# ============================================================================
+# CONFIGURAÇÃO DE NOTIFICAÇÕES POR E-MAIL (feature 030) — notificacoes.gerenciar
+# ===========================================================================
+
+@admin_router.get("/admin/notificacoes", response_class=HTMLResponse, dependencies=[Depends(require_permission("notificacoes.gerenciar", web=True))])
+def admin_notificacoes_form(request: Request, db: Session = Depends(get_db)):
+    """Formulário de notificações (030): estado atual, leitura pura (sem criar singleton)."""
+    eff = email_config_service.get_effective_config(db, create=False)
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/notificacoes.html",
+        context={
+            "config_form": eff,
+            "success": request.query_params.get("success"),
+            "error": request.query_params.get("error"),
+            "info": None,
+            "active_tab": "admin",
+        },
+    )
+
+
+@admin_router.post("/admin/notificacoes", dependencies=[Depends(require_permission("notificacoes.gerenciar", web=True))])
+def admin_notificacoes_save(
+    request: Request,
+    db: Session = Depends(get_db),
+    notifications_enabled: Optional[str] = Form(None),  # checkbox: ausente = false
+    recipients: str = Form(""),
+):
+    """Salva a configuração de notificações (030): valida no backend via
+    email_config_service (regras no service — Constitution II/III), persiste,
+    audita before/after e confirma com flash. Falha de validação → redirect
+    com erro amigável, nada persistido."""
+    actor = request.state.user
+    enabled = notifications_enabled is not None  # padrão HTML de checkbox
+    try:
+        email_config_service.save_config(
+            db,
+            enabled=enabled,
+            recipients=recipients,
+            user=actor,
+        )
+    except ValueError as err:
+        return RedirectResponse(
+            url=f"/admin/notificacoes?error={_quote(str(err))}",
+            status_code=303,
+        )
+    return RedirectResponse(
+        url=f"/admin/notificacoes?success={_quote('Configuração de notificações salva com sucesso.')}",
+        status_code=303,
     )
 
 
