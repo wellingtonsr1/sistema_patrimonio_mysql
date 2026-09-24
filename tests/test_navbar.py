@@ -101,3 +101,19 @@ def test_navbar_css_served_with_layout_rules(client):
     # Ajuda continua oculta na barra superior em telas pequenas (< 1200px)
     assert ".app-navbar .navbar-quick-actions" in css
     assert ".navbar-quick-actions { display: none !important; }" in css
+
+
+def test_mobile_sidebar_dark_mode_contrast(client):
+    """M-002: no modo escuro a sidebar responsiva usa superfície ESCURA (não a
+    primária clara #fcf1f2) e o texto dos itens não é mais branco-forçado —
+    contraste legível no menu (< 1200px)."""
+    css = client.get("/static/css/style.css").text
+    # background da sidebar dark = superfície escura, NÃO a variável clara
+    assert '[data-theme="dark"] .mobile-sidebar { background: var(--dark-surface)' in css
+    # regras legadas que forçavam texto branco sobre fundo claro foram removidas
+    assert '[data-theme="dark"] .mobile-sidebar .sidebar-nav-item { color: rgba(255,255,255,.8); }' not in css
+    # item dark usa cor de texto do tema
+    assert "[data-theme=\"dark\"] .mobile-sidebar .sidebar-nav-item { color: var(--dark-text-secondary" in css
+    # cache-buster atualizado no base.html (evita CSS antigo em cache)
+    page = client.get("/login").text
+    assert "style.css?v=20260924" in page

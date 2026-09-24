@@ -1367,15 +1367,20 @@ a, button { transition: all .12s var(--ease); }
 
 .mobile-sidebar .sidebar-actions .btn { width: 100%; justify-content: center; }
 
-[data-theme="dark"] .mobile-sidebar { background: var(--dark-primary); }
-[data-theme="dark"] .mobile-sidebar .sidebar-header { border-bottom: 1px solid rgba(255,255,255,.12); }
-[data-theme="dark"] .mobile-sidebar .sidebar-nav-item { color: rgba(255,255,255,.8); }
-[data-theme="dark"] .mobile-sidebar .sidebar-nav-item:hover { color: #fff; background: rgba(255,255,255,.1); }
-[data-theme="dark"] .mobile-sidebar .sidebar-nav-item.active { color: #fff; background: var(--dark-primary-hover); }
-[data-theme="dark"] .mobile-sidebar .sidebar-section-label { color: rgba(255,255,255,.55); }
-[data-theme="dark"] .mobile-sidebar .sidebar-divider { background: rgba(255,255,255,.1); }
-[data-theme="dark"] .mobile-sidebar .sidebar-close { background: rgba(255,255,255,.1); color: rgba(255,255,255,.8); }
-[data-theme="dark"] .mobile-sidebar .sidebar-close:hover { background: rgba(255,255,255,.15); color: #fff; }
+/* M-002 fix: a sidebar usa superfície ESCURA do tema (não a "primária" clara).
+   --dark-primary (#fcf1f2) é quase branco — com texto branco dos itens ficava
+   ilegível no modo responsivo. Header/divider/herdados continuam coerentes. */
+[data-theme="dark"] .mobile-sidebar { background: var(--dark-surface); border-right: 1px solid var(--dark-border); }
+[data-theme="dark"] .mobile-sidebar .sidebar-header { border-bottom: 1px solid var(--dark-border); }
+[data-theme="dark"] .mobile-sidebar .sidebar-nav-item { color: var(--dark-text-secondary, var(--dark-text)); }
+[data-theme="dark"] .mobile-sidebar .sidebar-nav-item:hover { color: var(--dark-text); background: var(--dark-surface-raised); }
+[data-theme="dark"] .mobile-sidebar .sidebar-nav-item.active { color: #fff; background: var(--dark-primary-hover); font-weight: 600; }
+[data-theme="dark"] .mobile-sidebar .sidebar-section-label { color: var(--dark-text-muted); }
+[data-theme="dark"] .mobile-sidebar .sidebar-divider { background: var(--dark-border); }
+[data-theme="dark"] .mobile-sidebar .sidebar-actions { border-top: 1px solid var(--dark-border); }
+[data-theme="dark"] .mobile-sidebar .sidebar-close { background: var(--dark-surface-raised); color: var(--dark-text-muted); }
+[data-theme="dark"] .mobile-sidebar .sidebar-close:hover { background: var(--dark-surface-raised); color: var(--dark-text); }
+[data-theme="dark"] .mobile-sidebar .sidebar-brand { color: var(--dark-text); }
 
 /* Hamburger button */
 .sidebar-hamburger {
