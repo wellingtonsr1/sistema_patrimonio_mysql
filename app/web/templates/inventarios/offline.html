@@ -39,35 +39,27 @@
             top: 0;
             z-index: 1030;
         }
-        /* Marca empilhada como na navbar principal: LOGO acima, nome abaixo,
-           centralizados entre si (mesmo padrão do .navbar-brand do style.css) */
-        .offbar-brand {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: .15rem;
-            flex-shrink: 0;
-            color: #fff;
-            text-decoration: none;
-        }
+        .offbar-brand { display: flex; align-items: center; flex-shrink: 0; color:#fff; text-decoration:none; }
         /* Mesmo tamanho da logo padrão do sistema (.navbar-brand-logo do style.css: 32px) */
         .offbar-brand img { height: 32px; width: auto; display: block; }
         .offbar-info {
             flex: 1 1 auto;
             min-width: 0;
             display: flex;
-            align-items: center;
+            align-items: center;      /* título e status NA MESMA linha (desktop) */
             gap: .9rem;
-            flex-wrap: wrap;
+            flex-wrap: wrap;          /* quebra limpa se faltar largura */
             row-gap: .3rem;
         }
+        .offbar-line1 { display: flex; align-items: baseline; gap: .5rem; min-width: 0; }
         .offbar-title {
-            font-size: .95rem;
+            font-size: 1.1rem;
             font-weight: 700;
             letter-spacing: -.02em;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            flex-shrink: 1;
         }
         .offbar-code {
             font-size: .72rem;
@@ -153,10 +145,12 @@
     <header class="offbar no-print">
         <a class="offbar-brand" href="/inventarios" title="Todos os inventários">
             <img src="/static/img/Logo_IPMjp_2.png" alt="">
-            <span class="offbar-title">SisPatrimônio <span class="badge badge-soft-primary fw-normal" style="font-size:.65rem;">PRO</span></span>
         </a>
         <div class="offbar-info">
-            <span class="offbar-code">{{ inv.code }}</span>
+            <div class="offbar-line1">
+                <span class="offbar-title">SisPatrimônio <span class="badge badge-soft-primary fw-normal" style="font-size:.65rem;">PRO</span></span>
+                <span class="offbar-code">{{ inv.code }}</span>
+            </div>
             <span id="offlineModeIndicator" class="offbar-status st-wait"
                   title="Estado da conexão com o servidor (verificação real via ping)">
                 <span class="dot"></span><span class="st-label">verificando…</span>
