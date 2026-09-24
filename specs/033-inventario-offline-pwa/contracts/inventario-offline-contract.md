@@ -2,8 +2,8 @@
 
 **Feature 033** · Autenticação: `require_api_auth` (cookie de sessão — decisão C-1) via
 `include_router(..., dependencies=[Depends(require_api_auth)])`, padrão do `v1_router`.
-Permissões: `inventario.visualizar` (ping/pacote/conflitos/leitura) e `inventario.conferir`
-(preparar/sync/reconciliar) — decisão P-1, via mecanismo RBAC existente.
+Permissões: `inventario.visualizar` (ping/conflitos/leitura de coletas) e `inventario.conferir`
+(pacote/sync/reconciliar) — decisão P-1, via mecanismo RBAC existente.
 
 Erros seguem o padrão FastAPI existente (`{"detail": "..."}`): 401 não autenticado, 403 sem
 permissão, 404 inventário/bem inexistente, 422 validação Pydantic. Nenhum payload inclui

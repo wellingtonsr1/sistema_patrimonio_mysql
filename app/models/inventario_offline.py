@@ -23,7 +23,9 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -44,6 +46,9 @@ class InventarioOfflineColeta(Base):
             "client_operation_id",
             name="uq_inventario_offline_coleta_operation",
         ),
+        # Índices do data-model.md (feature 033)
+        Index("ix_inv_off_coleta_inventory_status", "inventory_id", "status"),
+        Index("ix_inv_off_coleta_inventory_asset", "inventory_id", "asset_id"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -100,6 +105,10 @@ class InventarioOfflineColeta(Base):
     # Payload original preservado (conflitos/rejeições — C-5/FR-019)
     client_payload = Column(Text, nullable=True)
     reject_reason = Column(String(255), nullable=True)
+
+    # Metadados de evidência (FR-017 — arquitetura prevista; sem sistema de
+    # fotos nesta feature: a limitação está documentada para o usuário)
+    evidence_metadata = Column(JSON, nullable=True)
 
     # Relacionamentos (leitura mínima; escrita no item só via services oficiais)
     inventario = relationship("Inventario")

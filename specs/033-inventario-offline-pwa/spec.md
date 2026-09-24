@@ -41,7 +41,7 @@ Análise prévia obrigatória — mecanismos existentes que esta spec **reutiliz
 
 ### User Story 1 - Preparar inventário para coleta offline (Priority: P1)
 
-Um usuário autorizado, **conectado**, abre um inventário em planejamento/em andamento e solicita "Preparar conferência offline". O servidor valida autenticação, autorização e o estado do inventário, gera o pacote com **somente** os dados necessários à conferência (identificação dos bens e expectativas do snapshot) e o entrega ao dispositivo, que o guarda no armazenamento local. O usuário recebe a confirmação "Pronto para uso offline".
+Um usuário autorizado, **conectado**, abre um inventário em planejamento/em andamento e solicita "Preparar coleta offline". O servidor valida autenticação, autorização e o estado do inventário, gera o pacote com **somente** os dados necessários à conferência (identificação dos bens e expectativas do snapshot) e o entrega ao dispositivo, que o guarda no armazenamento local. O usuário recebe a confirmação "Pronto para uso offline".
 
 **Why this priority**: sem o pacote preparado, nenhuma outra parte do fluxo offline existe. É o primeiro elo entre o módulo de Inventário existente e o modo de coleta em campo.
 

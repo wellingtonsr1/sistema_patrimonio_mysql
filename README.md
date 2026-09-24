@@ -55,6 +55,20 @@ O inventário é uma **conferência física comprobatória** e possui ciclo pró
 - **Regra fundamental:** o inventário não altera automaticamente bens, movimentações ou locais. Divergências são registradas para tratamento pelos fluxos patrimoniais próprios.
 - Permissões específicas: `inventario.visualizar`, `inventario.criar`, `inventario.conferir`, `inventario.encerrar`.
 
+#### 3.1 Coleta offline de inventário (feature 033)
+
+A conferência física pode ser feita **sem conexão** em tablets/celulares, com o mesmo vocabulário e as mesmas regras do fluxo online (o servidor revalida tudo na sincronização — o dispositivo nunca é fonte de verdade):
+
+- **Preparar coleta offline** (botão na tela do inventário, com `inventario.conferir`, inventário PLANEJADO/EM_ANDAMENTO): gera no dispositivo um pacote com apenas os dados de conferência (tombamento, descrição, número de série, local/responsável esperados e a URL do QR) — nada de usuários, permissões ou credenciais.
+- **Coleta em campo sem conexão** (`/inventarios/{id}/offline`): leitura de QR (câmera nativa no Chrome/Edge) ou digitação do tombamento; registro local em IndexedDB com fila própria; contadores de conferidas/restantes/divergências/não previstos; a coleta funciona mesmo com a sessão expirada (a sessão é validada apenas na sincronização).
+- **Sincronização confiável**: em lote (até 1.000 por requisição), idempotente (reenvio não duplica), parcial (reenvia só o pendente) e com resultado por operação (aceita/duplicada/conflito/rejeitada com motivo); coletas só são gravadas pelos services oficiais do inventário.
+- **Conflitos preservados**: resultado divergente para um bem já conferido (por outro dispositivo ou pelo fluxo online) nunca é sobrescrito silenciosamente — fica na seção **“Conflitos offline”** da tela do inventário, com reconciliação por usuário autorizado (*Aplicar coleta* via fluxo oficial ou *Manter registrado*), sempre auditada.
+- **Múltiplos dispositivos**: o mesmo inventário pode ser preparado em vários dispositivos; cada coleta registra dispositivo e usuário de origem (sem IMEI/dados pessoais).
+- **Ciclo de vida do pacote**: expira quando o inventário é encerrado ou re-preparado (sem prazo arbitrário); a limpeza local só é permitida após sincronização completa confirmada, informando exatamente o que será removido.
+- **Evidências/fotos**: o sistema não possui armazenamento de imagens; a arquitetura prevê apenas metadados de evidência associados à coleta (coluna dedicada), e a limitação é intencional nesta etapa.
+- **Service Worker/PWA**: cache restrito à área de coleta offline (allowlist explícita, versionado); rotas `/api/*` e páginas sensíveis nunca são cacheadas. Requer HTTPS em produção (HTTP localhost em desenvolvimento).
+- Permissões: **nenhuma nova** — quem pode conferir online (`inventario.conferir`) prepara e coleta offline; consulta da área usa `inventario.visualizar`.
+
 ### 4. 👥 Gestão de Colaboradores & Departamentos
 
 - Cadastro de colaboradores com visão dos equipamentos sob sua custódia.
@@ -727,7 +741,7 @@ As permissões seguem `modulo.acao`.
 | Usuários | `usuarios.visualizar`, `usuarios.criar`, `usuarios.editar`, `usuarios.bloquear` |
 | Perfis | `perfis.visualizar`, `perfis.criar`, `perfis.editar`, `perfis.excluir` |
 | Relatórios | `relatorios.visualizar`, `relatorios.exportar` |
-| Inventário | `inventario.visualizar`, `inventario.criar`, `inventario.conferir`, `inventario.encerrar` |
+| Inventário | `inventario.visualizar`, `inventario.criar`, `inventario.conferir`, `inventario.encerrar` — a coleta offline (feature 033) **reutiliza** estas mesmas permissões, sem permissão nova |
 | Backup | `backup.gerenciar`, `backup.restaurar` |
 | Auditoria | `auditoria.visualizar` |
 
@@ -914,6 +928,7 @@ ad_settings
 ad_group_roles
 inventarios
 inventario_itens
+inventario_offline_coletas
 backup_records
 backup_config
 setup_claims

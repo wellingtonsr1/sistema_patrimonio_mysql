@@ -1,0 +1,23 @@
+{
+  "name": "SisPatrimônio Pro — Coleta de Inventário",
+  "short_name": "SisPatrimônio",
+  "description": "Conferência física de inventário offline do SisPatrimônio Pro",
+  "start_url": "/inventarios",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f3a5f",
+  "icons": [
+    {
+      "src": "/static/icons/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

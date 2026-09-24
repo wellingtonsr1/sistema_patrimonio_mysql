@@ -33,6 +33,7 @@ da **rastreabilidade** (dispositivo/usuário) e da **preservação de conflitos*
 | `reconcile_action` | String(20), nullable | `KEEP` ou `APPLY` (D8) |
 | `client_payload` | Text, nullable | JSON do payload original — preservado em conflitos/rejeições (C-5/FR-019) |
 | `reject_reason` | String(255), nullable | motivo da rejeição (quando `REJECTED`) |
+| `evidence_metadata` | JSON, nullable | metadados de evidência associados à coleta (FR-017 — arquitetura prevista; sem sistema de fotos nesta feature) |
 
 **UNIQUE** `(inventory_id, client_operation_id)` — idempotência (D5/FR-021).
 **Índices**: `(inventory_id, status)`, `(inventory_id, asset_id)`, `device_id`.

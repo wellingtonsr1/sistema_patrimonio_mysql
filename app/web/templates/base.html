@@ -15,6 +15,7 @@
         })();
     </script>
     <title>SisPatrimônio - {% block title %}Início{% endblock %}</title>
+    <link rel="manifest" href="/static/manifest.webmanifest">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='img/favicon.ico') }}">
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -334,5 +335,15 @@
         });
     </script>
     {% block scripts %}{% endblock %}
+    {% if active_tab == 'inventarios' %}
+    <!-- Feature 033: registro do SW apenas nas páginas de inventário (FR-035/FR-046) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function () { /* SW é opcional */ });
+            });
+        }
+    </script>
+    {% endif %}
 </body>
 </html>

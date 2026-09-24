@@ -1936,6 +1936,12 @@ def view_inventario(
     can_conferir = user_has_permission_for(request, db, "inventario.conferir")
     can_encerrar = user_has_permission_for(request, db, "inventario.encerrar")
 
+    # Feature 033: coletas offline (rastreabilidade por dispositivo — US4) e
+    # conflitos preservados (P-3/FR-027) — leitura via service (Princípio III)
+    from app.services.inventario_offline_service import InventarioOfflineService
+    offline = InventarioOfflineService.list_coletas(db, inventory_id=inv.id)
+    offline_conflitos = [c for c in offline["coletas"] if c["status"] == "CONFLICT"]
+
     return templates.TemplateResponse(
         request=request,
         name="inventarios/detail.html",
@@ -1950,6 +1956,8 @@ def view_inventario(
             "item_statuses": InventarioItemStatus,
             "can_conferir": can_conferir,
             "can_encerrar": can_encerrar,
+            "offline_coletas": offline["coletas"],
+            "offline_conflitos": offline_conflitos,
             "error": error,
             "active_tab": "inventarios",
         },
@@ -2178,6 +2186,68 @@ def register_unlisted_asset(
             },
         )
     return RedirectResponse(url=f"/inventarios/{inventario_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@web_router.post("/inventarios/{inventario_id}/offline/coletas/{coleta_id}/reconciliar",
+    dependencies=[Depends(require_permission("inventario.conferir"))])
+def reconciliar_coleta_offline(
+    request: Request,
+    inventario_id: int,
+    coleta_id: int,
+    action: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """Reconcilia conflito offline pela tela do inventário (P-3/D8): KEEP ou APPLY."""
+    from app.services.inventario_offline_service import (
+        InventarioOfflineService,
+        OfflinePackageError,
+    )
+    user = request.state.user
+    try:
+        InventarioOfflineService.reconcile(db, coleta_id=coleta_id, action=action, user=user)
+    except OfflinePackageError as err:
+        return RedirectResponse(
+            url=f"/inventarios/{inventario_id}?error={quote(str(err.detail))}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    return RedirectResponse(url=f"/inventarios/{inventario_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@web_router.get("/sw.js", include_in_schema=False)
+def service_worker_js():
+    """Serve o Service Worker na raiz (escopo '/' — D4) para que a navegação
+    em `/inventarios/{id}/offline` seja cache-first (FR-035). Nenhuma rota de
+    API é interceptada (FR-036).
+    """
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+
+    sw_path = Path(__file__).resolve().parent / "static" / "js" / "sw.js"
+    return FileResponse(sw_path, media_type="application/javascript")
+
+
+@web_router.get("/inventarios/{inventario_id}/offline", response_class=HTMLResponse, dependencies=[Depends(require_permission("inventario.visualizar"))])
+def view_inventario_offline(
+    request: Request,
+    inventario_id: int,
+    db: Session = Depends(get_db),
+):
+    """Shell da coleta offline (feature 033; servida cache-first pelo SW apenas nesta rota).
+
+    Nada administrativo é renderizado (FR-030); a coleta em si acontece no client
+    (IndexedDB) — esta página é o casco HTML cacheável com indicadores (FR-041).
+    """
+    inv = InventarioService.get_by_id(db, inventario_id)
+    if not inv:
+        raise HTTPException(status_code=404, detail="Inventário não encontrado")
+    return templates.TemplateResponse(
+        request=request,
+        name="inventarios/offline.html",
+        context={
+            "inv": inv,
+            "active_tab": "inventarios",
+        },
+    )
 
 
 @web_router.post("/inventarios/{inventario_id}/encerrar", dependencies=[Depends(require_permission("inventario.encerrar"))])

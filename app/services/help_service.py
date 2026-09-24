@@ -667,6 +667,69 @@ ARTICLES: List[Dict] = [
             },
         ],
     },
+    {
+        "id": "coleta-offline-inventario",
+        "title": "Coleta offline de inventário (sem conexão)",
+        "module": "Inventários",
+        "icon": "bi-cloud-arrow-down",
+        "audience": "user",
+        "summary": "Preparar pacote offline, coletar em campo sem internet, sincronizar e resolver conflitos entre dispositivos.",
+        "keywords": ["offline", "coleta offline", "sem internet", "tablet", "pacote", "sincronizar", "conflito", "pwa", "qr", "campo"],
+        "sections": [
+            {
+                "heading": "Preparar a coleta offline",
+                "steps": [
+                    "Na tela do inventário (PLANEJADO ou EM_ANDAMENTO), clique em Preparar coleta offline.",
+                    "O dispositivo guarda um pacote com apenas os dados de conferência (tombamento, descrição, número de série, local/responsável esperados e o QR).",
+                    "Nada de usuários, permissões ou credenciais é armazenado no dispositivo.",
+                ],
+            },
+            {
+                "heading": "Coletar sem conexão",
+                "steps": [
+                    "Abra /inventarios/{id}/offline no tablet — a página funciona sem internet (Service Worker).",
+                    "Use Ler QR (câmera, no Chrome/Edge) ou digite o tombamento para identificar o bem.",
+                    "Escolha o resultado: Encontrado, Local diferente, Não encontrado ou Sem identificação — as mesmas regras do fluxo online.",
+                    "Cada coleta fica guardada no próprio dispositivo, mesmo fechando o navegador ou reiniciando o aparelho.",
+                ],
+            },
+            {
+                "heading": "Sincronizar ao voltar da rede",
+                "steps": [
+                    "Na área de coleta offline, toque em Sincronizar agora (ou aguarde a detecção automática de rede).",
+                    "O servidor revalida tudo e retorna o resultado por coleta: aceita, duplicada, conflito ou rejeitada com motivo.",
+                    "Nada é perdido: coletas rejeitadas ou em conflito continuam no dispositivo para consulta; reenvios não criam duplicidade.",
+                ],
+            },
+            {
+                "heading": "Conflitos entre coletas",
+                "body": (
+                    "Se dois dispositivos (ou o fluxo online e uma coleta offline) registrarem resultados diferentes "
+                    "para o mesmo bem, o sistema não escolhe sozinho: o conflito aparece na seção Conflitos offline da "
+                    "tela do inventário, com as versões lado a lado. Um usuário autorizado decide entre Aplicar coleta "
+                    "(grava pelo fluxo oficial, inventário aberto) e Manter registrado (mantém o estado atual). Toda decisão "
+                    "fica na auditoria."
+                ),
+            },
+            {
+                "heading": "Encerrar a coleta no dispositivo",
+                "steps": [
+                    "Com tudo sincronizado, use Encerrar coleta neste dispositivo: o sistema informa exatamente o que será removido e pede confirmação.",
+                    "Com coletas pendentes, a limpeza é impedida — sincronize primeiro.",
+                    "O pacote expira quando o inventário é encerrado ou re-preparado; nesse caso, reconecte e prepare novamente.",
+                ],
+            },
+            {
+                "heading": "Permissões e limitações",
+                "note": (
+                    "Nenhuma permissão nova: quem confere online (inventario.conferir) prepara e coleta offline; a área de "
+                    "coleta usa inventario.visualizar. Não há acesso à administração no modo offline. O sistema não armazena "
+                    "fotos/evidências — apenas prevê metadados para uma etapa futura. Requer Chrome/Edge para leitura de QR "
+                    "(nos demais navegadores, use a digitação do tombamento) e HTTPS em produção."
+                ),
+            },
+        ],
+    },
 
     # ------------------------------------------------------------------ #
     # COLABORADORES & LOCAIS
@@ -1360,7 +1423,7 @@ CATEGORIES: List[Dict] = [
         "icon": "bi-clipboard-check",
         "description": "Conferência física do acervo, com ata comprobatória.",
         "audience": "user",
-        "article_ids": ["inventarios-overview", "conferir-inventario"],
+        "article_ids": ["inventarios-overview", "conferir-inventario", "coleta-offline-inventario"],
     },
     {
         "key": "colaboradores",

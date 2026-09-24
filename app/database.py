@@ -96,6 +96,27 @@ def _ensure_schema_migrations():
             "VARCHAR(20) DEFAULT 'local' NOT NULL"
         ))
 
+        # Feature 033: metadados de evidência (FR-017) acrescentados ao model
+        # APÓS a primeira criação da tabela em bancos já existentes — o
+        # create_all não altera tabelas previamente criadas, então a coluna
+        # nova exige migração aditiva idempotente (MariaDB 10.5+, mesmo
+        # mecanismo das colunas acima; nulo, sem dado default).
+        conn.execute(text(
+            "ALTER TABLE inventario_offline_coletas ADD COLUMN IF NOT EXISTS "
+            "evidence_metadata JSON NULL"
+        ))
+
+        # Feature 033: índices compostos do data-model.md — mesmo caso da
+        # coluna acima (tabela criada em rodada anterior sem eles). Idempotente.
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_inv_off_coleta_inventory_status "
+            "ON inventario_offline_coletas (inventory_id, status)"
+        ))
+        conn.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_inv_off_coleta_inventory_asset "
+            "ON inventario_offline_coletas (inventory_id, asset_id)"
+        ))
+
         conn.commit()
 
 
@@ -130,5 +151,8 @@ def init_db():
     # Feature 032: histórico unificado de execuções de integração (tabela NOVA,
     # aditiva — nada de tabelas/colunas existentes é alterado; data-model.md).
     from app.models.integration_execution import IntegrationExecution  # noqa: F401
+    # Feature 033: coleta offline de inventário (tabela NOVA, aditiva —
+    # idempotência/conflitos; nada de tabelas/colunas existentes é alterado).
+    from app.models.inventario_offline import InventarioOfflineColeta  # noqa: F401
     _create_all_tolerante_corrida()
     _ensure_schema_migrations()

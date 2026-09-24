@@ -6,6 +6,7 @@ from app.api.movements_api import router as movements_router
 from app.api.custodians_api import router as custodians_router
 from app.api.locations_api import router as locations_router
 from app.api.reports_api import router as reports_router
+from app.api.inventario_offline_api import router as inventario_offline_router
 from app.api.deps import require_api_auth
 
 api_v1_router = APIRouter(prefix="/api/v1")
@@ -21,5 +22,6 @@ for _router in (
     custodians_router,
     locations_router,
     reports_router,
+    inventario_offline_router,
 ):
     api_v1_router.include_router(_router, dependencies=[Depends(require_api_auth)])

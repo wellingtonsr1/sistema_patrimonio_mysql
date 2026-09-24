@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        // Mesma política de tema do base.html (FR-043 — identidade visual existente)
+        (function () {
+            try {
+                var t = localStorage.getItem('sispatrim-theme');
+                if (!t) { t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+                document.documentElement.setAttribute('data-theme', t);
+                document.documentElement.setAttribute('data-bs-theme', t);
+            } catch (e) {}
+        })();
+    </script>
+    <title>Coleta Offline — {{ inv.code }} | SisPatrimônio Pro</title>
+    <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
+    {# Vendors LOCAIS (self-hosted): a shell precisa funcionar OFFLINE — o SW não
+       cacheia cross-origin, então CDN quebraria grid/ícones/modal sem rede.
+       Mesmas versões do base.html (Bootstrap 5.3.3 / Icons 1.11.3). #}
+    <link href="/static/vendor/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/vendor/css/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=20260924">
+    {# Cabeçalho PRÓPRIO da shell (feature 033): não usa .app-navbar/.navbar-brand
+       do style.css global. Layout empilhado: logo | (título / nome do inventário /
+       status) | ↻ verificar conexão + tema — conforme mockup aprovado. #}
+    <style>
+        /* Cabeçalho: linha única em desktop/tablet (logo | bloco de info | tema);
+           os sub-linhas do bloco se reorganizam em telas estreitas. */
+        .offbar {
+            display: flex;
+            align-items: center;
+            gap: .8rem;
+            padding: .65rem 1.25rem;
+            background: var(--color-primary);
+            color: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 1030;
+        }
+        /* Marca empilhada como na navbar principal: LOGO acima, nome abaixo,
+           centralizados entre si (mesmo padrão do .navbar-brand do style.css) */
+        .offbar-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: .15rem;
+            flex-shrink: 0;
+            color: #fff;
+            text-decoration: none;
+        }
+        /* Mesmo tamanho da logo padrão do sistema (.navbar-brand-logo do style.css: 32px) */
+        .offbar-brand img { height: 32px; width: auto; display: block; }
+        .offbar-info {
+            flex: 1 1 auto;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: .9rem;
+            flex-wrap: wrap;
+            row-gap: .3rem;
+        }
+        .offbar-title {
+            font-size: .95rem;
+            font-weight: 700;
+            letter-spacing: -.02em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .offbar-code {
+            font-size: .72rem;
+            font-weight: 600;
+            letter-spacing: .02em;
+            padding: .1rem .45rem;
+            border-radius: .35rem;
+            background: rgba(255,255,255,.14);
+            border: 1px solid rgba(255,255,255,.22);
+            color: #fff;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        /* Status de conexão: pill com pontinho (estados ok/wait/off via JS) */
+        .offbar-status {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            font-size: .78rem;
+            padding: .22rem .6rem;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,.35);
+            color: #fff;
+            white-space: nowrap;
+            max-width: 100%;
+            flex-shrink: 0;
+        }
+        .offbar-status .dot { width: 7px; height: 7px; border-radius: 50%; background: #9aa7b5; flex-shrink: 0; }
+        .offbar-status .st-label { overflow: hidden; text-overflow: ellipsis; }
+        .offbar-status.st-ok { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.5); }
+        .offbar-status.st-ok .dot { background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,.25); }
+        .offbar-status.st-off { background: rgba(220,38,38,.85); border-color: transparent; }
+        .offbar-status.st-off .dot { background: #fff; }
+        .offbar-status.st-wait .dot { animation: offbar-pulse 1.2s infinite; }
+        @keyframes offbar-pulse { 50% { opacity: .35; } }
+        .offbar-dark {
+            flex-shrink: 0;
+            margin-left: auto;         /* tema sempre no canto direito */
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,.4);
+            background: transparent;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .offbar-dark:hover { background: rgba(255,255,255,.12); }
+
+        body { overflow-x: hidden; } /* proteção contra transbordo residual */
+
+        /* Desktop: 4 contadores em linha ÚNICA a partir de 992px (tablet
+           horizontal e tela grande); 2×2 abaixo disso (tablet vertical/celular) */
+        @media (min-width: 992px) {
+            #offlinePainel .painel-item { flex: 0 0 25%; max-width: 25%; }
+        }
+        @media (min-width: 768px) {
+            main { max-width: 92% !important; }
+            .card { padding: 1.25rem !important; }
+            .table { font-size: .9rem; }
+        }
+        /* Tablet vertical / celular (≤767px): header compacto */
+        @media (max-width: 767.98px) {
+            main { max-width: 100% !important; padding-left: .75rem; padding-right: .75rem; }
+            .card { padding: 1rem !important; }
+            .fs-3 { font-size: 1.5rem !important; }
+            .table { font-size: .85rem; }
+            .offbar { padding: .5rem .75rem; gap: .6rem; }
+            .offbar-brand img { height: 28px; }
+            .offbar-dark { width: 30px; height: 30px; }
+        }
+        /* Celular estreito (≤575px) */
+        @media (max-width: 575.98px) {
+            #modalColetaOffline .modal-dialog { margin: .5rem; }
+            #btnSincronizar, #btnLimpar { width: 100%; }
+            .offbar-title { font-size: 1rem; }
+        }
+    </style>
+    {# FR-030: shell SEM navegação administrativa — apenas a coleta offline #}
+</head>
+<body>
+    <header class="offbar no-print">
+        <a class="offbar-brand" href="/inventarios" title="Todos os inventários">
+            <img src="/static/img/Logo_IPMjp_2.png" alt="">
+            <span class="offbar-title">SisPatrimônio <span class="badge badge-soft-primary fw-normal" style="font-size:.65rem;">PRO</span></span>
+        </a>
+        <div class="offbar-info">
+            <span class="offbar-code">{{ inv.code }}</span>
+            <span id="offlineModeIndicator" class="offbar-status st-wait"
+                  title="Estado da conexão com o servidor (verificação real via ping)">
+                <span class="dot"></span><span class="st-label">verificando…</span>
+            </span>
+        </div>
+        <button class="offbar-dark" id="darkToggle" title="Alternar tema" aria-label="Alternar tema">
+            <i class="bi bi-moon-stars" id="darkIcon"></i>
+        </button>
+    </header>
+
+    <main class="container-fluid py-4 px-lg-4 mx-auto" style="max-width: 92%;">
+
+        <div class="alert alert-warning small d-flex align-items-center gap-2">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>
+                <strong>{{ inv.code }}</strong> — {{ inv.name }}. Área restrita à coleta
+                offline deste inventário — sem acesso a administração, usuários ou edição
+                patrimonial (FR-030). As coletas ficam guardadas apenas neste dispositivo
+                até a sincronização.
+            </span>
+        </div>
+
+        <!-- Painel de contadores (FR-009): 4 em linha (grid próprio, 2×2 só
+             em celular estreito — comportamento desktop em tablet/tela grande) -->
+        <div class="row g-3 mb-4" id="offlinePainel">
+            <div class="painel-item col-6 col-lg-3"><div class="card p-3 text-center">
+                <div class="fs-3 fw-bold" id="cntConferidas">–</div>
+                <div class="text-muted small">Conferidas (pacote)</div>
+            </div></div>
+            <div class="painel-item col-6 col-lg-3"><div class="card p-3 text-center">
+                <div class="fs-3 fw-bold" id="cntRestantes">–</div>
+                <div class="text-muted small">Restantes</div>
+            </div></div>
+            <div class="painel-item col-6 col-lg-3"><div class="card p-3 text-center">
+                <div class="fs-3 fw-bold" style="color:var(--amber);" id="cntDivergencias">–</div>
+                <div class="text-muted small">Divergências locais</div>
+            </div></div>
+            <div class="painel-item col-6 col-lg-3"><div class="card p-3 text-center">
+                <div class="fs-3 fw-bold text-danger" id="cntNaoPrevistos">–</div>
+                <div class="text-muted small">Bens não previstos</div>
+            </div></div>
+        </div>        <!-- Pendências de sincronização (FR-009/FR-041) -->
+        <div class="card p-4 mb-4">
+            <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+                <div>
+                    <strong><i class="bi bi-arrow-repeat me-1"></i> Sincronização</strong>
+                    <div class="text-muted small" id="syncStatusLinha">Nenhuma pendência conhecida.</div>
+                </div>
+                <span id="pendenciasBadge" class="badge badge-soft-gray">– pendentes</span>
+            </div>
+            <div class="d-flex justify-content-end flex-wrap gap-2 mt-3">
+                <button type="button" id="btnSincronizar" class="btn btn-primary btn-sm">
+                    <i class="bi bi-cloud-arrow-up me-1"></i> Sincronizar agora
+                </button>
+                <button type="button" id="btnLimpar" class="btn btn-ghost btn-sm" title="Remove deste dispositivo o pacote e as coletas já sincronizadas (FR-040)">
+                    <i class="bi bi-trash3 me-1"></i> Encerrar coleta neste dispositivo
+                </button>
+            </div>
+        </div>
+
+        <!-- Lista/pesquisa de itens do pacote (FR-009) -->
+        <div class="card p-4 mb-4">
+            <div class="d-flex gap-2 mb-3">
+                <!-- flex:1 + width:auto faz a barra DIVIDIR a linha com o botão
+                     (o width:100% padrão do form-control empurrava o botão p/ baixo) -->
+                <input type="search" id="buscaItem" class="form-control"
+                       style="flex: 1 1 auto; width: auto; min-width: 0;"
+                       placeholder="Pesquisar por tombamento ou descrição…">
+                <button type="button" id="btnLerQR" class="btn btn-outline-primary text-nowrap flex-shrink-0">
+                    <i class="bi bi-qr-code-scan me-1"></i> Ler QR
+                </button>
+            </div>
+            <div id="avisoPacote" class="alert alert-danger" style="display:none;"></div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead><tr><th>Tombamento</th><th>Descrição</th><th>Local esperado</th><th>Estado local</th><th>Ações</th></tr></thead>
+                    <tbody id="itensBody">
+                        <tr><td colspan="4" class="text-muted">Carregando pacote do dispositivo…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-muted small mb-0" id="semPacoteDica" style="display:none;">
+                Sem pacote neste dispositivo? Conecte-se e use
+                <strong>“Preparar coleta offline”</strong> na tela do inventário.
+            </p>
+        </div>
+
+        <video id="qrVideo" playsinline style="display:none;width:100%;max-width:420px;border-radius:12px;"></video>
+    </main>
+
+    <!-- Modal de conferência offline — mesmo formulário do fluxo online (Princípio X);
+         sem link para a ficha do bem no Cancelar (FR-030: nada administrativo offline) -->
+    <div class="modal fade" id="modalColetaOffline" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="formColetaOffline">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <span class="tag-badge me-2" id="mTag"></span> Conferência offline
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="small mb-3">
+                            <span class="badge badge-soft-gray">Pendente de conferência</span>
+                            <span class="text-muted ms-2">Local esperado:
+                                <strong style="color:var(--c-text);" id="mLocalEsperado"></strong></span>
+                        </div>
+                        <label class="form-label fw-semibold">Resultado da conferência <span class="text-danger">*</span></label>
+                        <div class="d-grid gap-2 mb-3">
+                            <label class="d-block border rounded p-2 result-option" style="cursor:pointer;">
+                                <input class="form-check-input" type="radio" name="m_result" value="ENCONTRADO" required>
+                                <span class="fw-semibold ms-2" style="color:var(--c-text);">🟢 Encontrado</span>
+                            </label>
+                            <label class="d-block border rounded p-2 result-option" style="cursor:pointer;">
+                                <input class="form-check-input" type="radio" name="m_result" value="LOCAL_DIFERENTE">
+                                <span class="fw-semibold ms-2" style="color:var(--c-text);">🟡 Encontrado em local diferente</span>
+                            </label>
+                            <label class="d-block border rounded p-2 result-option" style="cursor:pointer;">
+                                <input class="form-check-input" type="radio" name="m_result" value="NAO_ENCONTRADO">
+                                <span class="fw-semibold ms-2" style="color:var(--c-text);">🔴 Não encontrado</span>
+                            </label>
+                            <label class="d-block border rounded p-2 result-option" style="cursor:pointer;">
+                                <input class="form-check-input" type="radio" name="m_result" value="SEM_IDENTIFICACAO">
+                                <span class="fw-semibold ms-2" style="color:var(--c-text);">⚠️ Sem identificação</span>
+                            </label>
+                        </div>
+                        <div class="mb-2" id="mLocalWrap">
+                            <label class="form-label fw-semibold small">Local onde foi encontrado (para local diferente)</label>
+                            <input type="text" id="mFoundLocationName" class="form-control form-control-sm"
+                                   placeholder="Digite o nome do local — o servidor valida na sincronização">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small">Observação</label>
+                            <textarea id="mObservacao" class="form-control form-control-sm" rows="2"
+                                      placeholder="Detalhes da conferência (opcional)"></textarea>
+                        </div>
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-info-circle me-1"></i> A coleta fica guardada neste
+                            dispositivo e entra na fila de sincronização — nada é gravado no servidor agora.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i> Registrar coleta offline
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/vendor/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/qr_reader.js"></script>
+    <script src="/static/js/inventario_offline.js"></script>
+    <script>
+        // Registro do SW na shell offline (a rota já está sob o escopo '/')
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(function () {});
+        }
+    </script>
+    <script>
+    (function () {
+        "use strict";
+        var invId = {{ inv.id }};
+        var pkg = null;
+
+        function setText(id, value) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        function atualizarPainel() {
+            if (!pkg) return;
+            var itens = pkg.items || [];
+            window.InventarioOffline._idb.getAll("coletas").then(function (regs) {
+                var porItem = {};
+                (regs || []).forEach(function (c) {
+                    if (c.inventory_id === invId) porItem[c.item_id] = c;
+                });
+                var conferidas = itens.filter(function (i) { return porItem[i.item_id]; }).length;
+                var diverg = itens.filter(function (i) {
+                    return porItem[i.item_id] && porItem[i.item_id].result === "LOCAL_DIFERENTE";
+                }).length;
+                var naoPrev = (regs || []).filter(function (c) {
+                    return c.inventory_id === invId && c.operation === "UNLISTED";
+                }).length;
+                setText("cntConferidas", conferidas);
+                setText("cntRestantes", itens.length - conferidas);
+                setText("cntDivergencias", diverg);
+                setText("cntNaoPrevistos", naoPrev);
+            });
+        }
+
+        // Painel de pendências (FR-009/FR-041) — escopo externo: também usada
+        // por coletarItem/registrarColeta fora do DOMContentLoaded
+        function atualizarPendencias() {
+            window.InventarioOffline._idb.getAll("sync_queue").then(function (rows) {
+                var pend = (rows || []).filter(function (r) {
+                    return r.state === "PENDING" || r.state === "SYNCING" || r.state === "FAILED";
+                }).length;
+                var confl = (rows || []).filter(function (r) { return r.state === "CONFLICT"; }).length;
+                setText("pendenciasBadge", pend + " pendentes" + (confl ? " · " + confl + " conflito(s)" : ""));
+                setText("syncStatusLinha", pend
+                    ? "Coletas aguardando sincronização — voltem à rede e toque em Sincronizar."
+                    : "Nenhuma pendência conhecida.");
+            });
+        }
+        window.InventarioOffline.atualizarPendencias = atualizarPendencias;
+
+        var ROTULOS_RESULTADO = {
+            "ENCONTRADO": "ENCONTRADO",
+            "LOCAL_DIFERENTE": "LOCAL DIFERENTE",
+            "NAO_ENCONTRADO": "NÃO ENCONTRADO",
+            "SEM_IDENTIFICACAO": "SEM IDENTIFICAÇÃO",
+        };
+        var ROTULOS_FILA = {
+            PENDING: "pendente de sync",
+            SYNCING: "sincronizando…",
+            SYNCED: "sincronizada ✓",
+            FAILED: "falhou no sync (preservada)",
+            CONFLICT: "em conflito",
+        };
+
+        function renderItens(filtro) {
+            var body = document.getElementById("itensBody");
+            var dica = document.getElementById("semPacoteDica");
+            if (!pkg) {
+                body.innerHTML = '<tr><td colspan="5" class="text-muted">Nenhum pacote preparado neste dispositivo.</td></tr>';
+                if (dica) dica.style.display = "";
+                return;
+            }
+            if (dica) dica.style.display = "none";
+            window.InventarioOffline._idb.getAll("coletas").then(function (regs) {
+                var porItem = {};
+                (regs || []).forEach(function (c) {
+                    if (c.inventory_id === invId && c.item_id) porItem[c.item_id] = c;
+                });
+                var termo = (filtro || "").trim().toLowerCase();
+                var linhas = (pkg.items || []).filter(function (i) {
+                    return !termo || (i.tag || "").toLowerCase().indexOf(termo) >= 0
+                        || (i.description || "").toLowerCase().indexOf(termo) >= 0;
+                }).map(function (i) {
+                    var c = porItem[i.item_id];
+                    var estado = c
+                        ? "<span class='badge badge-soft-primary'>"
+                            + (ROTULOS_RESULTADO[c.result] || c.result || "—")
+                            + (c.sync_state ? " · " + (ROTULOS_FILA[c.sync_state] || c.sync_state) : "")
+                            + "</span>"
+                        : "<span class='text-muted'>—</span>";
+                    var acao = c
+                        ? "<button class='btn btn-sm btn-ghost' disabled title='Item já coletado neste dispositivo'>Coletado</button>"
+                        : "<button class='btn btn-sm btn-outline-primary' data-coletar='" + i.item_id + "'>Conferir</button>";
+                    return "<tr><td><span class='tag-badge'>" + (i.tag || "?") + "</span></td><td>"
+                        + (i.description || "") + "</td><td>" + (i.expected_location_name || "—")
+                        + "</td><td>" + estado + "</td><td>" + acao + "</td></tr>";
+                });
+                body.innerHTML = linhas.join("") || '<tr><td colspan="5" class="text-muted">Nenhum item encontrado.</td></tr>';
+            });
+        }        // Verificação real de conectividade (FR-042) — nunca só navigator.onLine
+        var ST_PRETTY = { PLANEJADO: "Planejado", EM_ANDAMENTO: "Em andamento", ENCERRADO: "Encerrado" };
+        function verificarConexao() {
+            var ind = document.getElementById("offlineModeIndicator");
+            fetch("/api/v1/inventarios/" + invId + "/offline/ping", {
+                credentials: "same-origin", cache: "no-store",
+            })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (data) {
+                    if (!data || !data.ok) throw new Error("ping sem ok");
+                    var st = ST_PRETTY[data.inventory_status] || data.inventory_status;
+                    ind.className = "offbar-status st-ok";
+                    ind.innerHTML = "<span class='dot'></span><span class='st-label'>Online · " + st + "</span>";
+                })
+                .catch(function () {
+                    ind.className = "offbar-status st-off";
+                    ind.innerHTML = "<span class='dot'></span><span class='st-label'>OFFLINE</span>";
+                });
+        }
+
+        // Coleta por QR/tombamento (FR-010/FR-011/FR-012) — abre o MESMO modal
+        // do fluxo online (Princípio X). Divergência de local: o nome informado
+        // é resolvido pelo servidor na sincronização (FR-003 — pacote sem catálogo).
+        var itemAlvo = null;
+        var modalColeta = null;
+
+        function coletarItem(item) {
+            itemAlvo = item;
+            setText("mTag", item.tag || "?");
+            setText("mLocalEsperado", item.expected_location_name || "Estoque Central");
+            document.getElementById("mLocalWrap").style.display = "none";
+            document.getElementById("mFoundLocationName").value = "";
+            document.getElementById("mObservacao").value = "";
+            var radios = document.querySelectorAll("input[name='m_result']");
+            radios.forEach(function (r) { r.checked = false; });
+            if (!modalColeta) {
+                modalColeta = new bootstrap.Modal(document.getElementById("modalColetaOffline"));
+            }
+            modalColeta.show();
+        }
+
+        function registrarColeta(item, result, foundLocationId) {
+            var opId = (window.crypto && window.crypto.randomUUID)
+                ? window.crypto.randomUUID() : InventarioOffline.getDeviceId() + "-" + Date.now();
+            var coleta = {
+                client_operation_id: opId,          // FR-020: id único gerado no dispositivo
+                inventory_id: invId,
+                snapshot_version: pkg.snapshot_version,
+                item_id: item.item_id,
+                asset_id: item.asset_id,
+                operation: "CHECK",
+                result: result,                      // vocabulário do fluxo online (C-3)
+                found_location_id: foundLocationId || null,
+                observation: null,
+                collected_at: new Date().toISOString(),
+                username: null,
+                device_id: InventarioOffline.getDeviceId(),
+                sync_state: "PENDING",               // FR-018: entra na fila local
+            };
+            return window.InventarioOffline._idb.put("coletas", coleta).then(atualizarPainel);
+        }
+
+        window.InventarioOffline.registrarColeta = registrarColeta;
+
+        document.addEventListener("DOMContentLoaded", function () {
+            var toggle = document.getElementById("darkToggle");
+            if (toggle) {
+                toggle.addEventListener("click", function () {
+                    var root = document.documentElement;
+                    var novo = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+                    root.setAttribute("data-theme", novo);
+                    root.setAttribute("data-bs-theme", novo);
+                    try { localStorage.setItem("sispatrim-theme", novo); } catch (e) {}
+                    var ic = document.getElementById("darkIcon");
+                    if (ic) ic.className = novo === "dark" ? "bi bi-sun" : "bi bi-moon-stars";
+                });
+            }
+
+            // Boot da shell — com verificação de expiração (P-2/FR-039)
+            window.InventarioOffline.getPackage(invId).then(function (p) {
+                pkg = p;
+                if (!pkg) {
+                    var aviso = document.getElementById("avisoPacote");
+                    aviso.style.display = "";
+                    aviso.textContent = "Pacote não encontrado neste dispositivo. Reconecte e prepare a coleta offline na tela do inventário.";
+                    return;
+                }
+                atualizarPainel();
+                renderItens(document.getElementById("buscaItem").value);
+                // Expiração por estado do inventário: coleta bloqueada com
+                // orientação para reconectar/re-preparar (P-2; FR-039)
+                window.InventarioOffline.checkServerState(invId).then(function (ping) {
+                    if (ping && ping.ok && ping.preparable === false) {
+                        var motivo = ping.inventory_status === "ENCERRADO"
+                            ? "O inventário foi encerrado no servidor."
+                            : "O pacote foi re-preparado no servidor (nova versão).";
+                        window.InventarioOffline.aplicarBloqueioExpiracao(pkg, motivo).then(function () {
+                            var aviso = document.getElementById("avisoPacote");
+                            aviso.style.display = "";
+                            aviso.textContent = motivo + " Coleta bloqueada — reconecte e re-prepare o pacote na tela do inventário. As coletas já registradas permanecem preservadas neste dispositivo.";
+                            var btnQR = document.getElementById("btnLerQR");
+                            if (btnQR) btnQR.disabled = true;
+                            pkg = null;
+                        });
+                    }
+                });
+            });
+            document.getElementById("buscaItem").addEventListener("input", function (e) {
+                renderItens(e.target.value);
+            });
+
+            // Modal: campo de local aparece só para LOCAL_DIFERENTE (como no online)
+            document.querySelectorAll("input[name='m_result']").forEach(function (r) {
+                r.addEventListener("change", function () {
+                    document.getElementById("mLocalWrap").style.display =
+                        this.value === "LOCAL_DIFERENTE" ? "" : "none";
+                });
+            });
+
+            // Submit do modal — grava a coleta localmente + fila de sync (FR-018/FR-020)
+            document.getElementById("formColetaOffline").addEventListener("submit", function (ev) {
+                ev.preventDefault();
+                if (!itemAlvo || !pkg) return;
+                var result = (document.querySelector("input[name='m_result']:checked") || {}).value;
+                if (!result) { window.alert("Selecione o resultado da conferência."); return; }
+                var foundName = null;
+                var obs = document.getElementById("mObservacao").value.trim();
+                if (result === "LOCAL_DIFERENTE") {
+                    foundName = document.getElementById("mFoundLocationName").value.trim();
+                    if (!foundName) {
+                        window.alert("Informe o local onde o bem foi encontrado (como no fluxo online).\nNa sincronização, o servidor valida o nome contra o cadastro de locais.");
+                        return;
+                    }
+                }
+                var opId = (window.crypto && window.crypto.randomUUID)
+                    ? window.crypto.randomUUID() : InventarioOffline.getDeviceId() + "-" + Date.now();
+                var coleta = {
+                    client_operation_id: opId,          // FR-020: id único gerado no dispositivo
+                    inventory_id: invId,
+                    snapshot_version: pkg.snapshot_version,
+                    item_id: itemAlvo.item_id,
+                    asset_id: itemAlvo.asset_id,
+                    operation: "CHECK",
+                    result: result,                      // vocabulário do fluxo online (C-3)
+                    found_location_id: null,
+                    found_location_name: foundName,
+                    observation: obs || null,
+                    collected_at: new Date().toISOString(),
+                    username: null,
+                    device_id: InventarioOffline.getDeviceId(),
+                    sync_state: "PENDING",               // FR-018: entra na fila local
+                };
+                Promise.all([
+                    window.InventarioOffline._idb.put("coletas", coleta),
+                    window.InventarioOffline._idb.put("sync_queue", {
+                        client_operation_id: opId, state: "PENDING",
+                        attempts: 0, last_error: null, last_attempt_at: null,
+                    }),
+                ]).then(function () {
+                    if (modalColeta) modalColeta.hide();
+                    itemAlvo = null;
+                    atualizarPainel(); atualizarPendencias();
+                    renderItens(document.getElementById("buscaItem").value);
+                });
+            });
+
+            // Botão "Conferir" de cada linha (delegação — linhas são re-renderizadas)
+            document.getElementById("itensBody").addEventListener("click", function (ev) {
+                var btn = ev.target.closest ? ev.target.closest("button[data-coletar]") : null;
+                if (!btn || !pkg) return;
+                var itemId = parseInt(btn.getAttribute("data-coletar"), 10);
+                var alvo = (pkg.items || []).filter(function (i) { return i.item_id === itemId; })[0];
+                if (alvo) coletarItem(alvo);
+            });
+
+            var btnQR = document.getElementById("btnLerQR");
+            if (btnQR) {
+                btnQR.addEventListener("click", function () {
+                    if (window.QRReader && window.QRReader.start) {
+                        window.QRReader.start(function (assetId) {
+                            if (pkg) {
+                                var alvo = (pkg.items || []).filter(function (i) { return i.asset_id === assetId; })[0];
+                                if (alvo) {
+                                    coletarItem(alvo);
+                                } else {
+                                    // FR-014: bem fora do snapshot → ocorrência local
+                                    var opId = (window.crypto && window.crypto.randomUUID)
+                                        ? window.crypto.randomUUID() : InventarioOffline.getDeviceId() + "-" + Date.now();
+                                    // UNLISTED TAMBÉM entra na fila (senão nunca sincroniza)
+                                    window.InventarioOffline._idb.put("coletas", {
+                                        client_operation_id: opId, inventory_id: invId,
+                                        snapshot_version: pkg ? pkg.snapshot_version : null,
+                                        item_id: null, asset_id: assetId, operation: "UNLISTED",
+                                        result: null, found_location_id: null, observation: "bem não previsto (QR)",
+                                        collected_at: new Date().toISOString(), username: null,
+                                        device_id: InventarioOffline.getDeviceId(), sync_state: "PENDING",
+                                    }).then(function () {
+                                        return window.InventarioOffline._idb.put("sync_queue", {
+                                            client_operation_id: opId, state: "PENDING",
+                                            attempts: 0, last_error: null, last_attempt_at: null,
+                                        });
+                                    }).then(function () {
+                                        atualizarPainel(); atualizarPendencias();
+                                    });
+                                }
+                            }
+                        });
+                    } else {
+                        var tomb = window.prompt("Leitor de QR indisponível. Digite o tombamento (tag):");
+                        if (tomb && pkg) {
+                            var alvo = (pkg.items || []).filter(function (i) {
+                                return (i.tag || "").toLowerCase() === tomb.trim().toLowerCase();
+                            })[0];
+                            if (alvo) {
+                                coletarItem(alvo);
+                            } else {
+                                window.alert("Este tombamento não está no pacote. Para registrar um bem NÃO PREVISTO, use a leitura do QR do bem (câmera) — por tombamento digitado o sistema não identifica bens fora do pacote.");
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Gatilhos de sincronização e limpeza (handlers)
+            var btnSync = document.getElementById("btnSincronizar");
+            if (btnSync) {
+                btnSync.addEventListener("click", function () {
+                    window.InventarioOffline.sincronizar(invId, atualizarPainel, function () {
+                        atualizarPendencias();
+                        setText("syncStatusLinha", "Sincronização finalizada — confira o resultado acima.");
+                    });
+                });
+            }
+
+            // Limpeza local segura (FR-040) — botão "Encerrar coleta neste dispositivo"
+            var btnLimpar = document.getElementById("btnLimpar");
+            if (btnLimpar) {
+                btnLimpar.addEventListener("click", function () {
+                    window.InventarioOffline.limparDispositivo(invId).then(function (ok) {
+                        if (ok) window.location.href = "/inventarios";
+                    });
+                });
+            }
+
+            verificarConexao();
+            setInterval(verificarConexao, 30000);
+            // Eventos do navegador como GATILHO apenas: a decisão continua sendo
+            // do ping real (FR-042) — transição Online↔OFFLINE quase instantânea
+            window.addEventListener("online", verificarConexao);
+            window.addEventListener("offline", verificarConexao);
+            atualizarPendencias();
+        });
+    })();
+    </script>
+</body>
+</html>

@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-
 {% block title %}{{ inv.code }} — {{ inv.name }} | SisPatrimônio Pro{% endblock %}
 
 {% block content %}
@@ -32,6 +31,12 @@
                 </a></li>
             </ul>
         </div>
+        {% endif %}
+        {% if inv.status.value != 'ENCERRADO' and can_conferir %}
+        <button type="button" id="btnPrepararOffline" class="btn btn-outline-primary" data-inventory-id="{{ inv.id }}"
+                title="Gera no dispositivo o pacote para coleta sem conexão">
+            <i class="bi bi-cloud-download me-1"></i> Preparar coleta offline
+        </button>ir
         {% endif %}
         {% if inv.status.value != 'ENCERRADO' and can_encerrar %}
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEncerrar">
@@ -91,6 +96,76 @@
 
 {% if inv.notes %}
 <div class="alert alert-info small">{{ inv.notes }}</div>
+{% endif %}
+
+<!-- Conflitos offline (feature 033; P-3/FR-027 — coletas concorrentes lado a lado) -->
+{% if offline_conflitos %}
+<div class="card p-4 mb-4 border-warning">
+    <h5 class="mb-3"><i class="bi bi-exclamation-diamond me-1" style="color:var(--amber);"></i> Conflitos offline ({{ offline_conflitos | length }})</h5>
+    <p class="text-muted small">Resultados divergentes para o mesmo bem — nenhuma sobrescrita automática foi feita. Decida manter o estado atual ou aplicar a coleta offline.</p>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead><tr><th>Bem</th><th>Resultado offline</th><th>Dispositivo</th><th>Usuário</th><th>Coletado em</th><th>Decisão</th></tr></thead>
+            <tbody>
+            {% for c in offline_conflitos %}
+            {% set item_of = (expected_itens + unlisted_itens) | selectattr('id', 'equalto', c.item_id) | first %}
+                <tr>
+                    <td><span class="tag-badge">{{ item_of.asset.tag if item_of and item_of.asset else c.asset_id }}</span></td>
+                    <td><span class="badge bg-warning text-dark">{{ c.result or '—' }}</span>
+                        {% if item_of %}<span class="text-muted small">· item atual: {{ item_of.status.value }}</span>{% endif %}
+                    </td>
+                    <td class="small text-muted">{{ c.device_id[:13] }}…</td>
+                    <td class="small">{{ c.username or '—' }}</td>
+                    <td class="small text-muted">{{ c.collected_at[:16].replace('T', ' ') if c.collected_at }}</td>
+                    <td>
+                        {% if can_conferir %}
+                        <form method="post" action="/inventarios/{{ inv.id }}/offline/coletas/{{ c.id }}/reconciliar" class="d-flex gap-1"
+                              onsubmit="return confirm('Reconciliar este conflito? A decisão fica registrada na auditoria.')">
+                            <input type="hidden" name="action" value="APPLY">
+                            <button type="submit" class="btn btn-sm btn-outline-primary" title="Aplica a coleta offline via fluxo oficial (inventário deve estar aberto)">Aplicar coleta</button>
+                        </form>
+                        <form method="post" action="/inventarios/{{ inv.id }}/offline/coletas/{{ c.id }}/reconciliar" class="mt-1"
+                              onsubmit="return confirm('Manter o estado atual do item e arquivar a coleta offline?')">
+                            <input type="hidden" name="action" value="KEEP">
+                            <button type="submit" class="btn btn-sm btn-ghost">Manter registrado</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Coletas offline por dispositivo (US4 — rastreabilidade de origem) -->
+{% if offline_coletas %}
+<div class="card p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <h5 class="mb-0"><i class="bi bi-cloud-arrow-down me-1"></i> Coletas offline ({{ offline_coletas | length }})</h5>
+        <a href="/inventarios/{{ inv.id }}/offline" class="btn btn-ghost btn-sm"><i class="bi bi-box-arrow-in-right me-1"></i> Abrir coleta offline</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead><tr><th>Operaço</th><th>Bem</th><th>Status</th><th>Dispositivo</th><th>Usuário</th><th>Recebida em</th></tr></thead>
+            <tbody>
+            {% for c in offline_coletas[:25] %}
+            {% set item_of = (expected_itens + unlisted_itens) | selectattr('id', 'equalto', c.item_id) | first if c.item_id else None %}
+                <tr>
+                    <td class="small">{{ c.operation }}</td>
+                    <td>{% if item_of and item_of.asset %}<span class="tag-badge">{{ item_of.asset.tag }}</span>{% else %}{{ c.asset_id }}{% endif %}</td>
+                    <td><span class="badge badge-soft-gray">{{ c.status }}</span>{% if c.reject_reason %}<div class="small text-muted">{{ c.reject_reason }}</div>{% endif %}</td>
+                    <td class="small text-muted">{{ c.device_id[:13] }}…</td>
+                    <td class="small">{{ c.username or '—' }}</td>
+                    <td class="small text-muted">{{ c.received_at[:16].replace('T', ' ') if c.received_at }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if offline_coletas | length > 25 %}<p class="text-muted small mb-0">Exibindo as 25 mais recentes de {{ offline_coletas | length }}.</p>{% endif %}
+</div>
 {% endif %}
 
 <!-- Cards -->
@@ -386,4 +461,9 @@
     </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="/static/js/inventario_offline.js"></script>
 {% endblock %}
