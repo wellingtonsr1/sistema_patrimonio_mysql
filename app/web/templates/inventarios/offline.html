@@ -39,19 +39,29 @@
             top: 0;
             z-index: 1030;
         }
-        .offbar-brand { display: flex; align-items: center; flex-shrink: 0; color:#fff; text-decoration:none; }
+        /* Marca empilhada como na navbar principal do sistema (.navbar-brand do
+           style.css): LOGO acima, nome abaixo, centralizados entre si (D1/US1) */
+        .offbar-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            row-gap: .3rem;
+            flex-shrink: 0;
+            color: #fff;
+            text-decoration: none;
+            text-align: center;
+        }
         /* Mesmo tamanho da logo padrão do sistema (.navbar-brand-logo do style.css: 32px) */
         .offbar-brand img { height: 32px; width: auto; display: block; }
         .offbar-info {
             flex: 1 1 auto;
             min-width: 0;
             display: flex;
-            align-items: center;      /* título e status NA MESMA linha (desktop) */
+            align-items: center;      /* código e status NA MESMA linha (desktop) */
             gap: .9rem;
             flex-wrap: wrap;          /* quebra limpa se faltar largura */
             row-gap: .3rem;
         }
-        .offbar-line1 { display: flex; align-items: baseline; gap: .5rem; min-width: 0; }
         .offbar-title {
             font-size: 1.1rem;
             font-weight: 700;
@@ -59,7 +69,7 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            flex-shrink: 1;
+            max-width: 100%;
         }
         .offbar-code {
             font-size: .72rem;
@@ -110,7 +120,20 @@
         }
         .offbar-dark:hover { background: rgba(255,255,255,.12); }
 
-        body { overflow-x: hidden; } /* proteção contra transbordo residual */
+        /* Proteção contra transbordo residual. overflow-x: CLIP (e não hidden)
+           porque `hidden` cria um scroll container no body e quebra o
+           position: sticky do cabeçalho (header subia junto com a página ao
+           rolar/reload). `clip` recorta sem criar scroll container — o sticky
+           volta a fixar no topo; `hidden` permanece como fallback antigo. */
+        body { overflow-x: hidden; }
+        @supports (overflow-x: clip) {
+            body { overflow-x: clip; }
+        }
+
+        /* Quebra controlada de conteúdo longo nas células (D3/US3): textos
+           longos quebram dentro da célula, sem empurrar colunas nem
+           transbordar o card */
+        #itensBody td { overflow-wrap: anywhere; }
 
         /* Desktop: 4 contadores em linha ÚNICA a partir de 992px (tablet
            horizontal e tela grande); 2×2 abaixo disso (tablet vertical/celular) */
@@ -118,11 +141,16 @@
             #offlinePainel .painel-item { flex: 0 0 25%; max-width: 25%; }
         }
         @media (min-width: 768px) {
-            main { max-width: 92% !important; }
+            /* Mesmo container/largura das demais páginas do sistema (base.html:
+               90% centralizado — D2/C-1) */
+            main { max-width: 90% !important; }
             .card { padding: 1.25rem !important; }
             .table { font-size: .9rem; }
         }
-        /* Tablet vertical / celular (≤767px): header compacto */
+        /* Tablet vertical / celular (≤767px): header compacto. Código do
+           inventário + indicador de conexão permanecem NA MESMA LINHA da
+           marca empilhada (ajuste pós-feedback C-4): encolhem com ellipsis
+           em vez de quebrar para baixo — nada é escondido */
         @media (max-width: 767.98px) {
             main { max-width: 100% !important; padding-left: .75rem; padding-right: .75rem; }
             .card { padding: 1rem !important; }
@@ -130,6 +158,8 @@
             .table { font-size: .85rem; }
             .offbar { padding: .5rem .75rem; gap: .6rem; }
             .offbar-brand img { height: 28px; }
+            .offbar-code { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+            .offbar-status { flex-shrink: 1; min-width: 0; }
             .offbar-dark { width: 30px; height: 30px; }
         }
         /* Celular estreito (≤575px) */
@@ -145,12 +175,10 @@
     <header class="offbar no-print">
         <a class="offbar-brand" href="/inventarios" title="Todos os inventários">
             <img src="/static/img/Logo_IPMjp_2.png" alt="">
+            <span class="offbar-title">SisPatrimônio <span class="badge badge-soft-primary fw-normal" style="font-size:.65rem;">PRO</span></span>
         </a>
         <div class="offbar-info">
-            <div class="offbar-line1">
-                <span class="offbar-title">SisPatrimônio <span class="badge badge-soft-primary fw-normal" style="font-size:.65rem;">PRO</span></span>
-                <span class="offbar-code">{{ inv.code }}</span>
-            </div>
+            <span class="offbar-code">{{ inv.code }}</span>
             <span id="offlineModeIndicator" class="offbar-status st-wait"
                   title="Estado da conexão com o servidor (verificação real via ping)">
                 <span class="dot"></span><span class="st-label">verificando…</span>
@@ -161,9 +189,9 @@
         </button>
     </header>
 
-    <main class="container-fluid py-4 px-lg-4 mx-auto" style="max-width: 92%;">
+    <main class="container-fluid py-4 px-lg-5 mx-auto" style="max-width: 90%;">
 
-        <div class="alert alert-warning small d-flex align-items-center gap-2">
+        <div class="alert alert-warning small d-flex align-items-center gap-2 mb-4">
             <i class="bi bi-info-circle-fill"></i>
             <span>
                 <strong>{{ inv.code }}</strong> — {{ inv.name }}. Área restrita à coleta
@@ -213,11 +241,13 @@
 
         <!-- Lista/pesquisa de itens do pacote (FR-009) -->
         <div class="card p-4 mb-4">
-            <div class="d-flex gap-2 mb-3">
+            <div class="d-flex gap-2 mb-3 flex-wrap">
                 <!-- flex:1 + width:auto faz a barra DIVIDIR a linha com o botão
-                     (o width:100% padrão do form-control empurrava o botão p/ baixo) -->
+                     (o width:100% padrão do form-control empurrava o botão p/ baixo);
+                     flex-wrap reorganiza verticalmente quando falta largura (US4),
+                     com o input crescendo para a linha inteira -->
                 <input type="search" id="buscaItem" class="form-control"
-                       style="flex: 1 1 auto; width: auto; min-width: 0;"
+                       style="flex: 1 1 auto; width: auto; min-width: 10rem;"
                        placeholder="Pesquisar por tombamento ou descrição…">
                 <button type="button" id="btnLerQR" class="btn btn-outline-primary text-nowrap flex-shrink-0">
                     <i class="bi bi-qr-code-scan me-1"></i> Ler QR
