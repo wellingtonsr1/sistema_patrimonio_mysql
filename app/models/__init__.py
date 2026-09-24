@@ -27,6 +27,7 @@ from app.models.inventario import Inventario, InventarioItem
 from app.models.notification import EmailConfig, Notification
 from app.models.onedoc_integration import OneDocIntegration
 from app.models.integration_execution import IntegrationExecution
+from app.models.inventario_offline import InventarioOfflineColeta
 
 __all__ = [
     "AssetStatus",
@@ -57,4 +58,5 @@ __all__ = [
     "EmailConfig",
     "Notification",
     "IntegrationExecution",
+    "InventarioOfflineColeta",
 ]

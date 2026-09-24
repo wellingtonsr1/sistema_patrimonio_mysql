@@ -58,6 +58,12 @@ _LABELS: Dict[str, str] = {
     "LOCAL_DIFERENTE": "Local Diferente",
     "NAO_ENCONTRADO": "Não Encontrado",
     "SEM_IDENTIFICACAO": "Sem Identificação",
+    # InventarioOfflineColetaStatus (feature 033 — aditivo)
+    "OFFLINE_ACEITA": "Aceita",
+    "OFFLINE_DUPLICADA": "Duplicada",
+    "OFFLINE_CONFLITO": "Conflito",
+    "OFFLINE_REJEITADA": "Rejeitada",
+    "OFFLINE_RECONCILIADA": "Reconciliada",
 }
 
 
@@ -175,3 +181,17 @@ class InventarioItemStatus(_LabeledEnum):
     FOUND_WRONG_LOCATION = "LOCAL_DIFERENTE"  # 🟡 Existe, mas em local diverso do cadastro
     NOT_FOUND = "NAO_ENCONTRADO"            # 🔴 Não localizado durante a conferência
     UNIDENTIFIED = "SEM_IDENTIFICACAO"      # ⚠️ Bem presente, mas sem tombo/etiqueta legível
+
+
+class InventarioOfflineColetaStatus(_LabeledEnum):
+    """Estado no servidor de cada coleta offline recebida (feature 033).
+
+    Vocabulário controlado aditivo (data-model.md); nunca altera
+    vocabulários existentes.
+    """
+
+    ACCEPTED = "OFFLINE_ACEITA"            # Gravada no item via services oficiais
+    DUPLICATED = "OFFLINE_DUPLICADA"       # Reenvio ou resultado igual ao estado atual (C-5)
+    CONFLICT = "OFFLINE_CONFLITO"          # Resultado divergente; preservada para reconciliação
+    REJECTED = "OFFLINE_REJEITADA"         # Falha de validação com reject_reason
+    RECONCILED = "OFFLINE_RECONCILIADA"    # Conflito resolvido por usuário autorizado (D8)
