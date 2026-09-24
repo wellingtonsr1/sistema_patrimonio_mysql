@@ -226,6 +226,27 @@ class TestPainel:
         assert "Pendente" in html               # 1Doc aguardando fornecedor
         assert "Não Configurada" in html        # GLPI prevista
 
+    def test_voltar_das_telas_de_integracao_aponta_para_central(self, client, db, admin_user, monkeypatch):
+        """UX: o botão 'Voltar' de cada tela de integração devolve à Central
+        (ponto de entrada comum desde a 032)."""
+        _grant(db, admin_user, "integracoes.visualizar")
+        _login(client, db, admin_user)
+        telas = {
+            "/admin/integracao-1doc": "integracao1doc.reprocessar",
+            "/admin/notificacoes": "notificacoes.gerenciar",
+        }
+        for url, perm in telas.items():
+            _grant(db, admin_user, perm)
+            html = client.get(url).text
+            # presença do botão Voltar apontando para a Central
+            assert 'href="/admin/integracoes"' in html, url
+            assert 'href="/movements"' not in html, url  # destino antigo removido (1Doc)
+        # AD exige guarda composta
+        _grant(db, admin_user, "usuarios.editar")
+        _grant(db, admin_user, "perfis.editar")
+        html_ad = client.get("/admin/ad").text
+        assert 'href="/admin/integracoes"' in html_ad
+
     def test_menu_item_unico_central(self, client, db, admin_user, monkeypatch):
         """Menu: apenas 'Central de Integrações' — os cards do painel (AD, 1Doc,
         GLPI, E-mail) são a segunda camada, sem submenu no menu lateral."""
