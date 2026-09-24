@@ -31,6 +31,46 @@ class EmailProvider(Protocol):
         ...
 
 
+def check_connection() -> tuple:
+    """Verificação de conexão SMTP sem envio (feature 032 — decisão P-6).
+
+    Abre conexão com SMTP_HOST:PORT, STARTTLS quando SMTP_USE_TLS, autentica
+    com SMTP_USERNAME/PASSWORD e ENCERRA — NENHUMA mensagem é enviada
+    (teste 100% não destrutivo, FR-011).
+
+    Retorna (ok, mensagem_sanitizada, latency_ms):
+    - ok=True  → mensagem amigável de sucesso, latência medida;
+    - ok=False → mensagem classificada (autenticação × indisponibilidade),
+      SEM credenciais (sanitização em profundidade — Constitution VI).
+    """
+    import time
+
+    if not config.SMTP_HOST:
+        return False, "SMTP não configurado no ambiente (SMTP_HOST ausente).", None
+
+    start = time.monotonic()
+    try:
+        with smtplib.SMTP(
+            config.SMTP_HOST, config.SMTP_PORT, timeout=config.SMTP_SEND_TIMEOUT
+        ) as smtp:
+            if config.SMTP_USE_TLS:
+                smtp.starttls()
+            if config.SMTP_USERNAME and config.SMTP_PASSWORD:
+                smtp.login(config.SMTP_USERNAME, config.SMTP_PASSWORD)
+        latency_ms = int((time.monotonic() - start) * 1000)
+        return True, "Conexão e autenticação SMTP verificadas com sucesso.", latency_ms
+    except smtplib.SMTPAuthenticationError:
+        return False, "Falha de autenticação na integração com o e-mail (SMTP).", None
+    except (smtplib.SMTPException, OSError, ValueError, RuntimeError) as exc:
+        # Mensagem genérica sem ecoar o texto da exceção (defesa em profundidade:
+        # nenhum fragmento do diálogo SMTP chega à superfície — Constitution VI).
+        return (
+            False,
+            f"Serviço de e-mail indisponível ({type(exc).__name__}).",
+            None,
+        )
+
+
 def _sanitize_error(exc: Exception) -> Exception:
     """Re-levanta a exceção com mensagem sem credenciais.
 

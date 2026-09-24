@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Central de Integrações{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h1 class="h3 mb-1"><i class="bi bi-diagram-3 me-2" style="color:var(--color-primary);"></i>Central de Integrações</h1>
+        <p class="text-muted mb-0">Estado, diagnóstico e histórico das integrações do SisPatrimônio Pro.</p>
+    </div>
+</div>
+
+{% if success %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle me-1"></i>{{ success }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle me-1"></i>{{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+</div>
+{% endif %}
+
+<div class="row g-3">
+    {% for card in cards %}
+    <div class="col-12 col-md-6 col-xl-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h2 class="h5 mb-0">{{ card.name }}</h2>
+                    {% if card.status == 'ATIVA' %}
+                    <span class="badge bg-success">{{ card.status_label }}</span>
+                    {% elif card.status == 'COM_ERRO' %}
+                    <span class="badge bg-danger">{{ card.status_label }}</span>
+                    {% elif card.status == 'INDISPONIVEL' %}
+                    <span class="badge bg-warning text-dark">{{ card.status_label }}</span>
+                    {% elif card.status == 'PENDENTE' %}
+                    <span class="badge bg-info text-dark">{{ card.status_label }}</span>
+                    {% elif card.status == 'NAO_CONFIGURADA' %}
+                    <span class="badge bg-secondary">{{ card.status_label }}</span>
+                    {% elif card.status == 'DESABILITADA' %}
+                    <span class="badge bg-dark">{{ card.status_label }}</span>
+                    {% else %}
+                    <span class="badge bg-light text-dark border">{{ card.status_label }}</span>
+                    {% endif %}
+                </div>
+                <p class="text-muted small mb-2">{{ card.description }}</p>
+
+                {% if card.status_detail and card.status_detail.get('pendencia') %}
+                <p class="small mb-2"><i class="bi bi-hourglass-split me-1"></i>{{ card.status_detail.get('pendencia') }}</p>
+                {% endif %}
+
+                <dl class="row small mb-2">
+                    <dt class="col-7 fw-normal text-muted">Última execução:</dt>
+                    <dd class="col-5 mb-1">{{ card.last_execution_at|localtime if card.last_execution_at else '—' }}</dd>
+                    <dt class="col-7 fw-normal text-muted">Último sucesso:</dt>
+                    <dd class="col-5 mb-1">{{ card.last_success_at|localtime if card.last_success_at else '—' }}</dd>
+                    <dt class="col-7 fw-normal text-muted">Falhas recentes (24h):</dt>
+                    <dd class="col-5 mb-1">{{ card.failures_24h }}</dd>
+                    <dt class="col-7 fw-normal text-muted">Operações pendentes:</dt>
+                    <dd class="col-5 mb-1">{{ card.pending }}</dd>
+                </dl>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <a class="btn btn-sm btn-outline-primary" href="/admin/integracoes/{{ card.key }}">
+                        <i class="bi bi-info-circle me-1"></i>Detalhes
+                    </a>
+                    {% if card.supports_test and can('integracoes.testar') %}
+                    <form method="post" action="/admin/integracoes/{{ card.key }}/testar" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-plug me-1"></i>Testar conexão
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if card.config_route %}
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ card.config_route }}">
+                        <i class="bi bi-gear me-1"></i>Configurar
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="mt-4 d-flex gap-2 flex-wrap">
+    <a href="/admin" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Voltar à Administração</a>
+    <a href="/admin/ad" class="btn btn-outline-secondary btn-sm"><i class="bi bi-hdd-network me-1"></i>Active Directory</a>
+    <a href="/admin/integracao-1doc" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-text me-1"></i>1Doc</a>
+    <a href="/admin/notificacoes" class="btn btn-outline-secondary btn-sm"><i class="bi bi-envelope-check me-1"></i>E-mail</a>
+</div>
+<p class="text-muted small mt-2">GLPI: integração prevista (não configurada) — os atalhos acima respeitam as permissões de cada tela de destino.</p>
+{% endblock %}

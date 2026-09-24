@@ -23,6 +23,7 @@ from typing import Dict, List, Optional
 
 from app.services.help_article_030 import ARTIGO_NOTIFICACOES  # feature 030
 from app.services.help_article_031 import ARTIGO_ONEDOC  # feature 031
+from app.services.help_article_032 import ARTIGO_CENTRAL_INTEGRACOES  # feature 032
 
 # ============================================================================
 # ARTIGOS
@@ -1146,6 +1147,7 @@ ARTICLES: List[Dict] = [
     },
     ARTIGO_NOTIFICACOES,  # feature 030 — notificações por e-mail (administração)
     ARTIGO_ONEDOC,  # feature 031 — integração 1Doc (administração)
+    ARTIGO_CENTRAL_INTEGRACOES,  # feature 032 — central de integrações (administração)
     {
         "id": "restauracao-de-backup",
         "title": "Restauração de backup (administração)",

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Propagação — Central de Integrações{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h1 class="h3 mb-1"><i class="bi bi-arrow-left-right me-2" style="color:var(--color-primary);"></i>Propagação da Movimentação #{{ movement_id }}</h1>
+        <p class="text-muted mb-0">Estado da movimentação nos sistemas externos (somente leitura).</p>
+    </div>
+    <a href="/admin/integracoes" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+</div>
+
+{% if not found %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle me-1"></i>Movimentação não encontrada.
+    <a href="/admin/integracoes/movimentacao/0" class="alert-link">Consultar outra</a>.
+</div>
+{% else %}
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-8 col-md-3">
+                <label class="form-label small text-muted" for="movement_id">ID da movimentação</label>
+                <input type="number" id="movement_id" name="movement_id" value="{{ movement_id }}" min="0" class="form-control form-control-sm">
+            </div>
+            <div class="col-4 col-md-2">
+                <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-search me-1"></i>Consultar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h6">SisPatrimônio</h2>
+                <p class="mb-0"><i class="bi bi-check-circle text-success me-1"></i>Concluída (registro #{{ movement_id }})</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h6">E-mail</h2>
+                {% if propagation.email.status == 'SENT' %}
+                <p class="mb-0"><i class="bi bi-check-circle text-success me-1"></i>Enviado</p>
+                {% elif propagation.email.status == 'PENDING' %}
+                <p class="mb-0"><i class="bi bi-hourglass-split text-warning me-1"></i>Pendente</p>
+                {% elif propagation.email.status == 'FAILED' %}
+                <p class="mb-0"><i class="bi bi-x-circle text-danger me-1"></i>Falhou</p>
+                {% if propagation.email.error %}<p class="small text-muted mb-0">{{ propagation.email.error }}</p>{% endif %}
+                {% else %}
+                <p class="mb-0 text-muted">— não aplicável</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h2 class="h6">1Doc</h2>
+                {% if propagation.onedoc.status == 'SENT' %}
+                <p class="mb-0"><i class="bi bi-check-circle text-success me-1"></i>Sincronizado{% if propagation.onedoc.process_number %} (processo {{ propagation.onedoc.process_number }}){% endif %}</p>
+                {% elif propagation.onedoc.status == 'PENDING' %}
+                <p class="mb-0"><i class="bi bi-hourglass-split text-warning me-1"></i>Pendente</p>
+                {% elif propagation.onedoc.status == 'FAILED' %}
+                <p class="mb-0"><i class="bi bi-x-circle text-danger me-1"></i>Falhou</p>
+                {% if propagation.onedoc.error %}<p class="small text-muted mb-0">{{ propagation.onedoc.error }}</p>{% endif %}
+                {% if can('integracao1doc.reprocessar') %}
+                <a class="btn btn-sm btn-outline-primary mt-2" href="/admin/integracao-1doc">
+                    <i class="bi bi-arrow-repeat me-1"></i>Reprocessar (tela existente)
+                </a>
+                {% endif %}
+                {% else %}
+                <p class="mb-0 text-muted">— não aplicável</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="h6">GLPI</h2>
+                <p class="mb-0 text-muted">— não aplicável (integração prevista — não implementada nesta versão).</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

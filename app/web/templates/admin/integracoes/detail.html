@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Integração {{ detail.name }} — Central de Integrações{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h1 class="h3 mb-1">
+            <i class="bi bi-diagram-3 me-2" style="color:var(--color-primary);"></i>{{ detail.name }}
+            {% if detail.status == 'ATIVA' %}<span class="badge bg-success ms-2">{{ detail.status_label }}</span>
+            {% elif detail.status == 'COM_ERRO' %}<span class="badge bg-danger ms-2">{{ detail.status_label }}</span>
+            {% elif detail.status == 'INDISPONIVEL' %}<span class="badge bg-warning text-dark ms-2">{{ detail.status_label }}</span>
+            {% elif detail.status == 'PENDENTE' %}<span class="badge bg-info text-dark ms-2">{{ detail.status_label }}</span>
+            {% elif detail.status == 'NAO_CONFIGURADA' %}<span class="badge bg-secondary ms-2">{{ detail.status_label }}</span>
+            {% elif detail.status == 'DESABILITADA' %}<span class="badge bg-dark ms-2">{{ detail.status_label }}</span>
+            {% else %}<span class="badge bg-light text-dark border ms-2">{{ detail.status_label }}</span>{% endif %}
+        </h1>
+        <p class="text-muted mb-0">{{ detail.description }}</p>
+    </div>
+    <a href="/admin/integracoes" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+</div>
+
+{% if success %}<div class="alert alert-success">{{ success }}</div>{% endif %}
+{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+<div class="row g-3">
+    <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header"><i class="bi bi-activity me-1"></i>Funcionamento</div>
+            <div class="card-body">
+                <dl class="row small mb-0">
+                    <dt class="col-6 fw-normal text-muted">Finalidade:</dt>
+                    <dd class="col-6">{{ detail.purpose }}</dd>
+                    <dt class="col-6 fw-normal text-muted">Última execução:</dt>
+                    <dd class="col-6">{{ detail.last_execution.created_at|localtime if detail.last_execution else '—' }}</dd>
+                    <dt class="col-6 fw-normal text-muted">Último sucesso:</dt>
+                    <dd class="col-6">{{ detail.last_success.created_at|localtime if detail.last_success else '—' }}</dd>
+                    <dt class="col-6 fw-normal text-muted">Operações realizadas:</dt>
+                    <dd class="col-6">{{ detail.total }}</dd>
+                    <dt class="col-6 fw-normal text-muted">Operações com erro:</dt>
+                    <dd class="col-6">{{ detail.failures }}</dd>
+                    <dt class="col-6 fw-normal text-muted">Falhas recentes (24h):</dt>
+                    <dd class="col-6">{{ detail.failures_24h }}</dd>
+                    <dt class="col-6 fw-normal text-muted">Operações pendentes:</dt>
+                    <dd class="col-6">{{ detail.pending }}</dd>
+                </dl>
+                {% if detail.last_execution and detail.last_execution.detail %}
+                <div class="alert alert-warning small mt-2 mb-0">
+                    <strong>Último erro:</strong> {{ detail.last_execution.detail }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header"><i class="bi bi-gear me-1"></i>Configuração relevante</div>
+            <div class="card-body">
+                {% if detail.config_summary %}
+                <dl class="row small mb-0">
+                    {% for k, v in detail.config_summary.items() %}
+                    <dt class="col-6 fw-normal text-muted">{{ k }}:</dt>
+                    <dd class="col-6">{{ v }}</dd>
+                    {% endfor %}
+                </dl>
+                {% else %}
+                <p class="text-muted small mb-0">Nenhuma configuração aplicável (integração prevista).</p>
+                {% endif %}
+                {% if detail.status_detail and detail.status_detail.get('pendencia') %}
+                <div class="alert alert-info small mt-2 mb-0">
+                    <i class="bi bi-hourglass-split me-1"></i>{{ detail.status_detail.get('pendencia') }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header"><i class="bi bi-tools me-1"></i>Ações disponíveis</div>
+            <div class="card-body d-flex gap-2 flex-wrap">
+                {% if detail.supports_test and can('integracoes.testar') %}
+                <form method="post" action="/admin/integracoes/{{ detail.key }}/testar" class="d-inline">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-plug me-1"></i>Testar conexão
+                    </button>
+                </form>
+                {% endif %}
+                {% if detail.supports_reprocess and detail.config_route %}
+                <a class="btn btn-outline-secondary btn-sm" href="{{ detail.config_route }}">
+                    <i class="bi bi-arrow-repeat me-1"></i>Reprocessar (tela existente)
+                </a>
+                {% endif %}
+                {% if detail.config_route %}
+                <a class="btn btn-outline-secondary btn-sm" href="{{ detail.config_route }}">
+                    <i class="bi bi-gear me-1"></i>Configurar (tela existente)
+                </a>
+                {% endif %}
+                <a class="btn btn-outline-secondary btn-sm" href="/admin/integracoes/{{ detail.key }}/historico">
+                    <i class="bi bi-clock-history me-1"></i>Histórico de execuções
+                </a>
+                <a class="btn btn-outline-secondary btn-sm" href="/admin/integracoes/movimentacao/0">
+                    <i class="bi bi-arrow-left-right me-1"></i>Consultar propagação
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

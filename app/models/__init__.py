@@ -26,6 +26,7 @@ from app.models.setup_claim import SetupClaim
 from app.models.inventario import Inventario, InventarioItem
 from app.models.notification import EmailConfig, Notification
 from app.models.onedoc_integration import OneDocIntegration
+from app.models.integration_execution import IntegrationExecution
 
 __all__ = [
     "AssetStatus",
@@ -55,4 +56,5 @@ __all__ = [
     "InventarioItem",
     "EmailConfig",
     "Notification",
+    "IntegrationExecution",
 ]

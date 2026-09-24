@@ -127,5 +127,8 @@ def init_db():
     from app import models  # noqa: F401
     from app.models.enums import _register_all_enums  # noqa: F401
     _register_all_enums()
+    # Feature 032: histórico unificado de execuções de integração (tabela NOVA,
+    # aditiva — nada de tabelas/colunas existentes é alterado; data-model.md).
+    from app.models.integration_execution import IntegrationExecution  # noqa: F401
     _create_all_tolerante_corrida()
     _ensure_schema_migrations()

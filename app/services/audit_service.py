@@ -84,6 +84,10 @@ ACTION_INTEGRACAO_1DOC_ENVIADA = "INTEGRACAO_1DOC_ENVIADA"
 ACTION_INTEGRACAO_1DOC_FALHOU = "INTEGRACAO_1DOC_FALHOU"
 ACTION_INTEGRACAO_1DOC_REPROCESSADA = "INTEGRACAO_1DOC_REPROCESSADA"
 
+# Central de Integrações (feature 032 — aditivo; testes executados pela Central)
+ACTION_CENTRAL_TESTE_SUCESSO = "TESTE_INTEGRACAO_SUCESSO"
+ACTION_CENTRAL_TESTE_FALHA = "TESTE_INTEGRACAO_FALHA"
+
 # Rótulos em linguagem natural exibidos na interface.
 # A ação gravada na trilha continua sendo o identificador (ex.: "RESET_SENHA").
 ACTION_LABELS: Dict[str, str] = {
@@ -111,6 +115,8 @@ ACTION_LABELS: Dict[str, str] = {
     ACTION_INTEGRACAO_1DOC_ENVIADA: "Integração 1Doc Enviada",
     ACTION_INTEGRACAO_1DOC_FALHOU: "Integração 1Doc Falhou",
     ACTION_INTEGRACAO_1DOC_REPROCESSADA: "Integração 1Doc Reprocessada",
+    ACTION_CENTRAL_TESTE_SUCESSO: "Teste de Integração Bem-sucedido",
+    ACTION_CENTRAL_TESTE_FALHA: "Teste de Integração Falhou",
     ACTION_NOTIFICACAO_CONFIG: "Configuração de Notificação Alterada",
     ACTION_LOGIN: "Login",
     ACTION_LOGIN_FAILED: "Falha de Login",

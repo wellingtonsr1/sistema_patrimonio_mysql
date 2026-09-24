@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico — {{ detail.name }} — Central de Integrações{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h1 class="h3 mb-1"><i class="bi bi-clock-history me-2" style="color:var(--color-primary);"></i>Histórico — {{ detail.name }}</h1>
+        <p class="text-muted mb-0">Execuções registradas (resultados sanitizados, sem credenciais).</p>
+    </div>
+    <a href="/admin/integracoes/{{ detail.key }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-6 col-md-3">
+                <label class="form-label small text-muted" for="status">Status</label>
+                <select id="status" name="status" class="form-select form-select-sm">
+                    <option value="">Todos</option>
+                    <option value="SUCCESS" {% if selected_status == 'SUCCESS' %}selected{% endif %}>Sucesso</option>
+                    <option value="FAILURE" {% if selected_status == 'FAILURE' %}selected{% endif %}>Falha</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label small text-muted" for="operation">Operação</label>
+                <select id="operation" name="operation" class="form-select form-select-sm">
+                    <option value="">Todas</option>
+                    {% for op in operations %}
+                    <option value="{{ op }}" {% if selected_operation == op %}selected{% endif %}>{{ op }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small text-muted" for="days">Período</label>
+                <select id="days" name="days" class="form-select form-select-sm">
+                    <option value="">Tudo</option>
+                    <option value="1" {% if selected_days == '1' %}selected{% endif %}>24 horas</option>
+                    <option value="7" {% if selected_days == '7' %}selected{% endif %}>7 dias</option>
+                    <option value="30" {% if selected_days == '30' %}selected{% endif %}>30 dias</option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label small text-muted" for="user">Usuário</label>
+                <input type="text" id="user" name="user" value="{{ selected_user or '' }}" class="form-control form-control-sm" placeholder="(opcional)">
+            </div>
+            <div class="col-12 col-md-2">
+                <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Data/Hora</th>
+                    <th scope="col">Operação</th>
+                    <th scope="col">Resultado</th>
+                    <th scope="col">Duração</th>
+                    <th scope="col">Usuário</th>
+                    <th scope="col">Detalhes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in history.rows %}
+                <tr>
+                    <td class="text-nowrap">{{ row.created_at|localtime }}</td>
+                    <td>{{ row.operation }}</td>
+                    <td>
+                        {% if row.result == 'SUCCESS' %}<span class="badge bg-success">Sucesso</span>
+                        {% else %}<span class="badge bg-danger">Falha</span>{% endif %}
+                    </td>
+                    <td>{{ (row.duration_ms ~ ' ms') if row.duration_ms is not none else '—' }}</td>
+                    <td>{{ row.username or '—' }}</td>
+                    <td class="small">{{ row.detail or '—' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma execução registrada para os filtros selecionados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if history.pages > 1 %}
+    <div class="card-footer d-flex justify-content-between align-items-center">
+        <span class="small text-muted">Página {{ history.page }} de {{ history.pages }} ({{ history.total }} registros)</span>
+        <div class="btn-group btn-group-sm">
+            {% set qs = (request.query_params|dictsort) %}
+            {% if history.page > 1 %}
+            <a class="btn btn-outline-secondary" href="/admin/integracoes/{{ detail.key }}/historico?{{ request.query_params }}&page={{ history.page - 1 }}">Anterior</a>
+            {% endif %}
+            {% if history.page < history.pages %}
+            <a class="btn btn-outline-secondary" href="/admin/integracoes/{{ detail.key }}/historico?{{ request.query_params }}&page={{ history.page + 1 }}">Próxima</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

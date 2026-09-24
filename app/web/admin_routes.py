@@ -739,6 +739,17 @@ def admin_ad_test_connection(request: Request, db: Session = Depends(get_db)):
         result="SUCCESS" if result.get("ok") else "FAILURE",
         description=f"Teste de conexão AD ({settings.server}:{settings.port}): {result.get('message', '')}",
     )
+    # Feature 032 — histórico unificado da Central (plan D6, best-effort)
+    from app.services import integration_center_service as _ics
+
+    _ics.record_execution(
+        db,
+        "ad",
+        "CONNECTION_TEST",
+        "SUCCESS" if result.get("ok") else "FAILURE",
+        user=actor,
+        detail=None if result.get("ok") else result.get("message"),
+    )
     if result.get("ok"):
         msg = _quote(f"Conexão OK: {result.get('message')}")
         return RedirectResponse(url=f"/admin/ad?success={msg}", status_code=303)
@@ -981,6 +992,130 @@ def admin_onedoc_reprocessar(
     return RedirectResponse(
         url=f"/admin/integracao-1doc?{params}={_quote(message)}",
         status_code=303,
+    )
+
+
+# ============================================================================
+# CENTRAL DE INTEGRAÇÕES (feature 032) — integracoes.visualizar / integracoes.testar
+# Camada de OBSERVABILIDADE: nenhuma lógica de integração vive aqui; as ações
+# delegam aos mecanismos existentes (plan D5/D8).
+# ===========================================================================
+
+@admin_router.get("/admin/integracoes", response_class=HTMLResponse, dependencies=[Depends(require_permission("integracoes.visualizar", web=True))])
+def admin_integracoes_painel(request: Request, db: Session = Depends(get_db)):
+    """Painel: card por integração do catálogo — sem chamadas externas (NFR-004)."""
+    from app.services import integration_center_service as ics
+
+    cards = ics.get_panel(db)
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/integracoes/list.html",
+        context={
+            "cards": cards,
+            "success": request.query_params.get("success"),
+            "error": request.query_params.get("error"),
+            "active_tab": "admin",
+        },
+    )
+
+
+@admin_router.get("/admin/integracoes/{key}", response_class=HTMLResponse, dependencies=[Depends(require_permission("integracoes.visualizar", web=True))])
+def admin_integracoes_detalhe(request: Request, key: str, db: Session = Depends(get_db)):
+    """Detalhe/diagnóstico da integração (key inválida → 404 amigável)."""
+    from app.services import integration_center_service as ics
+
+    detail = ics.get_detail(db, key)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Integração não encontrada")
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/integracoes/detail.html",
+        context={
+            "detail": detail,
+            "success": request.query_params.get("success"),
+            "error": request.query_params.get("error"),
+            "active_tab": "admin",
+        },
+    )
+
+
+@admin_router.get("/admin/integracoes/{key}/historico", response_class=HTMLResponse, dependencies=[Depends(require_permission("integracoes.visualizar", web=True))])
+def admin_integracoes_historico(request: Request, key: str, db: Session = Depends(get_db)):
+    """Histórico de execuções com filtros (período/status/operação/usuário — FR-019)."""
+    from app.services import integration_center_service as ics
+
+    detail = ics.get_detail(db, key)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Integração não encontrada")
+    qp = request.query_params
+    history = ics.get_history(
+        db,
+        key,
+        status=qp.get("status") or None,
+        operation=qp.get("operation") or None,
+        days=int(qp.get("days")) if (qp.get("days") or "").isdigit() else None,
+        user=qp.get("user") or None,
+        page=int(qp.get("page")) if (qp.get("page") or "").isdigit() else 1,
+        page_size=20,
+    )
+    operations = sorted({row.operation for row in db.query(ics.IntegrationExecution.operation).filter(
+        ics.IntegrationExecution.integration_key == key).all()})
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/integracoes/historico.html",
+        context={
+            "detail": detail,
+            "history": history,
+            "operations": operations,
+            "selected_status": qp.get("status") or "",
+            "selected_operation": qp.get("operation") or "",
+            "selected_days": qp.get("days") or "",
+            "selected_user": qp.get("user") or "",
+            "active_tab": "admin",
+        },
+    )
+
+
+@admin_router.post("/admin/integracoes/{key}/testar", dependencies=[Depends(require_permission("integracoes.testar", web=True))])
+def admin_integracoes_testar(request: Request, key: str, db: Session = Depends(get_db)):
+    """Teste de conexão seguro e não destrutivo (FR-011/D8).
+
+    - ad → conduz ao teste existente da tela AD (guarda vigente — P-3);
+    - glpi → 404 amigável (não configurada, sem teste);
+    - email/onedoc → run_test (email: check_connection sem envio; onedoc: interno).
+    """
+    from app.services import integration_center_service as ics
+
+    if key == "ad":
+        return RedirectResponse(url="/admin/ad", status_code=303)
+    if ics.get_integration(key) is None or not ics.get_integration(key)["supports_test"]:
+        raise HTTPException(status_code=404, detail="Integração não encontrada")
+
+    ok, message = ics.run_test(db, key, user=request.state.user, ip_address=_client_ip(request))
+    params = "success" if ok else "error"
+    return RedirectResponse(
+        url=f"/admin/integracoes/{key}?{params}={_quote(message)}",
+        status_code=303,
+    )
+
+
+@admin_router.get("/admin/integracoes/movimentacao/{movement_id}", response_class=HTMLResponse, dependencies=[Depends(require_permission("integracoes.visualizar", web=True))])
+def admin_integracoes_movimentacao(request: Request, movement_id: int, db: Session = Depends(get_db)):
+    """Propagação por movimentação (FR-023) — somente leitura."""
+    from app.models.movement import Movement
+    from app.services import integration_center_service as ics
+
+    found = movement_id > 0 and db.query(Movement).filter(Movement.id == movement_id).first() is not None
+    propagation = ics.get_movement_propagation(db, movement_id) if found else None
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/integracoes/movimentacao.html",
+        context={
+            "movement_id": movement_id,
+            "found": found,
+            "propagation": propagation or {},
+            "active_tab": "admin",
+        },
     )
 
 

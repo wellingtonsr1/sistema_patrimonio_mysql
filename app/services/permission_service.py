@@ -88,6 +88,10 @@ PERMISSION_CATALOG: List[dict] = [
     # --- Notificações por e-mail (feature 030) ---
     {"name": "notificacoes.gerenciar", "module": "Notificações", "label": "Gerenciar notificações", "description": "Ativar/desativar notificações por e-mail e definir os destinatários do setor de Patrimônio."},
     {"name": "integracao1doc.reprocessar", "module": "Integração 1Doc", "label": "Reprocessar integração 1Doc", "description": "Reprocessar a inclusão de comunicações de movimentação no processo 1Doc que falharam."},
+
+    # --- Central de Integrações (feature 032) — sem concessão default (padrão 030/031) ---
+    {"name": "integracoes.visualizar", "module": "Integrações", "label": "Visualizar Central de Integrações", "description": "Painel, detalhes, histórico de execuções e propagação por movimentação."},
+    {"name": "integracoes.testar", "module": "Integrações", "label": "Testar conexões de integrações", "description": "Executar o teste de conexão das integrações sem guarda dedicada (e-mail e 1Doc interno)."},
 ]
 
 # Perfis padrão (seed idempotente). Cada perfil referencia permissões pelo nome.

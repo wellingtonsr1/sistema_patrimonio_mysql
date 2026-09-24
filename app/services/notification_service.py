@@ -224,6 +224,13 @@ def notify_movement(
                 description="Notificação de movimentação enviada por e-mail.",
                 ip_address=ip_address,
             )
+            # Feature 032 — histórico unificado (plan D6, best-effort)
+            from app.services import integration_center_service as _ics
+
+            _ics.record_execution(
+                db, "email", "SEND_EMAIL", "SUCCESS", user=None,
+                movement_id=movement.id,
+            )
         except Exception as exc:
             # Falha de envio/montagem: movimentação permanece concluída (RN-001);
             # registra estado FAILED + auditoria de falha, sem segredos
@@ -248,6 +255,13 @@ def notify_movement(
                 recipients=recipients,
                 description=f"Falha no envio da notificação: {sanitized}",
                 ip_address=ip_address,
+            )
+            # Feature 032 — histórico unificado (plan D6, best-effort)
+            from app.services import integration_center_service as _ics
+
+            _ics.record_execution(
+                db, "email", "SEND_EMAIL", "FAILURE", user=None,
+                movement_id=movement.id, detail=sanitized,
             )
     except Exception:
         # Última linha de defesa: NADA escapa ao chamador (FR-003/Seção 11)

@@ -175,6 +175,13 @@ def _send(db: Session, integration: OneDocIntegration, movement: Movement, provi
             ip_address=None,
             message_id=integration.message_id,
         )
+        # Feature 032 — histórico unificado (plan D6, best-effort; cobre 1º envio e reprocesso)
+        from app.services import integration_center_service as _ics
+
+        _ics.record_execution(
+            db, "onedoc", "SEND_COMMUNICATION", "SUCCESS", user=None,
+            movement_id=movement.id,
+        )
     except Exception as exc:
         # Falha externa: movimentação permanece concluída (FR-007); registra
         # FAILED com erro sanitizado + auditoria, sem segredos (US2).
@@ -202,6 +209,13 @@ def _send(db: Session, integration: OneDocIntegration, movement: Movement, provi
             process_number=integration.process_number,
             description=f"Falha na integração com o 1Doc: {sanitized}",
             ip_address=None,
+        )
+        # Feature 032 — histórico unificado (plan D6, best-effort)
+        from app.services import integration_center_service as _ics
+
+        _ics.record_execution(
+            db, "onedoc", "SEND_COMMUNICATION", "FAILURE", user=None,
+            movement_id=movement.id, detail=sanitized,
         )
 
 

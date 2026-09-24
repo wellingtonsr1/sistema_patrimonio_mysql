@@ -829,6 +829,40 @@ Nenhum evento contém token ou credenciais (Constitution VI).
 
 ---
 
+## 🕸️ Central de Integrações (feature 032)
+
+Área de **Administração → Central de Integrações**: painel de gerenciamento e observabilidade das integrações (E-mail, 1Doc, GLPI, Active Directory) em um único local. É uma **camada de acompanhamento sobre o que já existe** — não reimplementa nenhuma integração e não inventa APIs externas.
+
+### O que oferece
+
+- **Painel** com card por integração: status padronizado (Não Configurada / Pendente de Configuração / Desabilitada / Ativa / Com Erro / Indisponível / Inativa), última execução, último sucesso, **falhas recentes (24h)** e operações pendentes;
+- **Detalhe/diagnóstico** por integração: contadores, último erro (sanitizado), configuração relevante com **segredos mascarados**;
+- **Testar conexão** (quando suportado): seguro e não destrutivo — no e-mail apenas conexão + autenticação SMTP (nenhuma mensagem enviada); no 1Doc apenas verificação interna de configuração (o envio real permanece bloqueado até o contrato do fornecedor — C-1..C-4); o teste do AD permanece na tela Integração AD;
+- **Histórico de execuções** por integração com filtros (período, status, operação, usuário) e paginação;
+- **Propagação por movimentação**: como a movimentação foi propagada aos sistemas externos (e-mail enviado, 1Doc pendente/falhado, GLPI não aplicável), com condução ao reprocessamento existente.
+
+### Permissões
+
+| Permissão | Uso | Concessão default |
+|---|---|---|
+| `integracoes.visualizar` | Painel, detalhes, histórico, propagação | Nenhuma (administrador concede explicitamente) |
+| `integracoes.testar` | Teste de conexão (e-mail e 1Doc interno) | Nenhuma (administrador concede explicitamente) |
+
+As permissões/guardas existentes de cada tela de configuração continuam valendo (`notificacoes.gerenciar`, `integracao1doc.reprocessar`, guarda do AD).
+
+### Estados representados (fidelidade ao ambiente)
+
+- **1Doc**: exibido como *Pendente de Configuração — aguardando o fornecedor* enquanto o contrato da API não for confirmado (spec 031, C-1..C-4);
+- **GLPI**: exibido como *Não Configurada* (integração prevista, ainda não implementada — nada inventado);
+- **E-mail / AD**: estado derivado da configuração efetiva e das execuções registradas.
+
+### Auditoria
+
+- `TESTE_INTEGRACAO_SUCESSO` / `TESTE_INTEGRACAO_FALHA` — testes executados pela Central;
+- Execuções automáticas (envios 030/031, teste AD) continuam com seus eventos já vigentes, e também alimentam o **histórico unificado** (`integration_executions` — tabela append-only, sem credenciais).
+
+---
+
 ## 🧾 Auditoria
 
 `audit_logs` registra, conforme o evento:
