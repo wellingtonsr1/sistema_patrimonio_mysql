@@ -39,6 +39,10 @@ Na validação em celular real constatou-se que a quebra para a 2ª linha (C-3) 
 
 Com a tela reduzida, ao rolar/recarregar (F5) a barra superior **subia junto com a página** em vez de fixar no topo. Causa: `body { overflow-x: hidden }` cria um scroll container no body, o que desativa o `position: sticky` do `.offbar` (comportamento conhecido de CSS). Correção: `overflow-x: clip` via `@supports` (recorta sem criar scroll container — sticky volta a fixar), com `hidden` mantido como fallback. SW `CACHE_VERSION` v25 → **v26** para propagar o HTML corrigido (servido cache-first na navegação). `tests/test_inventario_offline.py` 34 passed.
 
+## Ajuste 3 pós-feedback (botão de tema, 2026-09-24)
+
+O botão claro/escuro da shell usava estilo próprio (círculo branco `.offbar-dark`), diferente do sistema. Corrigido para usar o **`.dark-toggle` padrão** do `style.css` (34px, raio 8px, hover e variantes do tema escuro já definidas — Princípio X/FR-016): a classe padrão foi adicionada ao botão (`class="dark-toggle offbar-dark"`) e o CSS local ficou apenas com o posicionamento (`margin-left: auto`). SW v26 → **v27**. `tests/test_inventario_offline.py` 34 passed.
+
 ## Notas
 
 - Dados criados para a renderização de validação foram **removidos** do banco de dev ao final (inventário, bem e local temporários).

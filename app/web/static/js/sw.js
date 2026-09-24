@@ -10,7 +10,7 @@
  */
 "use strict";
 
-var CACHE_VERSION = "inventario-offline-v26"; // v26: sticky do header (overflow-x: clip) + header mobile na mesma linha · v25: layout 035 · v24: fix sticky do header · ↔ DB_VERSION=1 do IndexedDB (D3/D4)
+var CACHE_VERSION = "inventario-offline-v27"; // v27: botão de tema usa o .dark-toggle padrão · v26: sticky do header (overflow-x: clip) + header mobile na mesma linha · v25: layout 035 · v24: fix sticky do header · ↔ DB_VERSION=1 do IndexedDB (D3/D4)
 var OFFLINE_NAV_RE = /^\/inventarios\/\d+\/offline$/;
 
 // Allowlist explícita (FR-035) — nada além disso entra em cache

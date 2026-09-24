@@ -105,20 +105,13 @@
         .offbar-status.st-off .dot { background: #fff; }
         .offbar-status.st-wait .dot { animation: offbar-pulse 1.2s infinite; }
         @keyframes offbar-pulse { 50% { opacity: .35; } }
+        /* Botão de tema: usa o .dark-toggle PADRÃO do sistema (style.css L1239:
+           34px, raio 8px, hover e variantes de tema escuro já definidos).
+           Aqui fica apenas o posicionamento no header da shell. */
         .offbar-dark {
             flex-shrink: 0;
             margin-left: auto;         /* tema sempre no canto direito */
-            width: 32px; height: 32px;
-            border-radius: 50%;
-            border: 1px solid rgba(255,255,255,.4);
-            background: transparent;
-            color: #fff;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
         }
-        .offbar-dark:hover { background: rgba(255,255,255,.12); }
 
         /* Proteção contra transbordo residual. overflow-x: CLIP (e não hidden)
            porque `hidden` cria um scroll container no body e quebra o
@@ -160,7 +153,6 @@
             .offbar-brand img { height: 28px; }
             .offbar-code { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
             .offbar-status { flex-shrink: 1; min-width: 0; }
-            .offbar-dark { width: 30px; height: 30px; }
         }
         /* Celular estreito (≤575px) */
         @media (max-width: 575.98px) {
@@ -184,7 +176,7 @@
                 <span class="dot"></span><span class="st-label">verificando…</span>
             </span>
         </div>
-        <button class="offbar-dark" id="darkToggle" title="Alternar tema" aria-label="Alternar tema">
+        <button class="dark-toggle offbar-dark" id="darkToggle" title="Alternar tema" aria-label="Alternar tema">
             <i class="bi bi-moon-stars" id="darkIcon"></i>
         </button>
     </header>
