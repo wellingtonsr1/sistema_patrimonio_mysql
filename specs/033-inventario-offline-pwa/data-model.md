@@ -69,8 +69,6 @@ persiste o pacote. Estrutura entregue ao dispositivo:
       "description": "Notebook Dell Latitude 5440",
       "expected_location_id": 3,
       "expected_location_name": "TI - Sala 2",
-      "expected_custodian_id": 8,
-      "expected_custodian_name": "João",
       "qr_url": "https://sispat.../assets/123"
     }
   ]
@@ -78,6 +76,7 @@ persiste o pacote. Estrutura entregue ao dispositivo:
 ```
 
 - Campos = FR-003 (mínimo necessário); nada de usuários/permissões/administração (SC-008).
+- **Superação (feature 034 — decisão H-3)**: as chaves `expected_custodian_id`/`expected_custodian_name` foram removidas do pacote para todo inventário; o snapshot de inventários novos não grava mais colaborador responsável (a responsabilidade é tratada pelos fluxos de movimentação/alocação).
 - `snapshot_version` = hash SHA-256 determinístico do conjunto `(asset_id, item_id, status)` ordenado (D9) — permite ao servidor reconhecer a base de coleta (FR-004) sem persistir o pacote.
 
 ## Dispositivo — IndexedDB `sispatrimonio_offline` (version 1)

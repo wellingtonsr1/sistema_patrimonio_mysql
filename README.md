@@ -43,7 +43,7 @@ O inventário é uma **conferência física comprobatória** e possui ciclo pró
 - Código sequencial no formato `INV-AAAA-NNNN`.
 - Escopo opcional por local e/ou setor; vazio = todo o acervo.
 - Snapshot textual dos filtros utilizados.
-- Lista de bens esperados gerada no momento da criação, preservando a localização/custodiante daquele momento.
+- Lista de bens esperados gerada no momento da criação, preservando a localização daquele momento. O snapshot **não grava colaborador responsável** (feature 034): a responsabilidade do bem é tratada pelos fluxos de movimentação/alocação.
 - Ciclo de vida: `PLANEJADO → EM_ANDAMENTO → ENCERRADO`.
 - Status dos itens: `PENDENTE`, `ENCONTRADO`, `LOCAL_DIFERENTE`, `NAO_ENCONTRADO` e `SEM_IDENTIFICACAO`.
 - Conferência em campo por QR Code, busca na ficha do bem ou pela página do inventário.
@@ -59,7 +59,7 @@ O inventário é uma **conferência física comprobatória** e possui ciclo pró
 
 A conferência física pode ser feita **sem conexão** em tablets/celulares, com o mesmo vocabulário e as mesmas regras do fluxo online (o servidor revalida tudo na sincronização — o dispositivo nunca é fonte de verdade):
 
-- **Preparar coleta offline** (botão na tela do inventário, com `inventario.conferir`, inventário PLANEJADO/EM_ANDAMENTO): gera no dispositivo um pacote com apenas os dados de conferência (tombamento, descrição, número de série, local/responsável esperados e a URL do QR) — nada de usuários, permissões ou credenciais.
+- **Preparar coleta offline** (botão na tela do inventário, com `inventario.conferir`, inventário PLANEJADO/EM_ANDAMENTO): gera no dispositivo um pacote com apenas os dados de conferência (tombamento, descrição, número de série, local esperado e a URL do QR) — nada de usuários, permissões ou credenciais.
 - **Coleta em campo sem conexão** (`/inventarios/{id}/offline`): leitura de QR (câmera nativa no Chrome/Edge) ou digitação do tombamento; registro local em IndexedDB com fila própria; contadores de conferidas/restantes/divergências/não previstos; a coleta funciona mesmo com a sessão expirada (a sessão é validada apenas na sincronização).
 - **Sincronização confiável**: em lote (até 1.000 por requisição), idempotente (reenvio não duplica), parcial (reenvia só o pendente) e com resultado por operação (aceita/duplicada/conflito/rejeitada com motivo); coletas só são gravadas pelos services oficiais do inventário.
 - **Conflitos preservados**: resultado divergente para um bem já conferido (por outro dispositivo ou pelo fluxo online) nunca é sobrescrito silenciosamente — fica na seção **“Conflitos offline”** da tela do inventário, com reconciliação por usuário autorizado (*Aplicar coleta* via fluxo oficial ou *Manter registrado*), sempre auditada.

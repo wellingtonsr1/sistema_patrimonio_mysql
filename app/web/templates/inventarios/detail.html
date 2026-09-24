@@ -36,7 +36,7 @@
         <button type="button" id="btnPrepararOffline" class="btn btn-outline-primary" data-inventory-id="{{ inv.id }}"
                 title="Gera no dispositivo o pacote para coleta sem conexão">
             <i class="bi bi-cloud-download me-1"></i> Preparar coleta offline
-        </button>ir
+        </button>
         {% endif %}
         {% if inv.status.value != 'ENCERRADO' and can_encerrar %}
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalEncerrar">
@@ -69,7 +69,7 @@
         </div>
     </div>
     <div class="col-6 col-md-4 col-lg">
-        <div class="card p-3 text-center">
+        <div class="card p-3 text-center">coleta
             <div class="fs-3 fw-bold" style="color:var(--amber);">{{ summary.wrong_location }}</div>
             <div class="text-muted small">🟡 Local diferente</div>
         </div>
@@ -240,9 +240,6 @@
                             </td>
                             <td class="small">
                                 <span class="fw-semibold" style="color:var(--c-text);">{{ item.asset.name }}</span>
-                                {% if item.expected_custodian_name %}
-                                <div class="text-muted" style="font-size:.72rem;"><i class="bi bi-person me-1"></i>{{ item.expected_custodian_name }}</div>
-                                {% endif %}
                             </td>
                             <td class="small text-muted">
                                 {{ item.expected_location_name or 'Estoque Central' }}
@@ -386,7 +383,6 @@
                     {% endif %}
                     <div class="text-muted small mb-3">
                         <i class="bi bi-geo-alt me-1"></i> Local cadastrado: {{ item.expected_location_name or 'Estoque Central' }}
-                        {% if item.expected_custodian_name %} &bull; <i class="bi bi-person me-1"></i>{{ item.expected_custodian_name }}{% endif %}
                     </div>
                     <label class="form-label fw-semibold">Resultado da conferência <span class="text-danger">*</span></label>
                     <div class="d-grid gap-2 mb-3">

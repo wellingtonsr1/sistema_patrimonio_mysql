@@ -526,3 +526,263 @@ def test_export_inventario_excel_via_http(client, db_session):
     assert resp.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     assert f"ata_{inv.code}.xlsx" in resp.headers["content-disposition"]
     assert resp.content[:2] == b"PK"
+
+
+# ============================================================================
+# Feature 034 — Snapshot de novos inventários sem colaborador responsável (US1)
+# ============================================================================
+
+def _assign_custodian(db, asset, name, email):
+    """Cria colaborador e o atribui ao bem pelo fluxo oficial de alocação."""
+    from app.schemas.custodian import CustodianCreate
+    from app.services.custodian_service import CustodianService
+    from app.services.movement_service import MovementService
+    from app.schemas.movement import MovementCreate
+    from app.models.enums import MovementType
+
+    cust = CustodianService.create(db, CustodianCreate(
+        name=name, email=email, role="Técnico", department="TI",
+    ))
+    MovementService.create_movement(db, MovementCreate(
+        asset_id=asset.id,
+        movement_type=MovementType.ALLOCATION,
+        destination_custodian_id=cust.id,
+        reason="Cautela (teste 034)",
+        operator_name="Admin TI",
+    ))
+    db.refresh(asset)
+    return cust
+
+
+def test_new_inventory_snapshot_has_no_expected_custodian(db_session):
+    """034/US1-1: novo inventário NÃO grava expected_custodian_name — nem p/ bem COM custodiante."""
+    loc = _make_location(db_session, name="Loc 034 Resp", department="TI")
+    asset = _make_asset(db_session, "INV-034-0001", location=loc)
+    _assign_custodian(db_session, asset, "Maria Custodia", "maria.034@empresa.local")
+    assert asset.custodian is not None  # pré-condição: bem com custodiante
+
+    inv = InventarioService.create_inventario(db_session, name="Snapshot Sem Resp", location_id=loc.id)
+    item = inv.itens[0]
+
+    assert item.expected_custodian_name is None
+    # Snapshot continua com tombamento + local esperado
+    assert item.asset_id == asset.id
+    assert item.expected_location_id == loc.id
+    assert item.expected_location_name == loc.name
+
+
+def test_asset_without_custodian_enters_snapshot_normally(db_session):
+    """034/US1-2: bem sem custodiante entra normalmente no snapshot."""
+    loc = _make_location(db_session, name="Loc 034 Livre", department="TI")
+    asset = _make_asset(db_session, "INV-034-0002", location=loc)  # sem custodiante
+
+    inv = InventarioService.create_inventario(db_session, name="Snapshot Sem Custodia", location_id=loc.id)
+    item = inv.itens[0]
+
+    assert item.asset_id == asset.id
+    assert item.expected_custodian_name is None
+    assert item.expected_location_name == loc.name
+    assert item.status == InventarioItemStatus.PENDING
+
+
+def test_snapshot_immutable_after_registration_changes(db_session):
+    """034/US1-3: alterar custodiante/local do bem depois NÃO altera o snapshot."""
+    loc_a = _make_location(db_session, name="Loc 034 A", department="TI")
+    loc_b = _make_location(db_session, name="Loc 034 B", department="RH")
+    asset = _make_asset(db_session, "INV-034-0003", location=loc_a)
+    inv = InventarioService.create_inventario(db_session, name="Imutavel 034", location_id=loc_a.id)
+
+    _assign_custodian(db_session, asset, "Novo Custodia", "novo.034@empresa.local")
+    asset.location_id = loc_b.id
+    db_session.commit()
+    db_session.expire_all()
+
+    item = InventarioService.get_by_id(db_session, inv.id).itens[0]
+    assert item.expected_custodian_name is None
+    assert item.expected_location_id == loc_a.id
+    assert item.expected_location_name == loc_a.name
+
+
+# ============================================================================
+# Feature 034 — Conferência e ata sem "responsável esperado" (US2)
+# ============================================================================
+
+def _legacy_custodian_value(db, item, value):
+    """Simula inventário legado: grava o snapshot textual direto no banco."""
+    item.expected_custodian_name = value
+    db.commit()
+
+
+def test_conference_ignores_custodian_difference(db_session):
+    """034/US2-1: responsável diferente não gera divergência (conformidade por local)."""
+    loc = _make_location(db_session, name="Loc 034 Conf", department="TI")
+    asset = _make_asset(db_session, "INV-034-0010", location=loc)
+    inv = InventarioService.create_inventario(db_session, name="Conf Resp", location_id=loc.id)
+    item = inv.itens[0]
+    _legacy_custodian_value(db_session, item, "Maria")
+
+    # Cadastro do bem mudou de custodiante depois do snapshot (via fluxo de alocação)
+    _assign_custodian(db_session, asset, "João", "joao.034@empresa.local")
+
+    result = InventarioService.record_check(
+        db_session, item=item, result=InventarioItemStatus.FOUND,
+        user_id=1, username="conferente",
+    )
+    assert result.status == InventarioItemStatus.FOUND
+    assert result.status != InventarioItemStatus.FOUND_WRONG_LOCATION
+    assert result.status != InventarioItemStatus.NOT_FOUND
+
+
+def test_location_divergence_still_detected(db_session):
+    """034/US2-2: divergência de LOCAL continua detectada (FOUND_WRONG_LOCATION)."""
+    loc = _make_location(db_session, name="Loc 034 Div", department="TI")
+    _make_asset(db_session, "INV-034-0011", location=loc)
+    inv = InventarioService.create_inventario(db_session, name="Conf Local", location_id=loc.id)
+    other_loc = _make_location(db_session, name="Loc 034 Outro", department="RH")
+
+    InventarioService.record_check(
+        db_session, item=inv.itens[0],
+        result=InventarioItemStatus.FOUND_WRONG_LOCATION,
+        found_location_id=other_loc.id,
+    )
+    assert inv.itens[0].status == InventarioItemStatus.FOUND_WRONG_LOCATION
+
+
+def test_ata_csv_new_inventory_has_no_custodian_column(db_session):
+    """034/US2-3 (FR-007): ata CSV de inventário novo NÃO tem a coluna "Responsável Esperado"."""
+    loc = _make_location(db_session, name="Loc 034 CSV Novo", department="TI")
+    _make_asset(db_session, "INV-034-0012", location=loc)
+    inv = InventarioService.create_inventario(db_session, name="CSV Novo 034", location_id=loc.id)
+
+    csv_text = ReportService.generate_inventario_csv(db_session, inv)
+    assert "Local Esperado" in csv_text          # colunas restantes intactas
+    assert "Responsável Esperado" not in csv_text
+
+
+def test_ata_csv_legacy_inventory_keeps_custodian_column(db_session):
+    """034/US2-4 (H-2/D2): ata de inventário legado preserva coluna e histórico."""
+    loc = _make_location(db_session, name="Loc 034 CSV Leg", department="TI")
+    _make_asset(db_session, "INV-034-0013", location=loc)
+    _make_asset(db_session, "INV-034-0014", location=loc)
+    inv = InventarioService.create_inventario(db_session, name="CSV Legado 034", location_id=loc.id)
+    itens = {i.asset.tag: i for i in inv.itens}
+    _legacy_custodian_value(db_session, itens["INV-034-0013"], "Maria Legado")
+    # INV-034-0014 permanece sem valor → linha "Estoque / Livre" (contrato §1)
+
+    csv_text = ReportService.generate_inventario_csv(db_session, inv)
+    assert "Responsável Esperado" in csv_text
+    assert "Maria Legado" in csv_text
+    assert "Estoque / Livre" in csv_text
+
+
+def test_ata_excel_new_no_column_legacy_with_column(db_session):
+    """034/US2-5: Excel novo sem a coluna; legado com a coluna e histórico."""
+    from openpyxl import load_workbook
+    import io as _io
+
+    # Novo
+    loc = _make_location(db_session, name="Loc 034 XLSX", department="TI")
+    _make_asset(db_session, "INV-034-0015", location=loc)
+    inv_new = InventarioService.create_inventario(db_session, name="XLSX Novo 034", location_id=loc.id)
+    wb = load_workbook(filename=_io.BytesIO(ReportService.generate_inventario_excel(db_session, inv_new)))
+    values_new = {str(c.value) for row in wb.active.iter_rows() for c in row if c.value is not None}
+    assert "Local Esperado" in values_new
+    assert "Responsável Esperado" not in values_new
+
+    # Legado
+    _make_asset(db_session, "INV-034-0016", location=loc)
+    inv_leg = InventarioService.create_inventario(db_session, name="XLSX Legado 034", location_id=loc.id)
+    _legacy_custodian_value(db_session, inv_leg.itens[0], "Maria Legado XLSX")
+    wb = load_workbook(filename=_io.BytesIO(ReportService.generate_inventario_excel(db_session, inv_leg)))
+    values_leg = {str(c.value) for row in wb.active.iter_rows() for c in row if c.value is not None}
+    assert "Responsável Esperado" in values_leg
+    assert "Maria Legado XLSX" in values_leg
+
+
+def _pdf_stream_text(pdf_bytes):
+    """Extrai o conteúdo dos streams do PDF (ReportLab: ASCII85 + FlateDecode; stdlib)."""
+    import re as _re
+    import zlib as _zlib
+    import base64 as _base64
+    chunks = []
+    for m in _re.finditer(rb"stream\r?\n(.*?)endstream", pdf_bytes, _re.DOTALL):
+        data = m.group(1).strip()
+        if data.endswith(b"~>"):  # camada ASCII85 do ReportLab
+            try:
+                data = _base64.a85decode(data, adobe=True)
+            except Exception:
+                pass
+        try:
+            data = _zlib.decompress(data)
+        except Exception:
+            pass
+        chunks.append(data)
+    return b"\n".join(chunks)
+
+
+def test_ata_pdf_new_no_column_legacy_with_column(db_session):
+    """034/US2-6: PDF novo sem a coluna; legado com a coluna e histórico."""
+    # Novo
+    loc = _make_location(db_session, name="Loc 034 PDF", department="TI")
+    _make_asset(db_session, "INV-034-0017", location=loc)
+    inv_new = InventarioService.create_inventario(db_session, name="PDF Novo 034", location_id=loc.id)
+    pdf_new = ReportService.generate_inventario_pdf(db_session, inv_new)
+    assert pdf_new.startswith(b"%PDF-")
+    text_new = _pdf_stream_text(pdf_new)
+    assert b"Respons" not in text_new  # sem "Responsável Esperado"
+
+    # Legado
+    _make_asset(db_session, "INV-034-0018", location=loc)
+    inv_leg = InventarioService.create_inventario(db_session, name="PDF Legado 034", location_id=loc.id)
+    _legacy_custodian_value(db_session, inv_leg.itens[0], "Maria Legado PDF")
+    text_leg = _pdf_stream_text(ReportService.generate_inventario_pdf(db_session, inv_leg))
+    assert b"Respons" in text_leg       # coluna presente no legado
+    assert b"Maria Legado PDF" in text_leg
+
+
+def test_templates_do_not_render_expected_custodian(client, db_session):
+    """034/US2-7 (D3): telas do inventário não exibem colaborador esperado — nem em legado."""
+    loc = _make_location(db_session, name="Loc 034 Tela", department="TI")
+    asset = _make_asset(db_session, "INV-034-0019", location=loc)
+    inv = InventarioService.create_inventario(db_session, name="Telas 034", location_id=loc.id)
+    item = inv.itens[0]
+    _legacy_custodian_value(db_session, item, "Maria Tela")
+
+    detail = client.get(f"/inventarios/{inv.id}")
+    assert detail.status_code == 200
+    assert "Maria Tela" not in detail.text
+    assert "Colaborador esperado" not in detail.text
+
+    conferir = client.get(f"/inventarios/{inv.id}/conferir/{asset.id}")
+    assert conferir.status_code == 200
+    assert "Maria Tela" not in conferir.text
+    assert "Colaborador esperado" not in conferir.text
+
+
+# ============================================================================
+# Feature 034 — Inventários históricos íntegros (US3)
+# ============================================================================
+
+def test_legacy_inventory_consultable_with_history(db_session):
+    """034/US3-1 (H-1): inventário legado permanece consultável; ata CSV preserva histórico."""
+    loc = _make_location(db_session, name="Loc 034 Legado", department="TI")
+    _make_asset(db_session, "INV-034-0020", location=loc)
+    _make_asset(db_session, "INV-034-0021", location=loc)
+    inv = InventarioService.create_inventario(db_session, name="Legado 034", location_id=loc.id)
+    itens = {i.asset.tag: i for i in inv.itens}
+    _legacy_custodian_value(db_session, itens["INV-034-0020"], "Maria Historico")
+
+    for item in itens.values():
+        InventarioService.record_check(
+            db_session, item=item, result=InventarioItemStatus.FOUND,
+            user_id=1, username="conferente",
+        )
+
+    s = InventarioService.summary(db_session, inv.id)
+    assert s["expected"] == 2
+    assert s["found"] == 2
+    assert s["checked"] == 2
+
+    csv_text = ReportService.generate_inventario_csv(db_session, inv)
+    assert "Responsável Esperado" in csv_text
+    assert "Maria Historico" in csv_text

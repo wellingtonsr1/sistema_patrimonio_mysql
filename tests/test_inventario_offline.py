@@ -182,10 +182,10 @@ class TestUS1Preparacao:
         assert len(body["items"]) == 1
 
         item = body["items"][0]
+        # Feature 034 (H-3/D4): pacote não contém chaves de custodiante para nenhum inventário
         assert set(item.keys()) == {
             "asset_id", "item_id", "tag", "serial_number", "description",
-            "expected_location_id", "expected_location_name",
-            "expected_custodian_id", "expected_custodian_name", "qr_url",
+            "expected_location_id", "expected_location_name", "qr_url",
         }
         assert item["serial_number"] == "SN-9A2C"
         assert item["qr_url"].endswith(f"/assets/{item['asset_id']}")
@@ -193,6 +193,22 @@ class TestUS1Preparacao:
         text = str(body).lower()
         for forbidden in ("password", "senha", "token", "hash", "permission"):
             assert forbidden not in text
+
+    def test_pacote_sem_chaves_de_custodiante_mesmo_legado(self, client, db_session):
+        """Feature 034 (H-3/D4): pacote não contém expected_custodian_id/name — nem p/ item legado."""
+        loc = _make_location(db_session)
+        _make_asset(db_session, "OFF-TST-9101", location=loc)
+        inv = InventarioService.create_inventario(db_session, name="Pacote Legado 034", location_id=loc.id)
+        item = inv.itens[0]
+        item.expected_custodian_name = "Maria Legado"  # simula inventário legado (gravação direta)
+        db_session.commit()
+
+        resp = client.post(API.format(inv_id=inv.id) + "/package")
+        assert resp.status_code == 200, resp.text
+        item_payload = resp.json()["items"][0]
+        assert "expected_custodian_id" not in item_payload
+        assert "expected_custodian_name" not in item_payload
+        assert "Maria Legado" not in str(item_payload)
 
     def test_409_inventario_encerrado(self, client, db_session):
         loc = _make_location(db_session)

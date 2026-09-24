@@ -130,10 +130,9 @@ class InventarioOfflineService:
                     "description": asset.name if asset else None,
                     "expected_location_id": item.expected_location_id,
                     "expected_location_name": item.expected_location_name,
-                    # Fato do repositório: o snapshot não tem expected_custodian_id
-                    # (apenas o nome textual); mantém contrato sem inventar dado.
-                    "expected_custodian_id": None,
-                    "expected_custodian_name": item.expected_custodian_name,
+                    # Feature 034 (H-3/D4): o pacote offline NÃO contém dados de
+                    # custodiante esperado — para nenhum inventário (payload técnico
+                    # transitório; a responsabilidade é tratada pela movimentação).
                     "qr_url": f"{origin}/assets/{item.asset_id}",  # D2
                 }
             )

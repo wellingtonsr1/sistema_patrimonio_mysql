@@ -50,13 +50,14 @@ Gera o pacote on-demand (D9). Exige `inventario.conferir`.
       "description": "Notebook Dell Latitude 5440",
       "expected_location_id": 3,
       "expected_location_name": "TI - Sala 2",
-      "expected_custodian_id": 8,
-      "expected_custodian_name": "João",
       "qr_url": "https://sispat.example/assets/123"
     }
   ]
 }
 ```
+
+> **Superação (feature 034 — decisão H-3)**: o pacote não inclui mais as chaves
+> `expected_custodian_id`/`expected_custodian_name` (para nenhum inventário).
 
 **409** `{"detail": "Este inventário está encerrado; não pode ser preparado para coleta offline."}` (C-2/P-2)
 **422** inventário sem itens gerados.

@@ -105,7 +105,9 @@ class InventarioService:
     @staticmethod
     def generate_items(db: Session, inv: Inventario) -> int:
         """
-        Gera os itens esperados (snapshot da localização/colaborador atuais).
+        Gera os itens esperados (snapshot do tombamento/localização atuais).
+        Feature 034: o snapshot NÃO grava colaborador responsável — a
+        responsabilidade do bem é tratada pelos fluxos de movimentação.
         Idempotente: ignora bens que já estejam na lista (evita duplicidade
         se chamado novamente). Retorna quantos itens foram adicionados.
         """
@@ -115,7 +117,7 @@ class InventarioService:
         added = 0
         assets = InventarioService._scope_query(
             db, location_id=inv.location_id, department=inv.department
-        ).options(joinedload(Asset.custodian)).all()
+        ).all()
         for asset in assets:
             if asset.id in existing:
                 continue
@@ -124,7 +126,6 @@ class InventarioService:
                 asset_id=asset.id,
                 expected_location_id=asset.location_id,
                 expected_location_name=asset.location.name if asset.location else None,
-                expected_custodian_name=asset.custodian.name if asset.custodian else None,
             ))
             added += 1
         return added

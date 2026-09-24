@@ -553,9 +553,18 @@ class ReportService:
         return rows
 
     @staticmethod
+    def _inventario_mostra_responsavel(db: Session, inventario: Inventario) -> bool:
+        """Feature 034 (D2/H-2): a coluna "Responsável Esperado" só aparece na ata
+        se algum item do inventário tiver o valor gravado (histórico de inventários
+        anteriores à feature). Inventários novos (snapshot sem colaborador) não a têm."""
+        inv = InventarioService.get_by_id(db, inventario.id) or inventario
+        return any(item.expected_custodian_name for item in inv.itens)
+
+    @staticmethod
     def generate_inventario_csv(db: Session, inventario: Inventario) -> str:
         """Gera a ata comprobatória do inventário em CSV (delimitador ';', BOM handled by endpoint)."""
         rows = ReportService._inventario_rows(db, inventario)
+        mostra_responsavel = ReportService._inventario_mostra_responsavel(db, inventario)
 
         output = io.StringIO()
         writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
@@ -577,34 +586,42 @@ class ReportService:
             writer.writerow(["Notas do encerramento", inventario.closure_notes])
         writer.writerow([])
 
-        writer.writerow([
+        headers = [
             "Tipo",
             "Tombamento",
             "Descrição",
             "Categoria",
             "Local Esperado",
-            "Responsável Esperado",
+        ]
+        if mostra_responsavel:
+            headers.append("Responsável Esperado")
+        headers.extend([
             "Resultado",
             "Local Encontrado",
             "Conferido em",
             "Conferido por",
             "Observação",
         ])
+        writer.writerow(headers)
 
         for r in rows:
-            writer.writerow([
+            values = [
                 "Bem não previsto" if r["nao_previsto"] else "Esperado",
                 r["tag"],
                 r["nome"],
                 r["categoria"],
                 r["local_esperado"],
-                r["responsavel_esperado"],
+            ]
+            if mostra_responsavel:
+                values.append(r["responsavel_esperado"])
+            values.extend([
                 r["resultado"],
                 r["local_encontrado"],
                 r["conferido_em"],
                 r["conferido_por"],
                 r["observacao"],
             ])
+            writer.writerow(values)
 
         return output.getvalue()
 
@@ -619,6 +636,7 @@ class ReportService:
         from reportlab.lib.enums import TA_CENTER
 
         rows = ReportService._inventario_rows(db, inventario)
+        mostra_responsavel = ReportService._inventario_mostra_responsavel(db, inventario)
         summary = InventarioService.summary(db, inventario.id)
 
         output = io.BytesIO()
@@ -670,27 +688,38 @@ class ReportService:
 
         headers = [
             "Tipo", "Tombamento", "Descrição", "Categoria", "Local Esperado",
-            "Responsável Esperado", "Resultado", "Local Encontrado",
-            "Conferido em", "Conferido por", "Observação",
         ]
+        if mostra_responsavel:
+            headers.append("Responsável Esperado")
+        headers.extend([
+            "Resultado", "Local Encontrado",
+            "Conferido em", "Conferido por", "Observação",
+        ])
         table_data = [[Paragraph(h, cell_style) for h in headers]]
         for r in rows:
-            table_data.append([
+            row_cells = [
                 Paragraph("Não previsto" if r["nao_previsto"] else "Esperado", cell_style),
                 Paragraph(r["tag"], cell_style),
                 Paragraph(r["nome"], cell_style),
                 Paragraph(r["categoria"], cell_style),
                 Paragraph(r["local_esperado"], cell_style),
-                Paragraph(r["responsavel_esperado"], cell_style),
+            ]
+            if mostra_responsavel:
+                row_cells.append(Paragraph(r["responsavel_esperado"], cell_style))
+            row_cells.extend([
                 Paragraph(r["resultado"], cell_style),
                 Paragraph(r["local_encontrado"], cell_style),
                 Paragraph(r["conferido_em"], cell_style),
                 Paragraph(r["conferido_por"], cell_style),
                 Paragraph(r["observacao"], cell_style),
             ])
+            table_data.append(row_cells)
 
         if len(table_data) > 1:
-            column_weights = [4, 5, 7, 4, 6, 6, 5, 6, 4, 4, 8]
+            column_weights = [4, 5, 7, 4, 6]
+            if mostra_responsavel:
+                column_weights.append(6)
+            column_weights.extend([5, 6, 4, 4, 8])
             total_weight = sum(column_weights)
             col_widths = [(available_width * w) / total_weight for w in column_weights]
             table = Table(table_data, colWidths=col_widths, repeatRows=1)
@@ -735,6 +764,7 @@ class ReportService:
         from openpyxl.utils import get_column_letter
 
         rows = ReportService._inventario_rows(db, inventario)
+        mostra_responsavel = ReportService._inventario_mostra_responsavel(db, inventario)
         summary = InventarioService.summary(db, inventario.id)
 
         wb = Workbook()
@@ -791,13 +821,16 @@ class ReportService:
             "Descrição",
             "Categoria",
             "Local Esperado",
-            "Responsável Esperado",
+        ]
+        if mostra_responsavel:
+            headers.append("Responsável Esperado")
+        headers.extend([
             "Resultado",
             "Local Encontrado",
             "Conferido em",
             "Conferido por",
             "Observação",
-        ]
+        ])
         header_row = current_row
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=header_row, column=col, value=header)
@@ -815,13 +848,16 @@ class ReportService:
                 r["nome"],
                 r["categoria"],
                 r["local_esperado"],
-                r["responsavel_esperado"],
+            ]
+            if mostra_responsavel:
+                values.append(r["responsavel_esperado"])
+            values.extend([
                 r["resultado"],
                 r["local_encontrado"],
                 r["conferido_em"],
                 r["conferido_por"],
                 r["observacao"],
-            ]
+            ])
             for col, value in enumerate(values, 1):
                 cell = ws.cell(row=r_idx, column=col, value=value)
                 cell.border = thin_border
