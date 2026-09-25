@@ -152,6 +152,11 @@ Textuais agora somam **66%** (SC-002 com folga maior) e Ações retorna a 7% (ma
 - Célula do Motivo usa `truncate-3` + tooltip `title` (texto completo acessível no hover).
 - Suíte focada: 32 passed.
 
+## min-width 1340px (solicitado pelo usuário, 2026-09-25 — commit 5af2402)
+
+- `min-width` da tabela elevado de 1280px para **1340px** (media query ≤768px permanece 1160px): +60px distribuídos proporcionalmente nas textuais.
+- Efeito prático: em viewports ≥ ~1340px nada muda (tabela já 100%); entre ~1150px e 1340px a rolagem horizontal confinada começa um pouco antes em troca de colunas textuais mais largas — alinhado com C-4 e a seção 18 do pedido (rolagem controlada aceitável quando melhora a legibilidade).
+
 ## Origem/Destino quebrando demais (feedback visual, 2026-09-25 — commit 166bd69)
 
 Três ajustes que reduzem as quebras **sem roubar** das outras textuais:
