@@ -178,3 +178,11 @@ Três ajustes que reduzem as quebras **sem roubar** das outras textuais:
 3. **Tombamento 150 → 110px e Tipo 132 → 128px**: medição mostrou folga excessiva herdada de commits anteriores; os ~44px devolvidos vão para o pool das textuais (Origem/Destino inclusive).
 
 Suíte focada: 32 passed.
+
+## Mais largura horizontal para Origem/Destino/Motivo (solicitado pelo usuário, 2026-09-25 — commit d8ce341)
+
+- `min-width` da tabela: 1340 → **1480px** (media query ≤768px permanece 1160px).
+- Rígidas compactadas ao mínimo íntegro: Data/Hora 116 → **112px**, Tombamento 110 → **108px**, Tipo 128 → **122px**, Ações 84 → **76px**, Operador 11 → **10%**.
+- Efeito: Origem, Destino e Motivo passam a caber **mais texto em linha única** antes das reticências — sem cortar conteúdo (tooltips/integridade preservados).
+- Abaixo de 1480px a rolagem horizontal confinada começa antes (trade-off C-4/seção 18, aceito pelo usuário).
+- Suíte focada: 9 passed.
