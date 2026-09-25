@@ -3,6 +3,38 @@
 {% block title %}Relatório de Inventário Patrimonial{% endblock %}
 
 {% block content %}
+<style>
+    /* Feature 041: larguras proporcionais na tabela do relatório (escopado — não afeta outras tabelas).
+       Layout fixo + colgroup com TODAS as colunas em px, calibradas para a fonte real do app
+       (Plus Jakarta Sans, ~20–30% mais larga que fontes de medição fallback): nenhuma célula
+       nowrap transborda sobre a vizinha e nenhum texto quebra na vertical; abaixo da largura
+       mínima, a rolagem fica confinada ao contêiner da tabela. Textuais exibem texto completo. */
+    .invrep-table { table-layout: fixed; width: 100%; min-width: 1345px; }
+    .invrep-table .c1 { width: 134px; }
+    .invrep-table .c2 { width: 148px; }
+    .invrep-table .c3 { width: 128px; }
+    .invrep-table .c4 { width: 132px; }
+    .invrep-table .c5 { width: 136px; }
+    .invrep-table .c6 { width: 120px; }
+    .invrep-table .c7 { width: 124px; }
+    .invrep-table .c8 { width: 148px; }
+    .invrep-table .c9 { width: 124px; }
+    .invrep-table .c10 { width: 120px; }
+    .invrep-table .nw { white-space: nowrap; }
+
+    @media screen {
+        .invrep-table th, .invrep-table td { overflow-wrap: break-word; }
+    }
+
+    /* Segurança de impressão (Feature 041): o papel nunca herda o layout de tela;
+       o bloco global de impressão dos relatórios permanece intocado. */
+    @media print {
+        .invrep-table { table-layout: auto !important; width: 100% !important; min-width: 0 !important; }
+        .invrep-table col { width: auto !important; }
+        .invrep-table th, .invrep-table td { white-space: normal !important; }
+    }
+</style>
+
 <div class="page-header no-print">
     <div>
         <h3 class="page-header-title">Relatório Contábil-Físico do Patrimônio</h3>
@@ -27,7 +59,11 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle small mb-0">
+        <table class="table table-bordered table-hover align-middle small mb-0 invrep-table">
+            <colgroup>
+                <col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5">
+                <col class="c6"><col class="c7"><col class="c8"><col class="c9"><col class="c10">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Tombamento</th>
@@ -45,7 +81,7 @@
             <tbody>
                 {% for a in assets %}
                 <tr>
-                    <td class="font-monospace fw-bold">{{ a.tag }}</td>
+                    <td class="font-monospace fw-bold nw">{{ a.tag }}</td>
                     <td>
                         <strong>{{ a.name }}</strong>
                         {% if a.serial_number %}<div class="text-muted" style="font-size:.72rem;">S/N: {{ a.serial_number }}</div>{% endif %}
@@ -54,10 +90,10 @@
                     <td><span class="status-pill status-pill-{{ a.status.value }}">{{ a.status.label }}</span></td>
                     <td class="small">{{ a.location.name if a.location else 'Estoque Geral' }}</td>
                     <td class="small">{{ a.custodian.name if a.custodian else 'Livre' }}</td>
-                    <td class="small">{{ a.purchase_date.strftime('%d/%m/%Y') if a.purchase_date else '-' }}</td>
-                    <td class="text-end small">R$ {{ "{:,.2f}".format(a.purchase_value).replace(",", "v").replace(".", ",").replace("v", ".") }}</td>
-                    <td class="text-end small" style="color:var(--red);">-{{ a.deprec_info.depreciation_percent }}%</td>
-                    <td class="text-end small fw-bold" style="color:var(--green);">R$ {{ "{:,.2f}".format(a.deprec_info.current_value).replace(",", "v").replace(".", ",").replace("v", ".") }}</td>
+                    <td class="small nw">{{ a.purchase_date.strftime('%d/%m/%Y') if a.purchase_date else '-' }}</td>
+                    <td class="text-end small nw">R$ {{ "{:,.2f}".format(a.purchase_value).replace(",", "v").replace(".", ",").replace("v", ".") }}</td>
+                    <td class="text-end small nw" style="color:var(--red);">-{{ a.deprec_info.depreciation_percent }}%</td>
+                    <td class="text-end small fw-bold nw" style="color:var(--green);">R$ {{ "{:,.2f}".format(a.deprec_info.current_value).replace(",", "v").replace(".", ",").replace("v", ".") }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
