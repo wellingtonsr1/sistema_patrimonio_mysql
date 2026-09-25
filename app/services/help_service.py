@@ -680,7 +680,7 @@ ARTICLES: List[Dict] = [
                 "heading": "Preparar a coleta offline",
                 "steps": [
                     "Na tela do inventário (PLANEJADO ou EM_ANDAMENTO), clique em Preparar coleta offline.",
-                    "O dispositivo guarda um pacote com apenas os dados de conferência (tombamento, descrição, número de série, local/responsável esperados e o QR).",
+                    "O dispositivo guarda um pacote com apenas os dados de conferência (tombamento, descrição, número de série, local esperado e o QR).",
                     "Nada de usuários, permissões ou credenciais é armazenado no dispositivo.",
                 ],
             },
@@ -688,10 +688,18 @@ ARTICLES: List[Dict] = [
                 "heading": "Coletar sem conexão",
                 "steps": [
                     "Abra /inventarios/{id}/offline no tablet — a página funciona sem internet (Service Worker).",
-                    "Use Ler QR (câmera, no Chrome/Edge) ou digite o tombamento para identificar o bem.",
-                    "Escolha o resultado: Encontrado, Local diferente, Não encontrado ou Sem identificação — as mesmas regras do fluxo online.",
+                    "Use o botão flutuante Ler QR (câmera, no Chrome/Edge) ou o campo de pesquisa por tombamento/descrição para identificar o bem; se a câmera não estiver disponível, o leitor aceita digitar a URL do QR ou o tombamento.",
+                    "Escolha o resultado: Encontrado, Local diferente (informando o local onde foi encontrado), Não encontrado ou Sem identificação — as mesmas regras do fluxo online.",
                     "Cada coleta fica guardada no próprio dispositivo, mesmo fechando o navegador ou reiniciando o aparelho.",
                 ],
+            },
+            {
+                "heading": "Bens não previstos (fora da lista)",
+                "body": (
+                    "Ao escanear o QR de um bem que não está no pacote, a ocorrência é registrada localmente "
+                    "como não prevista e sincronizada para o inventário. Por tombamento digitado o sistema não "
+                    "identifica bens fora do pacote (não há como validar offline) — nesses casos, use a câmera."
+                ),
             },
             {
                 "heading": "Sincronizar ao voltar da rede",
@@ -709,6 +717,17 @@ ARTICLES: List[Dict] = [
                     "tela do inventário, com as versões lado a lado. Um usuário autorizado decide entre Aplicar coleta "
                     "(grava pelo fluxo oficial, inventário aberto) e Manter registrado (mantém o estado atual). Toda decisão "
                     "fica na auditoria."
+                ),
+            },
+            {
+                "heading": "Coletas rejeitadas (motivos e solução)",
+                "body": (
+                    "Coletas que não puderam ser gravadas aparecem rejeitadas com motivo, sem alterar o inventário: "
+                    "inventario_encerrado (o inventário fechou antes do sync — avalie novo inventário), snapshot_mismatch "
+                    "(o pacote do dispositivo ficou antigo — reconecte e prepare a coleta novamente), local_inexistente ou "
+                    "responsavel_inexistente (o nome digitado não existe no cadastro — corrija o cadastro ou re-colete com o "
+                    "nome exato), asset_fora_do_snapshot (o bem pertence a outro escopo) e local_nao_resolvido (divergência "
+                    "sem local informado — re-colete informando o local). Guia completo: docs/COLETA_OFFLINE.md."
                 ),
             },
             {

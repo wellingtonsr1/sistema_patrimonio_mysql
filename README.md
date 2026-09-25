@@ -68,6 +68,7 @@ A conferência física pode ser feita **sem conexão** em tablets/celulares, com
 - **Evidências/fotos**: o sistema não possui armazenamento de imagens; a arquitetura prevê apenas metadados de evidência associados à coleta (coluna dedicada), e a limitação é intencional nesta etapa.
 - **Service Worker/PWA**: cache restrito à área de coleta offline (allowlist explícita, versionado); rotas `/api/*` e páginas sensíveis nunca são cacheadas. Requer HTTPS em produção (HTTP localhost em desenvolvimento).
 - Permissões: **nenhuma nova** — quem pode conferir online (`inventario.conferir`) prepara e coleta offline; consulta da área usa `inventario.visualizar`.
+- **Guia completo de uso** (passo a passo, conflitos e rejeições): [`docs/COLETA_OFFLINE.md`](docs/COLETA_OFFLINE.md) — também disponível na central de ajuda (`/ajuda` → artigo "Coleta offline de inventário").
 
 ### 4. 👥 Gestão de Colaboradores & Departamentos
 
