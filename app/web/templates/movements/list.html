@@ -10,19 +10,25 @@
   nenhuma regra global, nenhuma outra tela afetada. Colunas rígidas (Data/Hora,
   Tombamento, Tipo, Ações) em PIXELS com folga para a fonte real do app
   (Plus Jakarta Sans); textuais (Equipamento/Origem/Destino/Motivo/Operador)
-  dividem o restante (C-1); cap max-width do Motivo removido mantendo
-  truncate-2 + tooltip (FR-008).
+  dividem o restante (C-1); cap max-width do Motivo removido e corte em 3
+  linhas (truncate-3 escopado) + tooltip (FR-008 + feedback do solicitante).
 -->
 <style>
   .mov-lista-table { table-layout: fixed; width: 100%; min-width: 1280px; }
   .mov-lista-table th, .mov-lista-table td { overflow-wrap: break-word; vertical-align: middle; }
   .mov-lista-table .col-dh { width: 116px; }
-  .mov-lista-table .col-tag { width: 118px; }
+  .mov-lista-table .col-tag { width: 150px; }
   .mov-lista-table .col-tipo { width: 132px; }
   .mov-lista-table .col-operador { width: 11%; }
   .mov-lista-table .col-acoes { width: 84px; }
   .mov-lista-table .tag-badge { white-space: nowrap; }
   .mov-lista-table .badge { white-space: normal; }
+  .mov-lista-table .truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
   @media (max-width: 768px) {
     .mov-lista-table { min-width: 1160px; }
     .mov-lista-table th { font-size: .72rem; }
@@ -122,7 +128,7 @@
                         <div class="fw-semibold" style="color:var(--c-primary-text);"><i class="bi bi-geo-alt-fill me-1"></i>{{ m.destination_location_name or '-' }}</div>
                         <div style="color:var(--c-primary-text);"><i class="bi bi-person-fill me-1"></i>{{ m.destination_custodian_name or '-' }}</div>
                     </td>
-                    <td class="small truncate-2" title="{{ m.reason }}">{{ m.reason }}</td>
+                    <td class="small truncate-3" title="{{ m.reason }}">{{ m.reason }}</td>
                     <td class="small text-muted">{{ m.operator_name }}</td>
                     <td class="text-end">
                         <div class="d-flex gap-1 justify-content-end">
