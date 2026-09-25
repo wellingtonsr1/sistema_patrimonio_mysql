@@ -24,3 +24,10 @@ Linha 63: colaborador 'Rodrigo Dantas' não encontrado no cadastro de colaborado
 
 
 Iniciar formalmente a conferência (sem registrar resultado ainda).
+Coletas offline (5)
+Operaço	
+CHECK	
+CHECK	
+CHECK	
+CHECK	
+CHECK
