@@ -19,9 +19,9 @@
   .cust-lista-table .col-nome { width: 23%; }
   .cust-lista-table .col-cargo { width: 16%; }
   .cust-lista-table .col-depto { width: 19%; }
-  .cust-lista-table .col-email { width: 22%; }
+  .cust-lista-table .col-email { width: 25%; }
   .cust-lista-table .col-bens { width: 64px; }
-  .cust-lista-table .col-acoes { width: 138px; }
+  .cust-lista-table .col-acoes { width: 84px; }
   .cust-lista-table .tag-badge { white-space: nowrap; }
   .cust-lista-table .badge { white-space: normal; }
   @media (max-width: 768px) {
@@ -114,8 +114,8 @@
                                 <i class="bi bi-pencil"></i>
                             </a>
                             {% endif %}
-                            <a href="/custodians/{{ c.id }}" class="btn btn-ghost btn-sm">
-                                <i class="bi bi-laptop me-1"></i> Ver Bens
+                            <a href="/custodians/{{ c.id }}" class="btn btn-ghost btn-icon" title="Ver Bens sob custódia">
+                                <i class="bi bi-laptop"></i>
                             </a>
                         </div>
                     </td>
