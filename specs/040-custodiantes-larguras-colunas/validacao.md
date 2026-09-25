@@ -73,6 +73,13 @@ Textuais somam **75%** da largura (SC-002 indicativo ✓ com folga); Ações 138
 3. **Rígidas em px** (Matrícula 128, Bens 92, Ações 138): absorvem a largura real da Plus Jakarta Sans por construção (lição da 039).
 4. **Textuais em partes iguais**: Nome, Cargo, Departamento e E-mail têm naturezas semelhantes (texto variável completo) e dividem o restante igualmente — o excedente de qualquer uma beneficia as demais.
 
+## "Ver Bens" como ícone + tooltip (solicitado pelo usuário, 2026-09-25 — commit 301f98f)
+
+- Botão "Ver Bens" (ícone + texto, ~90px) convertido para **`btn-icon` puro com tooltip** "Ver Bens sob custódia" — mesmo padrão do botão "Editar Colaborador".
+- Efeito em cascata: **Ações 138 → 84px** (2 ícones de 32px + gap) e **E-mail 22 → 25%** (o espaço liberado foi direto para a textual de e-mails longos).
+- Acessibilidade preservada: função do botão mantida (mesmo destino `/custodians/{id}`) e ação descrita no tooltip.
+- Suíte focada: 53 passed.
+
 ## Resultado
 
 **V0–V5: PASS nos critérios mensuráveis** — suíte 100% verde (728/728), textuais dominando com 75% da largura e texto completo, zero regressão, escopo cirúrgico confirmado (1 arquivo). Inspeção visual subjetiva (screenshots/zoom em navegador real) segue procedimento do `quickstart.md` como etapa de aceitação humana.
