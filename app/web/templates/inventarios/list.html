@@ -47,8 +47,46 @@
 <!-- Table -->
 <div class="card">
     {% if inventarios %}
+    <!-- Feature 037: larguras proporcionais por coluna (escopo restrito a esta tabela;
+         demais tabelas/páginas não são afetadas). Mecanismo da 036 (clarificação 2026-09-25):
+         layout fixed determinístico + larguras por classes (media-query-able) + quebras locais.
+         Larguras = partida do data-model, refinadas por medição (C-1: spec não fixa percentuais). -->
+    <style>
+        .inv-lista-table { table-layout: fixed; width: 100%; min-width: 1100px; }
+        /* Larguras finais (medição): Código 13 | Inventário 29 | Escopo 24 | Progresso 16 | Status 11 | Ações 7.
+           Código 13%: badge do código integral, sem truncamento (FR-003); Status 11%:
+           "Em Andamento" em linha única (FR-007 — badge ~91px + padding da célula). */
+        .inv-lista-table col.c1 { width: 13%; }
+        .inv-lista-table col.c2 { width: 29%; }
+        .inv-lista-table col.c3 { width: 24%; }
+        .inv-lista-table col.c4 { width: 16%; }
+        .inv-lista-table col.c5 { width: 11%; }
+        .inv-lista-table col.c6 { width: 7%; }
+        /* Quebra preferindo fronteira de palavra; quebra no meio só quando inevitável */
+        .inv-lista-table td, .inv-lista-table th { overflow-wrap: break-word; }
+        /* Célula Status: padding lateral reduzido para o badge "Em Andamento" caber em
+           1 linha mesmo em notebook (coluna ~118px com min-width 1100px — medição) */
+        .inv-lista-table td:nth-child(5), .inv-lista-table th:nth-child(5) { padding-left: 8px; padding-right: 8px; }
+        /* Código é identificador único: nunca quebra no meio (FR-003) */
+        .inv-lista-table .tag-badge { white-space: nowrap; }
+        /* Badges do Bootstrap são nowrap por padrão: no Progresso empilhado precisam
+           poder quebrar dentro da coluna (lição da 036) */
+        .inv-lista-table .badge { white-space: normal; }
+        /* Telas menores: header compacto cabe nas colunas sem sobrepor o vizinho */
+        @media (max-width: 768px) {
+            .inv-lista-table th { font-size: .75rem; padding: .35rem .4rem; }
+        }
+    </style>
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table align-middle inv-lista-table">
+            <colgroup>
+                <col class="c1">
+                <col class="c2">
+                <col class="c3">
+                <col class="c4">
+                <col class="c5">
+                <col class="c6">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Código</th>
