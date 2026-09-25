@@ -11,8 +11,8 @@
   Tombamento, Tipo, Ações) em PIXELS com folga para a fonte real do app
   (Plus Jakarta Sans); textuais (Equipamento/Origem/Destino/Motivo/Operador)
   dividem o restante (C-1); padding horizontal 6px libera ~8px por célula
-  para as textuais; linha auxiliar de custodiante em .78rem (padrão de
-  linhas auxiliares da 037/038) reduz as quebras em Origem/Destino;
+  para as textuais; Origem/Destino horizontais em 1 linha por campo (mov-fluxo:
+  nowrap + ellipsis, custodiante em .78rem) — sem quebras;
   cap max-width do Motivo removido; exibição horizontal em 1 linha com
   reticências (mov-motivo escopado) + tooltip (FR-008 + feedback).
 -->
@@ -31,6 +31,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .mov-lista-table .mov-fluxo div {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mov-lista-table .mov-sec { font-size: .78rem; }
   @media (max-width: 768px) {
     .mov-lista-table { min-width: 1160px; }
     .mov-lista-table th { font-size: .72rem; }
@@ -122,11 +128,11 @@
                     <td>
                         <span class="badge badge-soft-primary" style="font-size:.68rem;">{{ m.movement_type.label }}</span>
                     </td>
-                    <td class="small">
+                    <td class="small mov-fluxo">
                         <div><i class="bi bi-geo-alt text-muted me-1"></i>{{ m.origin_location_name or '-' }}</div>
                         <div class="text-muted mov-sec"><i class="bi bi-person me-1"></i>{{ m.origin_custodian_name or '-' }}</div>
                     </td>
-                    <td class="small">
+                    <td class="small mov-fluxo">
                         <div class="fw-semibold" style="color:var(--c-primary-text);"><i class="bi bi-geo-alt-fill me-1"></i>{{ m.destination_location_name or '-' }}</div>
                         <div class="mov-sec" style="color:var(--c-primary-text);"><i class="bi bi-person-fill me-1"></i>{{ m.destination_custodian_name or '-' }}</div>
                     </td>
