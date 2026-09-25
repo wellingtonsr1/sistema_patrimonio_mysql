@@ -148,14 +148,17 @@
     </div>
     <div class="table-responsive">
         <table class="table table-sm align-middle">
-            <thead><tr><th>Operaço</th><th>Bem</th><th>Status</th><th>Dispositivo</th><th>Usuário</th><th>Recebida em</th></tr></thead>
+            <thead><tr><th>Operação</th><th>Bem</th><th>Status</th><th>Dispositivo</th><th>Usuário</th><th>Recebida em</th></tr></thead>
             <tbody>
             {% for c in offline_coletas[:25] %}
             {% set item_of = (expected_itens + unlisted_itens) | selectattr('id', 'equalto', c.item_id) | first if c.item_id else None %}
+            {% set op_label = {'CHECK': 'Conferência', 'UNLISTED': 'Bem não previsto'}.get(c.operation, c.operation) %}
+            {% set st_label = {'OFFLINE_ACEITA': 'Aceita', 'OFFLINE_DUPLICADA': 'Duplicada', 'OFFLINE_CONFLITO': 'Conflito', 'OFFLINE_REJEITADA': 'Rejeitada', 'OFFLINE_RECONCILIADA': 'Reconciliada'}.get(c.status, c.status) %}
+            {% set st_badge = {'OFFLINE_ACEITA': 'badge-soft-green', 'OFFLINE_DUPLICADA': 'badge-soft-gray', 'OFFLINE_CONFLITO': 'badge-soft-amber', 'OFFLINE_REJEITADA': 'badge-soft-red', 'OFFLINE_RECONCILIADA': 'badge-soft-primary'}.get(c.status, 'badge-soft-gray') %}
                 <tr>
-                    <td class="small">{{ c.operation }}</td>
+                    <td class="small">{{ op_label }}</td>
                     <td>{% if item_of and item_of.asset %}<span class="tag-badge">{{ item_of.asset.tag }}</span>{% else %}{{ c.asset_id }}{% endif %}</td>
-                    <td><span class="badge badge-soft-gray">{{ c.status }}</span>{% if c.reject_reason %}<div class="small text-muted">{{ c.reject_reason }}</div>{% endif %}</td>
+                    <td><span class="badge {{ st_badge }}">{{ st_label }}</span>{% if c.reject_reason %}<div class="small text-muted">{{ c.reject_reason }}</div>{% endif %}</td>
                     <td class="small text-muted">{{ c.device_id[:13] }}…</td>
                     <td class="small">{{ c.username or '—' }}</td>
                     <td class="small text-muted">{{ c.received_at[:16].replace('T', ' ') if c.received_at }}</td>
