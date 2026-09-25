@@ -15,11 +15,11 @@
 <style>
   .cust-lista-table { table-layout: fixed; width: 100%; min-width: 1150px; }
   .cust-lista-table th, .cust-lista-table td { overflow-wrap: break-word; vertical-align: middle; }
-  .cust-lista-table .col-mat { width: 120px; }
+  .cust-lista-table .col-mat { width: 150px; }
   .cust-lista-table .col-nome { width: 23%; }
-  .cust-lista-table .col-cargo { width: 16%; }
+  .cust-lista-table .col-cargo { width: 23%; }
   .cust-lista-table .col-depto { width: 19%; }
-  .cust-lista-table .col-email { width: 25%; }
+  .cust-lista-table .col-email { width: 19%; }
   .cust-lista-table .col-bens { width: 64px; }
   .cust-lista-table .col-acoes { width: 84px; }
   .cust-lista-table .tag-badge { white-space: nowrap; }
@@ -28,6 +28,9 @@
     .cust-lista-table { min-width: 1080px; }
     .cust-lista-table th { font-size: .72rem; }
   }
+  /* Feature 040 — 3 botões no header desta tela estouram a linha em viewports
+     estreitas: permite a quebra para a linha de baixo (escopado à tela). */
+  .page-header .d-flex { flex-wrap: wrap; }
 </style>
 <div class="page-header">
     <div>
