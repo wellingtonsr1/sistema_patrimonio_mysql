@@ -151,3 +151,12 @@ Textuais agora somam **66%** (SC-002 com folga maior) e Ações retorna a 7% (ma
 - Nova classe escopada `.truncate-3` (`-webkit-line-clamp: 3`) no `<style>` da tabela; o utilitário global `.truncate-2` do `style.css` permanece intocado (outras telas não são afetadas).
 - Célula do Motivo usa `truncate-3` + tooltip `title` (texto completo acessível no hover).
 - Suíte focada: 32 passed.
+
+## Origem/Destino quebrando demais (feedback visual, 2026-09-25 — commit 166bd69)
+
+Três ajustes que reduzem as quebras **sem roubar** das outras textuais:
+1. **Padding horizontal das células 8px → 6px** (`padding-left/right` no escopo): ~4px de conteúdo útil por borda em todas as colunas textuais.
+2. **Linha auxiliar de custodiante em `.78rem`** (classe `.mov-sec`, padrão de linhas auxiliares da 037/038): fonte menor → menos quebras; a linha principal (local) mantém o tamanho normal e a hierarquia visual local > custodiante fica explícita.
+3. **Tombamento 150 → 110px e Tipo 132 → 128px**: medição mostrou folga excessiva herdada de commits anteriores; os ~44px devolvidos vão para o pool das textuais (Origem/Destino inclusive).
+
+Suíte focada: 32 passed.
