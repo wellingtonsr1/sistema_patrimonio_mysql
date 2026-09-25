@@ -13,7 +13,7 @@ from pathlib import Path
 from app.database import get_db
 from app.config import APP_NAME, APP_VERSION, COMPANY_NAME, COMPANY_CNPJ, COMPANY_ADDRESS, AUTH_COOKIE_NAME
 from app.utils.time_utils import utc_to_recife
-from app.models.enums import AssetStatus, AssetCondition, AssetCategory, MovementType, MaintenanceType, MaintenanceStatus, InventarioStatus, InventarioItemStatus
+from app.models.enums import AssetStatus, AssetCondition, AssetCategory, MovementType, MaintenanceType, MaintenanceStatus, InventarioStatus, InventarioItemStatus, InventarioOfflineColetaStatus
 from app.models.location import Location
 from app.models.asset import Asset
 from app.models.inventario import Inventario, InventarioItem
@@ -1937,10 +1937,14 @@ def view_inventario(
     can_encerrar = user_has_permission_for(request, db, "inventario.encerrar")
 
     # Feature 033: coletas offline (rastreabilidade por dispositivo — US4) e
-    # conflitos preservados (P-3/FR-027) — leitura via service (Princípio III)
+    # conflitos preservados (P-3/FR-027) — leitura via service (Princípio III).
+    # ATENÇÃO: o valor do enum é o rótulo ("OFFLINE_CONFLITO"), não o nome.
     from app.services.inventario_offline_service import InventarioOfflineService
     offline = InventarioOfflineService.list_coletas(db, inventory_id=inv.id)
-    offline_conflitos = [c for c in offline["coletas"] if c["status"] == "CONFLICT"]
+    offline_conflitos = [
+        c for c in offline["coletas"]
+        if c["status"] == InventarioOfflineColetaStatus.CONFLICT.value
+    ]
 
     return templates.TemplateResponse(
         request=request,

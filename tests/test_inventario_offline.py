@@ -555,6 +555,28 @@ class TestUS3Sincronizacao:
             for forbidden in ("password", "senha", "token", "cookie"):
                 assert forbidden not in text
 
+    def test_card_conflitos_renderiza_na_tela_do_inventario(self, client, db_session):
+        """Regressão: o card 'Conflitos offline' deve aparecer na tela do inventário.
+
+        Bug: a rota comparava c['status'] == 'CONFLICT', mas o valor do enum é o
+        rótulo ('OFFLINE_CONFLITO') — o card nunca renderizava com conflito real.
+        """
+        inv, pkg, loc, loc2 = self._prep(db_session, client)
+        item = inv.itens[0]
+        InventarioService.record_check(
+            db_session, item=item, result=InventarioItemStatus.NOT_FOUND, username="online"
+        )
+        _sync(client, inv.id, pkg["snapshot_version"], [
+            # offline diz ENCONTRADO para item NAO_ENCONTRADO → divergente → CONFLICT
+            _op_check("op-card-0001", item.id, item.asset_id),
+        ])
+
+        page = client.get(f"/inventarios/{inv.id}")
+        assert page.status_code == 200
+        assert "Conflitos offline (1)" in page.text
+        assert "Aplicar coleta" in page.text
+        assert "Manter registrado" in page.text
+
     def test_sync_403_sem_permissao(self, client, db_session):
         loc = _make_location(db_session)
         inv = _make_inventario(db_session, loc)
