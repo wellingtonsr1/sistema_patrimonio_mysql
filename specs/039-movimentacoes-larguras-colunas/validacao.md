@@ -186,3 +186,10 @@ Suíte focada: 32 passed.
 - Efeito: Origem, Destino e Motivo passam a caber **mais texto em linha única** antes das reticências — sem cortar conteúdo (tooltips/integridade preservados).
 - Abaixo de 1480px a rolagem horizontal confinada começa antes (trade-off C-4/seção 18, aceito pelo usuário).
 - Suíte focada: 9 passed.
+
+## Destino e Motivo em 2 linhas para não perder texto (solicitado pelo usuário, 2026-09-25 — commit ee59145)
+
+- **Destino**: sai do `mov-fluxo` (nowrap/ellipsis) e volta a quebrar em até 2 linhas por campo (local e custodiante) — nenhum texto fica oculto.
+- **Motivo**: troca nowrap/ellipsis por `truncate-2` (corte em 2 linhas), mantendo o tooltip com o texto completo.
+- **Origem**: permanece horizontal em 1 linha por campo (`mov-fluxo`).
+- Suíte focada: 32 passed.
