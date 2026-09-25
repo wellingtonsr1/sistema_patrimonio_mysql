@@ -163,6 +163,13 @@ Textuais agora somam **66%** (SC-002 com folga maior) e Ações retorna a 7% (ma
 - Tooltip `title` mantido (texto completo no hover). Linhas da tabela ficam mais compactas; nenhum conteúdo é removido (FR-014 — texto integral acessível no tooltip).
 - A classe `.truncate-3` foi removida (não há mais uso). Suíte focada: 32 passed.
 
+## Origem/Destino horizontais em 1 linha por campo (solicitado pelo usuário, 2026-09-25 — commit 69ddaa5)
+
+- Classe escopada `.mov-fluxo` (nowrap + ellipsis) nas células de Origem e Destino: **cada campo (local, custodiante) ocupa 1 linha** — sem quebras; excedente vira reticências.
+- Custodiante permanece em `.78rem` (`.mov-sec`) e a linha principal do local em `.85rem` (`small`), preservando a hierarquia visual.
+- Efeito: todas as linhas da tabela têm altura uniforme (2 linhas fixas por célula de fluxo); o nome completo de local/custodiante segue acessível ao redimensionar (ellipsis apenas visual).
+- Suíte focada: 32 passed.
+
 ## Origem/Destino quebrando demais (feedback visual, 2026-09-25 — commit 166bd69)
 
 Três ajustes que reduzem as quebras **sem roubar** das outras textuais:
