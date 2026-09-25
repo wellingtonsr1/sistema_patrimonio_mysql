@@ -3,6 +3,28 @@
 {% block title %}Colaboradores & Custodiantes{% endblock %}
 
 {% block content %}
+<!--
+  Feature 040 — Ajuste responsivo da tabela "Colaboradores & Custodiantes":
+  layout determinístico (table-layout: fixed + colgroup) reusando o mecanismo
+  validado nas specs 036–039. CSS escopado a esta tabela (.cust-lista-table):
+  nenhuma regra global, nenhuma outra tela afetada. Rígidas (Matrícula/Bens/
+  Ações) em px com folga para a Plus Jakarta Sans; textuais (Nome/Cargo/
+  Departamento/E-mail) dividem o restante e exibem TEXTO COMPLETO, sem
+  clamp/ellipsis (clarificação da spec, FR-004..007).
+-->
+<style>
+  .cust-lista-table { table-layout: fixed; width: 100%; min-width: 1150px; }
+  .cust-lista-table th, .cust-lista-table td { overflow-wrap: break-word; vertical-align: middle; }
+  .cust-lista-table .col-mat { width: 218px; }
+  .cust-lista-table .col-bens { width: 92px; }
+  .cust-lista-table .col-acoes { width: 138px; }
+  .cust-lista-table .tag-badge { white-space: nowrap; }
+  .cust-lista-table .badge { white-space: normal; }
+  @media (max-width: 768px) {
+    .cust-lista-table { min-width: 1080px; }
+    .cust-lista-table th { font-size: .72rem; }
+  }
+</style>
 <div class="page-header">
     <div>
         <h3 class="page-header-title">Colaboradores & Custodiantes</h3>
@@ -43,7 +65,16 @@
 <div class="card">
     {% if custodians %}
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table align-middle cust-lista-table">
+            <colgroup>
+                <col class="col-mat">
+                <col class="col-nome">
+                <col class="col-cargo">
+                <col class="col-depto">
+                <col class="col-email">
+                <col class="col-bens">
+                <col class="col-acoes">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Matrícula</th>
