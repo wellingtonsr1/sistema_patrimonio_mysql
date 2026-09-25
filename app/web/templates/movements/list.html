@@ -125,7 +125,9 @@
                         <div class="fw-semibold" style="color:var(--c-primary-text);"><i class="bi bi-geo-alt-fill me-1"></i>{{ m.destination_location_name or '-' }}</div>
                         <div class="mov-sec" style="color:var(--c-primary-text);"><i class="bi bi-person-fill me-1"></i>{{ m.destination_custodian_name or '-' }}</div>
                     </td>
-                    <td class="small truncate-2" title="{{ m.reason }}">{{ m.reason }}</td>
+                    <td class="small">
+                        <div class="truncate-2" title="{{ m.reason }}">{{ m.reason }}</div>
+                    </td>
                     <td class="small text-muted">{{ m.operator_name }}</td>
                     <td class="text-end">
                         <div class="d-flex gap-1 justify-content-end">
