@@ -55,6 +55,10 @@ O botão "Ler QR" estava acoplado à linha do campo de busca, sugerindo que atua
 
 Ao abrir o atalho do PWA sem alcance ao servidor, o navegador mostrava sua página morta "Você está offline" (o `start_url` do manifest é `/inventarios`, rota online; o SW só cacheava navegação da tela de coleta). Correção (C-7): página estática de fallback `/static/offline-start.html` (na allowlist do SW) com botão **"Abrir última coleta"** (a shell grava `sispat-last-offline` ao abrir); o SW passa a servir o fallback quando **qualquer** navegação falhar por rede. Toque no SW: `sw.js` (allowlist + fetch handler) — handlers de API/estáticos intocados. SW v29 → **v30**. `node --check` OK; `test_inventario_offline.py` 35 passed.
 
+## Ajuste 7 pós-feedback (contador de conflitos do app, 2026-09-25)
+
+Constatado em campo: coletas reconciliadas no servidor (KEEP/APPLY na web) permaneciam para sempre com `state: CONFLICT` na **fila local do dispositivo** — o badge do app acumulava conflitos antigos já resolvidos (ex.: "3 conflito(s)" com 0 abertos no servidor). Causa: o protocolo de sync não comunicava a reconciliação de volta ao dispositivo. Correção (C-8, apenas client): após cada sync, o JS consulta `GET /offline/coletas?device_id=…` (rastreio US4, permissão `inventario.visualizar` já exigida pela rota) e marca como `SYNCED` as coletas locais em CONFLICT cujo status no servidor é `OFFLINE_RECONCILIADA` — o servidor permanece fonte de verdade; sem rede, estados mantidos. Nenhuma mudança de backend/schema. SW v30 → **v31**. `node --check` OK; `test_inventario_offline.py` 35 passed.
+
 ## Notas
 
 - Dados criados para a renderização de validação foram **removidos** do banco de dev ao final (inventário, bem e local temporários).

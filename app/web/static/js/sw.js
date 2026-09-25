@@ -10,7 +10,7 @@
  */
 "use strict";
 
-var CACHE_VERSION = "inventario-offline-v30"; // v30: fallback offline do atalho (offline-start.html + grava última coleta) · v29: tombamento no fallback manual · v28: Ler QR vira FAB · v27: .dark-toggle padrão · v26: sticky do header · v25: layout 035 · ↔ DB_VERSION=1 do IndexedDB (D3/D4)
+var CACHE_VERSION = "inventario-offline-v31"; // v31: contador de conflitos sincroniza com reconciliações do servidor (C-8) · v30: fallback offline do atalho · v29: tombamento no fallback manual · v28: Ler QR vira FAB · v27: .dark-toggle padrão · v26: sticky do header · v25: layout 035 · ↔ DB_VERSION=1 do IndexedDB (D3/D4)
 var OFFLINE_NAV_RE = /^\/inventarios\/\d+\/offline$/;
 
 // Allowlist explícita (FR-035) — nada além disso entra em cache

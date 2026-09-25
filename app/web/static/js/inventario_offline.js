@@ -138,6 +138,31 @@
   // ---------------------------------------------------------------------------
   var MAX_ATTEMPTS = 5; // retry com limite (FR-023) — sem bloquear o usuário
 
+  // C-8: pergunta ao servidor quais das coletas locais em CONFLICT já foram
+  // RECONCILIADAS lá (decisão KEEP/APPLY pela web). Consulta por dispositivo
+  // (rastreio US4) e devolve mapa {client_operation_id: true}.
+  function consultarReconciliadas(inventoryId, conflitosLocais) {
+    var ids = {};
+    if (!conflitosLocais || !conflitosLocais.length) return Promise.resolve(ids);
+    return fetch(
+      "/api/v1/inventarios/" + inventoryId + "/offline/coletas?device_id=" + encodeURIComponent(getDeviceId()),
+      { credentials: "same-origin", cache: "no-store" }
+    )
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !data.coletas) return ids;
+        var conflLocal = {};
+        conflitosLocais.forEach(function (p) { conflLocal[p.client_operation_id] = true; });
+        (data.coletas || []).forEach(function (c) {
+          if (conflLocal[c.client_operation_id] && c.status === "OFFLINE_RECONCILIADA") {
+            ids[c.client_operation_id] = true;
+          }
+        });
+        return ids;
+      })
+      .catch(function () { return ids; }); // sem a lista, mantém estados como estão
+  }
+
   function sincronizar(inventoryId, onProgress, onDone) {
     return openDb().then(function (db) {
       return new Promise(function (resolve) {
@@ -202,18 +227,25 @@
           var conflIds = {};
           (out.conflicts || []).forEach(function (x) { conflIds[x.client_operation_id] = true; });
           // Confirmação INEQUÍVOCA antes de alterar estado local (FR-019)
-          return Promise.all(pendentes.map(function (p) {
-            if (okIds[p.client_operation_id]) {
-              p.state = "SYNCED"; // coleta local retida até limpeza (FR-040)
-            } else if (conflIds[p.client_operation_id]) {
-              p.state = "CONFLICT";
-            } else {
-              p.state = p.attempts + 1 >= MAX_ATTEMPTS ? "FAILED" : "PENDING";
-              p.attempts += 1;
-            }
-            p.last_attempt_at = new Date().toISOString();
-            return idbPut("sync_queue", p);
-          })).then(function () {
+          // C-8: conflitos JÁ RECONCILIADOS no servidor não podem acumular no
+          // contador do app. Antes de classificar, consulta quais coletas em
+          // CONFLICT local já viraram RECONCILED lá (decisão KEEP/APPLY na web)
+          // e as marca SYNCED — o servidor é a fonte de verdade (023).
+          var conflitosLocais = pendentes.filter(function (p) { return conflIds[p.client_operation_id]; });
+          return consultarReconciliadas(inventoryId, conflitosLocais).then(function (reconciledIds) {
+            return Promise.all(pendentes.map(function (p) {
+              if (okIds[p.client_operation_id] || reconciledIds[p.client_operation_id]) {
+                p.state = "SYNCED"; // coleta local retida até limpeza (FR-040)
+              } else if (conflIds[p.client_operation_id]) {
+                p.state = "CONFLICT";
+              } else {
+                p.state = p.attempts + 1 >= MAX_ATTEMPTS ? "FAILED" : "PENDING";
+                p.attempts += 1;
+              }
+              p.last_attempt_at = new Date().toISOString();
+              return idbPut("sync_queue", p);
+            }));
+          }).then(function () {
             var total = (out.accepted || []).length + (out.duplicated || []).length;
             var msg = "Sincronização concluída " + total + "/" + ops.length;
             if (onProgress) onProgress(msg);
