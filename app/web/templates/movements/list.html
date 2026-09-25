@@ -3,6 +3,31 @@
 {% block title %}Histórico de Movimentações{% endblock %}
 
 {% block content %}
+<!--
+  Feature 039 — Ajuste responsivo da tabela "Fluxo Global de Movimentações":
+  layout determinístico (table-layout: fixed + colgroup) reusando o mecanismo
+  validado nas specs 036/037/038. CSS escopado a esta tabela (.mov-lista-table):
+  nenhuma regra global, nenhuma outra tela afetada. Larguras refinadas por
+  medição (C-1); cap max-width do Motivo removido mantendo truncate-2 (FR-008).
+-->
+<style>
+  .mov-lista-table { table-layout: fixed; width: 100%; min-width: 1180px; }
+  .mov-lista-table th, .mov-lista-table td { overflow-wrap: break-word; vertical-align: middle; }
+  .mov-lista-table .col-dh { width: 9%; }
+  .mov-lista-table .col-tag { width: 9%; }
+  .mov-lista-table .col-equip { width: 14.5%; }
+  .mov-lista-table .col-tipo { width: 11%; }
+  .mov-lista-table .col-origem { width: 14.5%; }
+  .mov-lista-table .col-destino { width: 14.5%; }
+  .mov-lista-table .col-motivo { width: 14.5%; }
+  .mov-lista-table .col-operador { width: 9%; }
+  .mov-lista-table .col-acoes { width: 8%; }
+  .mov-lista-table .tag-badge { white-space: nowrap; }
+  @media (max-width: 768px) {
+    .mov-lista-table { min-width: 1080px; }
+    .mov-lista-table th { font-size: .72rem; }
+  }
+</style>
 <div class="page-header">
     <div>
         <h3 class="page-header-title">Fluxo Global de Movimentações</h3>
@@ -49,7 +74,18 @@
 
     {% if movements %}
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table align-middle mov-lista-table">
+            <colgroup>
+                <col class="col-dh">
+                <col class="col-tag">
+                <col class="col-equip">
+                <col class="col-tipo">
+                <col class="col-origem">
+                <col class="col-destino">
+                <col class="col-motivo">
+                <col class="col-operador">
+                <col class="col-acoes">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Data / Hora</th>
@@ -86,7 +122,7 @@
                         <div class="fw-semibold" style="color:var(--c-primary-text);"><i class="bi bi-geo-alt-fill me-1"></i>{{ m.destination_location_name or '-' }}</div>
                         <div style="color:var(--c-primary-text);"><i class="bi bi-person-fill me-1"></i>{{ m.destination_custodian_name or '-' }}</div>
                     </td>
-                    <td class="small truncate-2" style="max-width:220px;">{{ m.reason }}</td>
+                    <td class="small truncate-2">{{ m.reason }}</td>
                     <td class="small text-muted">{{ m.operator_name }}</td>
                     <td class="text-end">
                         <div class="d-flex gap-1 justify-content-end">
