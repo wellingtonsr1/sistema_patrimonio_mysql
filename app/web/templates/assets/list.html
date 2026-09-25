@@ -124,6 +124,10 @@
 
 <!-- Table -->
 <style>
+    /* Feature 040: 3 botões no header (Exportar dropdown, Importar CSV, Novo Equipamento)
+       estouram a linha em viewports estreitas — permite a quebra para a linha de baixo. */
+    .page-header .d-flex { flex-wrap: wrap; }
+
     /* Feature 038: larguras proporcionais na tabela de equipamentos (escopado — não afeta outras tabelas) */
     .inv-equip-table {
         table-layout: fixed;
