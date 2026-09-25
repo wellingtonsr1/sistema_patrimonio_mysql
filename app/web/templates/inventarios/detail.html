@@ -222,8 +222,45 @@
                 </form>
             </div>
             {% if expected_itens %}
+            <!-- Feature 036: larguras proporcionais por coluna (escopo restrito a esta tabela;
+                 as demais tabelas da página não são afetadas). Percentuais = referência indicativa
+                 do SC-001 (clarificação Q1); layout fixed determinístico + quebras locais. -->
+            <style>
+                .inv-esperados-table { table-layout: fixed; width: 100%; min-width: 700px; }
+                /* Larguras de referência (SC-001 indicativo): percentuais em classes para
+                   permitir ajuste responsivo por media query (o colgroup inline não seria
+                   sobrescrevível). Tombamento 20 | Bem 26 | Local 29 | Resultado 15 | Conferir 10.
+                   Tombamento em 20%: o badge do código não quebra (nowrap, FR-002) e cabe
+                   inclusive no min-width (C-1 — não reduzir o tombamento); abaixo disso o
+                   table-responsive rola horizontalmente dentro do próprio contêiner. */
+                .inv-esperados-table col.c1 { width: 20%; }
+                .inv-esperados-table col.c2 { width: 26%; }
+                .inv-esperados-table col.c3 { width: 29%; }
+                .inv-esperados-table col.c4 { width: 15%; }
+                .inv-esperados-table col.c5 { width: 10%; }
+                /* Quebra preferindo fronteira de palavra; quebra no meio só quando inevitável */
+                .inv-esperados-table td, .inv-esperados-table th { overflow-wrap: break-word; }
+                /* Badge do Bootstrap é nowrap por padrão: com local anexado transbordaria
+                   a coluna fixa — passa a quebrar dentro dela (research R3) */
+                .inv-esperados-table .badge { white-space: normal; }
+                /* Tombamento é código único: nunca quebra no meio (FR-002) */
+                .inv-esperados-table .tag-badge { white-space: nowrap; }
+                .inv-esperados-table .resultado-aux { overflow-wrap: break-word; }
+                /* Telas menores: header compacto cabe nas colunas sem sobrepor o vizinho
+                   (palavras únicas bold não quebram sem break-word — último recurso aqui) */
+                @media (max-width: 768px) {
+                    .inv-esperados-table th { font-size: .75rem; padding: .35rem .4rem; }
+                }
+            </style>
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table align-middle inv-esperados-table">
+                    <colgroup>
+                        <col class="c1">
+                        <col class="c2">
+                        <col class="c3">
+                        <col class="c4">
+                        <col class="c5">
+                    </colgroup>
                     <thead>
                         <tr>
                             <th>Tombamento</th>
@@ -260,10 +297,10 @@
                                 <span class="badge badge-soft-amber">⚠ Sem identificação</span>
                                 {% endif %}
                                 {% if item.observation %}
-                                <div class="text-muted" style="font-size:.72rem;"><em>{{ item.observation }}</em></div>
+                                <div class="text-muted resultado-aux" style="font-size:.72rem;"><em>{{ item.observation }}</em></div>
                                 {% endif %}
                                 {% if item.checked_by_name %}
-                                <div class="text-muted" style="font-size:.68rem;">
+                                <div class="text-muted resultado-aux" style="font-size:.68rem;">
                                     {{ (item.checked_at | localtime).strftime('%d/%m/%Y %H:%M') if item.checked_at }} • {{ item.checked_by_name }}
                                 </div>
                                 {% endif %}
