@@ -145,3 +145,9 @@ Textuais agora somam **66%** (SC-002 com folga maior) e Ações retorna a 7% (ma
 **Motivo**: tooltip `title="{{ m.reason }}"` adicionado — o corte em 2 linhas permanece, mas o texto completo fica acessível no hover.
 
 **Revalidação**: folgas não-negativas em 1440/1280/1152/1024/700px (com fonte fallback, que subestima a PJS — as rígidas em px absorvem a diferença por construção). Suíte focada verde (32 passed).
+
+## Motivo em 3 linhas (solicitado pelo usuário, 2026-09-25 — commit 1c7972d)
+
+- Nova classe escopada `.truncate-3` (`-webkit-line-clamp: 3`) no `<style>` da tabela; o utilitário global `.truncate-2` do `style.css` permanece intocado (outras telas não são afetadas).
+- Célula do Motivo usa `truncate-3` + tooltip `title` (texto completo acessível no hover).
+- Suíte focada: 32 passed.
