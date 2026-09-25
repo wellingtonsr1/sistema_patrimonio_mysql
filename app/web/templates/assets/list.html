@@ -123,6 +123,38 @@
 </div>
 
 <!-- Table -->
+<style>
+    /* Feature 038: larguras proporcionais na tabela de equipamentos (escopado — não afeta outras tabelas) */
+    .inv-equip-table {
+        table-layout: fixed;
+        width: 100%;
+        min-width: 1180px; /* garante larguras mínimas reais; abaixo disso a rolagem fica no .table-responsive */
+    }
+    /* Quebras de texto em fronteira de palavra (nunca no meio) nas colunas textuais */
+    .inv-equip-table th,
+    .inv-equip-table td {
+        overflow-wrap: break-word;
+    }
+    /* Padding reduzido nas colunas compactas (Tombamento, Status, Valor, Ações) para ganhar área útil */
+    .inv-equip-table th:nth-child(1), .inv-equip-table td:nth-child(1),
+    .inv-equip-table th:nth-child(4), .inv-equip-table td:nth-child(4),
+    .inv-equip-table th:nth-child(7), .inv-equip-table td:nth-child(7),
+    .inv-equip-table th:nth-child(8), .inv-equip-table td:nth-child(8) {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+    /* Ações: padding mínimo — 2 botões (68px) precisam de toda a célula compacta */
+    .inv-equip-table th:nth-child(8), .inv-equip-table td:nth-child(8) {
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+    /* FR-003: tombamento sempre integral, em linha única */
+    .inv-equip-table td:nth-child(1) .tag-badge {
+        white-space: nowrap;
+        display: inline-block;
+    }
+</style>
+
 <div class="card">
     <div class="card-header-clean">
         <span class="text-muted small">Mostrando <strong>{{ assets|length }}</strong> de <strong>{{ total }}</strong> equipamentos</span>
@@ -130,7 +162,17 @@
 
     {% if assets %}
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table align-middle inv-equip-table">
+            <colgroup>
+                <col style="width: 12%;">
+                <col style="width: 20%;">
+                <col style="width: 9%;">
+                <col style="width: 12%;">
+                <col style="width: 14%;">
+                <col style="width: 17%;">
+                <col style="width: 9%;">
+                <col style="width: 7%;">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Tombamento</th>
