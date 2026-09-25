@@ -193,3 +193,8 @@ Suíte focada: 32 passed.
 - **Motivo**: troca nowrap/ellipsis por `truncate-2` (corte em 2 linhas), mantendo o tooltip com o texto completo.
 - **Origem**: permanece horizontal em 1 linha por campo (`mov-fluxo`).
 - Suíte focada: 32 passed.
+
+## Alinhamento vertical do Motivo (solicitado pelo usuário, 2026-09-25 — commit 5e22388)
+
+- `truncate-2` movido da `td` para uma `div` interna (mesmo padrão estrutural de Origem/Destino): o `vertical-align: middle` da célula volta a valer e a primeira linha do Motivo alinha com as primeiras linhas das demais colunas (antes, o `-webkit-box` do clamp na própria célula forçava alinhamento ao topo).
+- Suíte focada: 32 passed.
