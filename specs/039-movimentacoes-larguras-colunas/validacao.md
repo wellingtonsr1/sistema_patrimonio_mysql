@@ -157,6 +157,12 @@ Textuais agora somam **66%** (SC-002 com folga maior) e Ações retorna a 7% (ma
 - `min-width` da tabela elevado de 1280px para **1340px** (media query ≤768px permanece 1160px): +60px distribuídos proporcionalmente nas textuais.
 - Efeito prático: em viewports ≥ ~1340px nada muda (tabela já 100%); entre ~1150px e 1340px a rolagem horizontal confinada começa um pouco antes em troca de colunas textuais mais largas — alinhado com C-4 e a seção 18 do pedido (rolagem controlada aceitável quando melhora a legibilidade).
 
+## Motivo horizontal em 1 linha (solicitado pelo usuário, 2026-09-25 — commit 54d00eb)
+
+- Troca do corte vertical (`truncate-3`) por **exibição horizontal em 1 linha**: classe escopada `.mov-motivo` com `white-space: nowrap; overflow: hidden; text-overflow: ellipsis` — reticências quando o texto excede a coluna.
+- Tooltip `title` mantido (texto completo no hover). Linhas da tabela ficam mais compactas; nenhum conteúdo é removido (FR-014 — texto integral acessível no tooltip).
+- A classe `.truncate-3` foi removida (não há mais uso). Suíte focada: 32 passed.
+
 ## Origem/Destino quebrando demais (feedback visual, 2026-09-25 — commit 166bd69)
 
 Três ajustes que reduzem as quebras **sem roubar** das outras textuais:
