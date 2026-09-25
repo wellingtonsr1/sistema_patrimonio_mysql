@@ -178,3 +178,8 @@ Quer que eu melhore a visibilidade disso (ex.: card mostrando "ciclo de hoje já
 
 
 OBS:Se preferir que mudança de horário para mais tarde no mesmo dia re-dispare o backup (sem esperar o ciclo seguinte), isso é uma alteração de semântica possível — com proteção contra duplicados — mas foge da regra aprovada; posso especificá-la como feature separada. Também posso melhorar a observabilidade (log INFO por decisão do tick e/ou mostrar "motivo" no card quando o ciclo já foi cumprido), que teria tornado esse diagnóstico óbvio na tela.
+
+
+PS C:\WINDOWS\system32> $cert.Thumbprint
+1CC25F96B53C73D366896A8B6FC71DB47F8214BE
+PS C:\WINDOWS\system32>
