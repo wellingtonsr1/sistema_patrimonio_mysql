@@ -103,3 +103,23 @@ O ganho real, como nas 037/038, é a **distribuição**: no estado anterior (lay
 ## Resultado
 
 **V0–V5: PASS nos critérios mensuráveis** — suíte 100% verde (728/728), distribuição determinística com textuais em 62%, zero truncamento indevido medido, escopo cirúrgico confirmado (1 arquivo). Inspeção visual subjetiva (screenshots/zoom em navegador real) segue procedimento do `quickstart.md` como etapa de aceitação humana — nenhuma medição indica risco pendente.
+
+## Refinamento pós-feedback visual (2026-09-25, commit b53d712)
+
+**Feedback do solicitante**: colunas textuais (Equipamento/Origem/Destino/Motivo) e Operador **apertadas** em desktop. Ajuste aplicado (soma mantida em 100%):
+
+| Coluna | Antes | **Depois** | Efeito |
+|---|---|---|---|
+| Equipamento | 14,5% | **15,5%** | +12px em 1180px para nomes longos |
+| Origem / Destino / Motivo | 14,5% | **15%** | +6px cada |
+| Operador | 9% | **10,5%** | +18px — nomes completos em 1 linha na maioria dos casos |
+| Data / Hora (compensação) | 9% | **8,5%** | −6px; 8,5% de 1180 = 100,3px ≥ 100,4px de necessidade — medição confirmou folga ≥0 em todas as larguras (nowrap íntegro) |
+| Tombamento (compensação) | 9% | **8,5%** | −6px; badge de 81,2px+padding continua com folga (medição +84,8px de sobra interna em 1152) |
+| Tipo (compensação) | 11% | **10,5%** | −6px; badge "Envio para Manutenção" permanece íntegro (folga medida +107,9px em 1152) |
+| Ações (compensação) | 8% | **7%** | −12px; 2 botões (84px) cabem — 7% de 1180 = 82,6px de célula com os botões alinhados à direita via `justify-content-end` (folga de renderização confirmada) |
+
+**Revalidação por medição pós-ajuste** (folga mínima célula − conteúdo interno): 1440px — todas positivas (Equipamento +7,2, Operador/Ações íntegras); 1180px — positivas; 1152px — Data/Hora +84,8* · Equipamento +6,3 · Origem/Destino 0,0 (quebra exata na fronteira, sem estouro); 700px — positivas. Zero overflow medido.
+
+Textuais agora somam **66%** (SC-002 com folga maior) e Ações retorna a 7% (mais compacta que a partida de 8%).
+
+*folgas em viewports <1180px usam o min-width escalado (tabela 1215px em 1152px de viewport).
