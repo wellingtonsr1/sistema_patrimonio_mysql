@@ -574,26 +574,26 @@ ARTICLES: List[Dict] = [
                 "heading": "Localizar inventários",
                 "body": (
                     "Na listagem de Inventários há busca por código ou nome do inventário e filtro por "
-                    "status (PLANEJADO, EM_ANDAMENTO, ENCERRADO) — use Filtrar para aplicar e Limpar "
+                    "status (Planejado, Em Andamento, Encerrado) — use Filtrar para aplicar e Limpar "
                     "para voltar à lista completa."
                 ),
             },
             {
                 "heading": "Ciclo de vida",
                 "steps": [
-                    "PLANEJADO — criado, lista de bens esperados gerada; conferências ainda não são aceitas.",
-                    "EM_ANDAMENTO — conferência liberada após Iniciar Inventário; itens podem ser conferidos e re-conferidos.",
-                    "ENCERRADO — Encerrar Inventário exige todos os bens esperados conferidos; os itens ficam travados.",
+                    "Planejado — criado, lista de bens esperados gerada; conferências ainda não são aceitas.",
+                    "Em Andamento — conferência liberada após Iniciar Inventário; itens podem ser conferidos e re-conferidos.",
+                    "Encerrado — Encerrar Inventário exige todos os bens esperados conferidos; os itens ficam travados.",
                 ],
             },
             {
                 "heading": "Resultados possíveis de um item",
                 "steps": [
-                    "PENDENTE — ainda sem conferência.",
-                    "ENCONTRADO — bem conferido no local previsto.",
-                    "LOCAL_DIFERENTE — bem encontrado em outro local (registra-se onde foi encontrado).",
-                    "NAO_ENCONTRADO — bem não localizado na conferência.",
-                    "SEM_IDENTIFICACAO — item sem identificação legível (ex.: sem etiqueta/tombamento).",
+                    "Pendente — ainda sem conferência.",
+                    "Encontrado — bem conferido no local previsto.",
+                    "Local Diferente — bem encontrado em outro local (registra-se onde foi encontrado).",
+                    "Não Encontrado — bem não localizado na conferência.",
+                    "Sem Identificação — item sem identificação legível (ex.: sem etiqueta/tombamento).",
                 ],
             },
             {
@@ -626,7 +626,7 @@ ARTICLES: List[Dict] = [
             {
                 "heading": "Iniciar a conferência",
                 "steps": [
-                    "No inventário (status PLANEJADO), clique em Iniciar Inventário — isso libera as conferências.",
+                    "No inventário (status Planejado), clique em Iniciar Inventário — isso libera as conferências.",
                     "Na página do inventário, use o campo Buscar para localizar um bem da lista.",
                 ],
             },
@@ -643,9 +643,9 @@ ARTICLES: List[Dict] = [
             {
                 "heading": "Re-conferência de item já conferido",
                 "body": (
-                    "Enquanto o inventário estiver EM_ANDAMENTO, um item já conferido pode ser conferido "
+                    "Enquanto o inventário estiver Em Andamento, um item já conferido pode ser conferido "
                     "novamente: a página mostra quem conferiu antes, quando e o resultado anterior, e pede "
-                    "confirmação antes de substituir o registro. Itens PENDENTE registram diretamente; após "
+                    "confirmação antes de substituir o registro. Itens Pendentes registram diretamente; após "
                     "o encerramento, nenhum item aceita nova conferência."
                 ),
             },
@@ -679,7 +679,7 @@ ARTICLES: List[Dict] = [
             {
                 "heading": "Preparar a coleta offline",
                 "steps": [
-                    "Na tela do inventário (PLANEJADO ou EM_ANDAMENTO), clique em Preparar coleta offline.",
+                    "Na tela do inventário (Planejado ou Em Andamento), clique em Preparar coleta offline.",
                     "O dispositivo guarda um pacote com apenas os dados de conferência (tombamento, descrição, número de série, local esperado e o QR).",
                     "Nada de usuários, permissões ou credenciais é armazenado no dispositivo.",
                 ],
@@ -687,7 +687,7 @@ ARTICLES: List[Dict] = [
             {
                 "heading": "Coletar sem conexão",
                 "steps": [
-                    "Abra /inventarios/{id}/offline no tablet — a página funciona sem internet (Service Worker).",
+                    "Abra /inventarios/{id}/offline no tablet — a página funciona sem internet (fica guardada no próprio navegador).",
                     "Use o botão flutuante Ler QR (câmera, no Chrome/Edge) ou o campo de pesquisa por tombamento/descrição para identificar o bem; se a câmera não estiver disponível, o leitor aceita digitar a URL do QR ou o tombamento.",
                     "Escolha o resultado: Encontrado, Local diferente (informando o local onde foi encontrado), Não encontrado ou Sem identificação — as mesmas regras do fluxo online.",
                     "Cada coleta fica guardada no próprio dispositivo, mesmo fechando o navegador ou reiniciando o aparelho.",
@@ -722,12 +722,15 @@ ARTICLES: List[Dict] = [
             {
                 "heading": "Coletas rejeitadas (motivos e solução)",
                 "body": (
-                    "Coletas que não puderam ser gravadas aparecem rejeitadas com motivo, sem alterar o inventário: "
-                    "inventario_encerrado (o inventário fechou antes do sync — avalie novo inventário), snapshot_mismatch "
-                    "(o pacote do dispositivo ficou antigo — reconecte e prepare a coleta novamente), local_inexistente ou "
-                    "responsavel_inexistente (o nome digitado não existe no cadastro — corrija o cadastro ou re-colete com o "
-                    "nome exato), asset_fora_do_snapshot (o bem pertence a outro escopo) e local_nao_resolvido (divergência "
-                    "sem local informado — re-colete informando o local). Guia completo: docs/COLETA_OFFLINE.md."
+                    "Coletas que não puderam ser gravadas aparecem rejeitadas com o motivo, sem alterar o inventário. "
+                    "Os motivos mostrados na tela significam: o inventário já foi encerrado quando a coleta chegou "
+                    "(avalie abrir novo inventário, se aplicável); o pacote do dispositivo ficou antigo porque o "
+                    "inventário foi re-preparado (reconecte e prepare a coleta novamente); o local informado numa "
+                    "divergência não existe no cadastro (corrija o cadastro ou re-colete digitando o nome exato do "
+                    "local); o bem não pertence à lista deste inventário (foi registrado como não previsto ou pertence "
+                    "a outro escopo); ou a divergência foi registrada sem informar o local (re-colete informando o "
+                    "local encontrado). Coletas rejeitadas não são perdidas — ficam registradas para consulta. "
+                    "Guia completo: docs/COLETA_OFFLINE.md."
                 ),
             },
             {
