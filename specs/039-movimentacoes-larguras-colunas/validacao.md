@@ -194,6 +194,11 @@ Suíte focada: 32 passed.
 - **Origem**: permanece horizontal em 1 linha por campo (`mov-fluxo`).
 - Suíte focada: 32 passed.
 
+## Tipo deslocado para a esquerda (solicitado pelo usuário, 2026-09-25 — commit 2f5b07e)
+
+- **Equipamento** passa a ter largura fixa de **205px**: com o `colgroup` em cascata, a coluna Tipo começa mais cedo (posição à esquerda da anterior); Origem/Destino/Motivo/Operador continuam dividindo o restante da tabela.
+- Suíte focada: 9 passed.
+
 ## Alinhamento vertical do Motivo (solicitado pelo usuário, 2026-09-25 — commit 5e22388)
 
 - `truncate-2` movido da `td` para uma `div` interna (mesmo padrão estrutural de Origem/Destino): o `vertical-align: middle` da célula volta a valer e a primeira linha do Motivo alinha com as primeiras linhas das demais colunas (antes, o `-webkit-box` do clamp na própria célula forçava alinhamento ao topo).
