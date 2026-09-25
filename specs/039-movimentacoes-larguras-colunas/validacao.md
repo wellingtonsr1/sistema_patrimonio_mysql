@@ -123,3 +123,25 @@ O ganho real, como nas 037/038, é a **distribuição**: no estado anterior (lay
 Textuais agora somam **66%** (SC-002 com folga maior) e Ações retorna a 7% (mais compacta que a partida de 8%).
 
 *folgas em viewports <1180px usam o min-width escalado (tabela 1215px em 1152px de viewport).
+
+## Correção de sobreposição reportada pelo usuário (2026-09-25)
+
+**Sintomas reportados**: sobreposição nas colunas Data/Hora, Tombamento, Equipamento, Tipo e Origem; texto do Motivo cortado.
+
+**Causa raiz**: as medições locais foram feitas com fonte de *fallback* do layout engine, mas o app real usa **Plus Jakarta Sans** (Google Fonts), ~20–30% mais larga. Com `table-layout: fixed`, as colunas de conteúdo rígido (Data/Hora e Tombamento com `nowrap`, badge do Tipo) ficaram ~15–25px estreitas e o texto **transborda sobre a coluna vizinha** — sobreposição em cadeia até Origem. O Motivo "cortado" era o clamp de 2 linhas sobre coluna estreita (comportamento truncate-2 correto, mas sem tooltip).
+
+**Correção aplicada** (commit deste registro):
+
+| Coluna | Antes | **Depois** | Estratégia |
+|---|---|---|---|
+| Data / Hora | 8,5% (100,3px @1180) | **116px fixos** | px absoluto com folga de ~15px para a PJS — nowrap nunca mais colide |
+| Tombamento | 8,5% | **118px fixos** | px absoluto; badge monospace de ~81px (fallback) + folga PJS |
+| Tipo | 10,5% | **132px fixos** | px absoluto para o pior rótulo + `white-space: normal` no badge (quebra em fronteira de palavra como fallback determinístico — lição da 037) |
+| Ações | 7% | **84px fixos** | 2 botões de 32px + gap 4px + padding, exato |
+| Operador | 10,5% | **11%** | proporcional |
+| Equipamento / Origem / Destino / Motivo | 15,5/15/15/15% | **restante da tabela** | dividem o excedente após as rígidas — nunca colapsam |
+| min-width da tabela | 1180px | **1280px** (media query ≤768px: 1160px) | garante espaço total para as colunas rígidas + textuais mínimas |
+
+**Motivo**: tooltip `title="{{ m.reason }}"` adicionado — o corte em 2 linhas permanece, mas o texto completo fica acessível no hover.
+
+**Revalidação**: folgas não-negativas em 1440/1280/1152/1024/700px (com fonte fallback, que subestima a PJS — as rígidas em px absorvem a diferença por construção). Suíte focada verde (32 passed).
