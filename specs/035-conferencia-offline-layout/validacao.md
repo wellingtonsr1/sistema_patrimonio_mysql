@@ -51,6 +51,10 @@ O botão "Ler QR" estava acoplado à linha do campo de busca, sugerindo que atua
 
 **Bug da 033 corrigido**: o `prompt` de digitação manual do leitor de QR prometia aceitar "a URL do QR ou o tombamento", mas o `extractAssetId` só reconhecia URL `/assets/{id}` ou número puro — o tombamento digitado nunca funcionava. Correção: `QRReader.start` aceita `options.resolveTag` e a shell passa um resolvedor tombamento→asset_id pelo **pacote em memória** (offline, sem rede); a URL do QR tem prioridade (inequívoca), depois a tag (case-insensitive, inclui etiquetas numéricas tipo "000123", que casam por tag **antes** de tratar dígitos como asset_id), e dígitos puros não casados caem para asset_id como tolerância. Valor inexistente → mensagem orientando verificar o pacote. `node --check` OK no `qr_reader.js`; mensagem do `else` (JS indisponível) também alinhada. SW v28 → **v29** (dois arquivos cacheados mudaram: `qr_reader.js` e a shell). `tests/test_inventario_offline.py` 34 passed.
 
+## Ajuste 6 pós-feedback (atalho do PWA offline, 2026-09-25)
+
+Ao abrir o atalho do PWA sem alcance ao servidor, o navegador mostrava sua página morta "Você está offline" (o `start_url` do manifest é `/inventarios`, rota online; o SW só cacheava navegação da tela de coleta). Correção (C-7): página estática de fallback `/static/offline-start.html` (na allowlist do SW) com botão **"Abrir última coleta"** (a shell grava `sispat-last-offline` ao abrir); o SW passa a servir o fallback quando **qualquer** navegação falhar por rede. Toque no SW: `sw.js` (allowlist + fetch handler) — handlers de API/estáticos intocados. SW v29 → **v30**. `node --check` OK; `test_inventario_offline.py` 35 passed.
+
 ## Notas
 
 - Dados criados para a renderização de validação foram **removidos** do banco de dev ao final (inventário, bem e local temporários).

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('sispatrim-theme');
+                if (!t) { t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+                document.documentElement.setAttribute('data-theme', t);
+                document.documentElement.setAttribute('data-bs-theme', t);
+            } catch (e) {}
+        })();
+    </script>
+    <title>Coleta offline | SisPatrimônio Pro</title>
+    <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
+    <link href="/static/vendor/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/vendor/css/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem; }
+        .start-card { max-width: 26rem; width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="card p-4 start-card">
+        <div class="text-center mb-3">
+            <img src="/static/img/Logo_IPMjp_2.png" alt="" style="height:40px;">
+        </div>
+        <h5 class="text-center mb-1">Você está offline</h5>
+        <p class="text-muted small text-center mb-4">
+            Sem conexão com o servidor — mas a coleta offline funciona normalmente.
+        </p>
+
+        <a id="btnUltimaColeta" class="btn btn-primary w-100 mb-2" style="display:none;">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Abrir última coleta
+        </a>
+        <div id="ultimaColetaInfo" class="text-muted small text-center mb-2" style="display:none;"></div>
+
+        <div class="small text-muted">
+            <strong>Sem coleta preparada?</strong> Conecte-se à rede do servidor, faça login e, na
+            tela do inventário, toque em <strong>“Preparar coleta offline”</strong>. Depois deste
+            passo, a coleta funciona sem internet.
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            try {
+                var last = localStorage.getItem('sispat-last-offline');
+                if (!last) return;
+                var btn = document.getElementById('btnUltimaColeta');
+                btn.href = last;
+                btn.style.display = '';
+                // mostra o código do inventário na URL (…/offline/<id> não; é /inventarios/<id>/offline)
+                var m = last.match(/\/inventarios\/(\d+)\/offline/);
+                if (m) document.getElementById('ultimaColetaInfo').textContent = 'Inventário #' + m[1] + ' (preparado neste dispositivo)';
+            } catch (e) { /* localStorage indisponível: segue sem botão */ }
+        })();
+    </script>
+</body>
+</html>

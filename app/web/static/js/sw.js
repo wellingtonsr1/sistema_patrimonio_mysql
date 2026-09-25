@@ -10,7 +10,7 @@
  */
 "use strict";
 
-var CACHE_VERSION = "inventario-offline-v29"; // v29: fallback manual aceita tombamento (resolveTag) · v28: Ler QR vira FAB flutuante · v27: botão de tema usa o .dark-toggle padrão · v26: sticky do header (overflow-x: clip) · v25: layout 035 · ↔ DB_VERSION=1 do IndexedDB (D3/D4)
+var CACHE_VERSION = "inventario-offline-v30"; // v30: fallback offline do atalho (offline-start.html + grava última coleta) · v29: tombamento no fallback manual · v28: Ler QR vira FAB · v27: .dark-toggle padrão · v26: sticky do header · v25: layout 035 · ↔ DB_VERSION=1 do IndexedDB (D3/D4)
 var OFFLINE_NAV_RE = /^\/inventarios\/\d+\/offline$/;
 
 // Allowlist explícita (FR-035) — nada além disso entra em cache
@@ -23,6 +23,7 @@ var PRECACHE_URLS = [
   "/static/vendor/js/bootstrap.bundle.min.js",
   "/static/js/inventario_offline.js",
   "/static/js/qr_reader.js",
+  "/static/offline-start.html",  // fallback offline do atalho do PWA (navegação sem rede)
   "/static/manifest.webmanifest",
   "/static/icons/pwa-icon-192.png",
   "/static/icons/pwa-icon-512.png",
@@ -83,7 +84,16 @@ self.addEventListener("fetch", function (event) {
         })
       );
     }
-    return; // demais navegações: rede (offline → fallback do navegador)
+    // Demais navegações: rede; se falhar (sem rede ao abrir o atalho do PWA,
+    // ex.: start_url /inventarios), serve o fallback offline-start em vez da
+    // página morta do navegador (a coleta em si já funciona offline)
+    event.respondWith(
+      fetch(event.request).catch(function () {
+        return caches.match("/static/offline-start.html").then(function (fallback) {
+          return fallback || Response.error();
+        });
+      })
+    );
   }
 
   // Estáticos: cache-first apenas para URLs da allowlist

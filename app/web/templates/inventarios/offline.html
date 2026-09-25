@@ -357,6 +357,10 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(function () {});
         }
+        // Fallback offline do atalho (C-7): memoriza esta coleta como a última
+        // usada — a página offline-start oferece "Abrir última coleta" quando
+        // o app é aberto sem rede
+        try { localStorage.setItem('sispat-last-offline', window.location.pathname); } catch (e) {}
     </script>
     <script>
     (function () {
