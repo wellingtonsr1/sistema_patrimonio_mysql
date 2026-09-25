@@ -12,12 +12,17 @@
 
   var QR_URL_RE = /\/assets\/(\d+)/; // padrão atual das etiquetas (D2)
 
+  function extractFromUrl(text) {
+    var m = String(text || "").match(QR_URL_RE);
+    return m ? parseInt(m[1], 10) : null;
+  }
+
   function extractAssetId(text) {
     if (!text) return null;
-    var m = String(text).match(QR_URL_RE);
-    if (m) return parseInt(m[1], 10);
+    var fromUrl = extractFromUrl(text);
+    if (fromUrl) return fromUrl;
     // Tolerância: usuário digitou só o número do asset
-    if (/^\d+$/.test(text.trim())) return parseInt(text.trim(), 10);
+    if (/^\d+$/.test(String(text).trim())) return parseInt(String(text).trim(), 10);
     return null;
   }
 
@@ -58,14 +63,52 @@
     return function stop() { stopped = true; };
   }
 
-  function start(onDetected) {
+  function start(onDetected, options) {
     var video = document.getElementById("qrVideo");
+    // resolveTag (opcional): tombamento → asset_id (a shell resolve pelo pacote
+    // em memória — FR-010 promete aceitar tombamento digitado; sem rede não há
+    // outra fonte de resolução)
+    var resolveTag = options && typeof options.resolveTag === "function" ? options.resolveTag : null;
     var manualFallback = function () {
       var text = window.prompt(
-        "Câmera indisponível neste navegador. Digite a URL do QR ou o tombamento:"
+        "Câmera indisponível neste navegador.\nDigite a URL do QR, o número do bem ou o tombamento (ex.: TMB-2026-1141):"
       );
       if (!text) return;
-      var assetId = extractAssetId(text);
+      var value = String(text).trim();
+      if (!value) return;
+
+      // 1) URL do QR — inequívoca
+      var urlId = extractFromUrl(value);
+      if (urlId) {
+        onDetected(urlId);
+        return;
+      }
+      // 2) Tombamento (inclui etiquetas numéricas tipo "000123" — deve casar
+      //    pelo pacote ANTES de tratar dígitos como asset_id)
+      if (resolveTag) {
+        Promise.resolve(resolveTag(value))
+          .then(function (id) {
+            if (id) {
+              onDetected(id);
+              return;
+            }
+            // 3) Dígitos puros sem casar por tag: tolera asset_id digitado
+            if (/^\d+$/.test(value)) {
+              onDetected(parseInt(value, 10));
+              return;
+            }
+            window.alert(
+              'Tombamento "' + value + '" não está na lista deste dispositivo.\n' +
+              "Conecte-se e verifique o pacote preparado para este inventário."
+            );
+          })
+          .catch(function () {
+            window.alert("Não foi possível localizar o valor informado.");
+          });
+        return;
+      }
+      // Sem resolveTag: comportamento antigo (URL ou número)
+      var assetId = extractAssetId(value);
       if (assetId) onDetected(assetId);
       else window.alert("Valor não reconhecido como QR de etiqueta ou tombamento.");
     };

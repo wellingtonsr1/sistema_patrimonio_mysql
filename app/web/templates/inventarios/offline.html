@@ -113,6 +113,27 @@
             margin-left: auto;         /* tema sempre no canto direito */
         }
 
+        /* FAB de leitura de QR (C-6): ação de câmera independente da busca.
+           Posição fixa inferior-direita (padrão Material p/ a ação principal de
+           dispositivo); abaixo do modal/backdrop; safe-area p/ iPhone. */
+        .fab-qr {
+            position: fixed;
+            right: 1.25rem;
+            bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+            z-index: 1040;
+            display: inline-flex;
+            align-items: center;
+            padding: .8rem 1.2rem;
+            border-radius: 999px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, .28);
+            white-space: nowrap;
+        }
+        main { margin-bottom: 5.5rem; } /* respiro p/ o FAB não cobrir a última linha */
+        @media (max-width: 575.98px) {
+            .fab-qr { padding: 1.05rem; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); }
+            .fab-qr .fab-label { display: none; } /* só o ícone no celular */
+        }
+
         /* Proteção contra transbordo residual. overflow-x: CLIP (e não hidden)
            porque `hidden` cria um scroll container no body e quebra o
            position: sticky do cabeçalho (header subia junto com a página ao
@@ -233,17 +254,12 @@
 
         <!-- Lista/pesquisa de itens do pacote (FR-009) -->
         <div class="card p-4 mb-4">
-            <div class="d-flex gap-2 mb-3 flex-wrap">
-                <!-- flex:1 + width:auto faz a barra DIVIDIR a linha com o botão
-                     (o width:100% padrão do form-control empurrava o botão p/ baixo);
-                     flex-wrap reorganiza verticalmente quando falta largura (US4),
-                     com o input crescendo para a linha inteira -->
+            <div class="mb-3">
+                <!-- Busca textual (fila da lista). A leitura de QR é uma ação
+                     INDEPENDENTE da busca (abre a câmera) e vive no FAB flutuante
+                     após o main — não sugere que atue sobre o texto digitado (C-6). -->
                 <input type="search" id="buscaItem" class="form-control"
-                       style="flex: 1 1 auto; width: auto; min-width: 10rem;"
                        placeholder="Pesquisar por tombamento ou descrição…">
-                <button type="button" id="btnLerQR" class="btn btn-outline-primary text-nowrap flex-shrink-0">
-                    <i class="bi bi-qr-code-scan me-1"></i> Ler QR
-                </button>
             </div>
             <div id="avisoPacote" class="alert alert-danger" style="display:none;"></div>
             <div class="table-responsive">
@@ -262,6 +278,13 @@
 
         <video id="qrVideo" playsinline style="display:none;width:100%;max-width:420px;border-radius:12px;"></video>
     </main>
+
+    <!-- FAB de leitura de QR (C-6): a câmera é a ação principal de campo e não
+         depende da busca — botão flutuante sempre acessível (id preservado ao JS) -->
+    <button type="button" id="btnLerQR" class="btn btn-primary fab-qr no-print"
+            title="Ler QR do tombamento" aria-label="Ler QR do tombamento">
+        <i class="bi bi-qr-code-scan"></i><span class="fab-label ms-2">Ler QR</span>
+    </button>
 
     <!-- Modal de conferência offline — mesmo formulário do fluxo online (Princípio X);
          sem link para a ficha do bem no Cancelar (FR-030: nada administrativo offline) -->
@@ -612,6 +635,9 @@
             if (btnQR) {
                 btnQR.addEventListener("click", function () {
                     if (window.QRReader && window.QRReader.start) {
+                        // FR-010: fallback manual aceita tombamento — resolvido pelo
+                        // pacote em memória (sem rede); etiquetas numéricas ("000123")
+                        // casam por tag ANTES de tratar dígitos como asset_id
                         window.QRReader.start(function (assetId) {
                             if (pkg) {
                                 var alvo = (pkg.items || []).filter(function (i) { return i.asset_id === assetId; })[0];
@@ -639,17 +665,33 @@
                                     });
                                 }
                             }
+                        }, {
+                            // Tombamento digitado → asset_id pelo pacote em memória
+                            // (FR-010). Etiquetas numéricas ("000123") casam por tag
+                            // ANTES de tratar dígitos como asset_id.
+                            resolveTag: function (tag) {
+                                if (!pkg) return null;
+                                var v = String(tag || "").trim().toLowerCase();
+                                var hit = (pkg.items || []).filter(function (i) {
+                                    return String(i.tag || "").trim().toLowerCase() === v;
+                                })[0];
+                                return hit ? hit.asset_id : null;
+                            },
                         });
                     } else {
-                        var tomb = window.prompt("Leitor de QR indisponível. Digite o tombamento (tag):");
+                        // QRReader indisponível (não deveria ocorrer: o fallback
+                        // manual vive dentro do próprio QRReader.start)
+                        var tomb = window.prompt("Leitor de QR indisponível. Digite a URL do QR ou o tombamento (tag):");
                         if (tomb && pkg) {
+                            var v = tomb.trim().toLowerCase();
                             var alvo = (pkg.items || []).filter(function (i) {
-                                return (i.tag || "").toLowerCase() === tomb.trim().toLowerCase();
+                                return String(i.tag || "").trim().toLowerCase() === v
+                                    || i.asset_id === parseInt(v, 10);
                             })[0];
                             if (alvo) {
                                 coletarItem(alvo);
                             } else {
-                                window.alert("Este tombamento não está no pacote. Para registrar um bem NÃO PREVISTO, use a leitura do QR do bem (câmera) — por tombamento digitado o sistema não identifica bens fora do pacote.");
+                                window.alert('Tombamento "' + tomb.trim() + '" não está na lista deste dispositivo.\nConecte-se e verifique o pacote preparado para este inventário. Para bem NÃO PREVISTO, leia o QR do bem com a câmera.');
                             }
                         }
                     }

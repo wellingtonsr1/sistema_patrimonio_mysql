@@ -43,6 +43,14 @@ Com a tela reduzida, ao rolar/recarregar (F5) a barra superior **subia junto com
 
 O botão claro/escuro da shell usava estilo próprio (círculo branco `.offbar-dark`), diferente do sistema. Corrigido para usar o **`.dark-toggle` padrão** do `style.css` (34px, raio 8px, hover e variantes do tema escuro já definidas — Princípio X/FR-016): a classe padrão foi adicionada ao botão (`class="dark-toggle offbar-dark"`) e o CSS local ficou apenas com o posicionamento (`margin-left: auto`). SW v26 → **v27**. `tests/test_inventario_offline.py` 34 passed.
 
+## Ajuste 4 pós-feedback (botão Ler QR, 2026-09-24)
+
+O botão "Ler QR" estava acoplado à linha do campo de busca, sugerindo que atuava sobre o texto digitado — mas abre a **câmera** e é ação independente (e principal) de campo. Re-posicionado como **FAB flutuante** inferior-direito (padrão Material para ação primária de dispositivo): sempre acessível durante a rolagem, `btn-primary`, ícone + rótulo "Ler QR" (rótulo oculto em ≤575px, só o ícone), `z-index` abaixo do modal/backdrop do Bootstrap (não interfere na conferência), `safe-area-inset-bottom` para iPhone, e `margin-bottom` no `main` para não cobrir a última linha. Campo de busca ganhou a linha inteira do card. `#btnLerQR` preservado (contrato DOM §1). SW v27 → **v28**. `tests/test_inventario_offline.py` 34 passed.
+
+## Ajuste 5 pós-feedback (tombamento no fallback do QR, 2026-09-24)
+
+**Bug da 033 corrigido**: o `prompt` de digitação manual do leitor de QR prometia aceitar "a URL do QR ou o tombamento", mas o `extractAssetId` só reconhecia URL `/assets/{id}` ou número puro — o tombamento digitado nunca funcionava. Correção: `QRReader.start` aceita `options.resolveTag` e a shell passa um resolvedor tombamento→asset_id pelo **pacote em memória** (offline, sem rede); a URL do QR tem prioridade (inequívoca), depois a tag (case-insensitive, inclui etiquetas numéricas tipo "000123", que casam por tag **antes** de tratar dígitos como asset_id), e dígitos puros não casados caem para asset_id como tolerância. Valor inexistente → mensagem orientando verificar o pacote. `node --check` OK no `qr_reader.js`; mensagem do `else` (JS indisponível) também alinhada. SW v28 → **v29** (dois arquivos cacheados mudaram: `qr_reader.js` e a shell). `tests/test_inventario_offline.py` 34 passed.
+
 ## Notas
 
 - Dados criados para a renderização de validação foram **removidos** do banco de dev ao final (inventário, bem e local temporários).
