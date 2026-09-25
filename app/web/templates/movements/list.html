@@ -13,8 +13,8 @@
   dividem o restante (C-1); padding horizontal 6px libera ~8px por célula
   para as textuais; linha auxiliar de custodiante em .78rem (padrão de
   linhas auxiliares da 037/038) reduz as quebras em Origem/Destino;
-  cap max-width do Motivo removido e corte em 3 linhas (truncate-3
-  escopado) + tooltip (FR-008 + feedback do solicitante).
+  cap max-width do Motivo removido; exibição horizontal em 1 linha com
+  reticências (mov-motivo escopado) + tooltip (FR-008 + feedback).
 -->
 <style>
   .mov-lista-table { table-layout: fixed; width: 100%; min-width: 1340px; }
@@ -26,11 +26,10 @@
   .mov-lista-table .col-acoes { width: 84px; }
   .mov-lista-table .tag-badge { white-space: nowrap; }
   .mov-lista-table .badge { white-space: normal; }
-  .mov-lista-table .truncate-3 {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
+  .mov-lista-table .mov-motivo {
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
   }
   @media (max-width: 768px) {
     .mov-lista-table { min-width: 1160px; }
@@ -131,7 +130,7 @@
                         <div class="fw-semibold" style="color:var(--c-primary-text);"><i class="bi bi-geo-alt-fill me-1"></i>{{ m.destination_location_name or '-' }}</div>
                         <div class="mov-sec" style="color:var(--c-primary-text);"><i class="bi bi-person-fill me-1"></i>{{ m.destination_custodian_name or '-' }}</div>
                     </td>
-                    <td class="small truncate-3" title="{{ m.reason }}">{{ m.reason }}</td>
+                    <td class="small mov-motivo" title="{{ m.reason }}">{{ m.reason }}</td>
                     <td class="small text-muted">{{ m.operator_name }}</td>
                     <td class="text-end">
                         <div class="d-flex gap-1 justify-content-end">
