@@ -27,6 +27,9 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.models.ad_settings import ADSettings
+from app.models.backup_external_config import BackupExternalConfig
+from app.models.backup_external_record import BackupExternalRecord
+from app.models.backup_record import BackupRecord
 from app.models.integration_execution import (
     OP_CONNECTION_TEST,
     OP_INTERNAL_CHECK,
@@ -36,7 +39,7 @@ from app.models.integration_execution import (
 )
 from app.models.notification import EmailConfig, Notification
 from app.models.onedoc_integration import OneDocIntegration
-from app.utils.time_utils import now_utc
+from app.utils.time_utils import now_utc, utc_to_recife
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +64,12 @@ STATUS_LABELS: Dict[str, str] = {
     STATUS_INDISPONIVEL: "Indisponível",
     STATUS_INATIVA: "Inativa",
 }
+
+# Feature 047 — estado intermediário de saúde (amarelo): configurado com
+# ressalva (ex.: espaço de armazenamento limitado, backup atrasado). Aditivo:
+# nenhum status existente muda de significado (plan R1).
+STATUS_ATENCAO = "ATENCAO"
+STATUS_LABELS[STATUS_ATENCAO] = "Atenção"
 
 # Janela de "falhas recentes" (decisão P-4): 24 horas, explícita na interface.
 FAILURE_WINDOW_HOURS = 24
@@ -221,34 +230,251 @@ def _glpi_status_fn(db: Session) -> dict:
 
 
 # ============================================================================
+# COMPONENTES DE SAÚDE DO SISTEMA (feature 047 — status_fn derivadas das
+# fontes existentes; SEM I/O externo, SEM conexões novas, SEM threads —
+# plan R5/R6; spec FR-007..FR-012)
+# ============================================================================
+
+def _safe(fn):
+    """Isolamento por componente (R6/SC-007): exceção na coleta → COM_ERRO
+    com mensagem sanitizada; o painel inteiro nunca quebra por um card."""
+    def wrapper(db: Session) -> dict:
+        try:
+            return fn(db)
+        except Exception as exc:  # noqa: BLE001 — isolamento deliberado
+            logger.warning("Falha ao derivar status do componente: %s", exc)
+            return {"status": STATUS_COM_ERRO,
+                    "detail": {"summary": [("Erro", "Não foi possível verificar este componente")]}}
+    return wrapper
+
+
+def _app_status_fn(db: Session) -> dict:
+    """Aplicação: o carregamento da página comprova a operação (FR-007).
+    Reapresenta o conceito do /health existente sem reexecutar verificação."""
+    summary = [("Estado", "Respondendo"),
+               ("Verificação de infra", "/health (endpoint existente)")]
+    return {"status": STATUS_ATIVA, "detail": {"summary": summary}}
+
+
+@_safe
+def _database_status_fn(db: Session) -> dict:
+    """Banco: consulta simples na SESSÃO da request (mesma conexão/config do
+    app — nenhuma conexão nova; FR-008). Apenas estado, sem latência (clarify
+    2026-09-26). Mesmo padrão do /health existente (SELECT 1)."""
+    from sqlalchemy import text
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception:
+        return {"status": STATUS_COM_ERRO,
+                "detail": {"summary": [("Consulta", "Falhou")]}}
+    return {"status": STATUS_ATIVA,
+            "detail": {"summary": [("Consulta", "OK")]}}
+
+
+@_safe
+def _storage_status_fn(db: Session) -> dict:
+    """Armazenamento (FR-009): existência dos diretórios relevantes + espaço
+    livre pelo mecanismo padrão da plataforma; regra do clarify (2026-09-26):
+    ATENÇÃO quando o espaço livre fica abaixo do tamanho do último backup
+    válido; FALHA sem espaço para escrita/diretório ausente. Nenhum arquivo
+    de teste é gravado ao abrir a página. Fontes: config.BACKUP_DIR e, quando
+    habilitado, o destino externo da 045 (plan R7/P-2)."""
+    import shutil
+    from pathlib import Path
+
+    from app.config import BACKUP_DIR
+
+    dirs = []
+    if BACKUP_DIR:
+        dirs.append(("Backups locais", Path(BACKUP_DIR)))
+    cfg = db.query(BackupExternalConfig).filter(BackupExternalConfig.id == 1).first()
+    if cfg and cfg.enabled and cfg.dest_path:
+        dirs.append(("Destino externo", Path(cfg.dest_path)))
+    if not dirs:
+        return {"status": STATUS_NAO_CONFIGURADA,
+                "detail": {"summary": [("Diretórios", "Nenhum configurado")]}}
+
+    # referência = tamanho do último backup válido não removido (plan R7)
+    last_valid = (
+        db.query(BackupRecord)
+        .filter(BackupRecord.status == "SUCCESS", BackupRecord.removed_at.is_(None))
+        .order_by(BackupRecord.timestamp.desc())
+        .first()
+    )
+    ref_size = last_valid.size_bytes if last_valid and last_valid.size_bytes else None
+
+    worst = STATUS_ATIVA
+    free_total = None
+    for label, path in dirs:
+        if not path.exists():
+            return {"status": STATUS_COM_ERRO,
+                    "detail": {"summary": [(label, "Diretório ausente")]}}
+        try:
+            usage = shutil.disk_usage(path)
+        except OSError:
+            return {"status": STATUS_COM_ERRO,
+                    "detail": {"summary": [(label, "Sem acesso ao diretório")]}}
+        free_total = usage.free if free_total is None else min(free_total, usage.free)
+        if ref_size and usage.free < ref_size:
+            worst = STATUS_ATENCAO
+
+    def _fmt_gb(v):
+        return f"{v / (1024 ** 3):.1f} GB" if v else "—"
+
+    summary = [("Livre", _fmt_gb(free_total)),
+               ("Último backup", _fmt_gb(ref_size) if ref_size else "sem referência")]
+    return {"status": worst, "detail": {"summary": summary}}
+
+
+@_safe
+def _backup_local_status_fn(db: Session) -> dict:
+    """Backup Local (FR-010): deriva do resumo de monitoramento existente e
+    do regime do agendador — regra do clarify (2026-09-26): agendador ATIVO →
+    ATENÇÃO quando o ciclo esperado passa sem backup novo (folga de 1 ciclo)
+    e FALHA sem nenhum backup válido; regime manual → sem alerta por
+    atualidade (espelha a última falha registrada)."""
+    from app.services.backup_scheduler import (
+        retention_monitoring_summary,
+        scheduler_status,
+    )
+
+    sched = scheduler_status()
+    summary = retention_monitoring_summary(db)
+    is_auto = bool(sched.get("enabled"))
+
+    last_valid = summary.get("last_valid") or {}
+    last_failure = summary.get("last_failure") or {}
+    valid_count = summary.get("valid_count") or 0
+
+    if is_auto:
+        if valid_count == 0 and not last_valid:
+            status = STATUS_COM_ERRO
+        else:
+            expected_hours = _expected_cycle_hours(sched)
+            last_ts = last_valid.get("timestamp")
+            age_h = ((now_utc() - last_ts).total_seconds() / 3600) if last_ts else None
+            status = (STATUS_ATENCAO
+                      if age_h is not None and age_h > expected_hours * 2
+                      else STATUS_ATIVA)
+    else:
+        status = STATUS_COM_ERRO if last_failure else STATUS_ATIVA
+
+    def _fmt(dt):
+        return utc_to_recife(dt).strftime("%d/%m %H:%M") if dt else "—"
+
+    detail_summary = [
+        ("Último válido", f"{_fmt(last_valid.get('timestamp'))}" if last_valid else "—"),
+        ("Válidos no disco", str(valid_count)),
+        ("Última falha", f"{_fmt(last_failure.get('timestamp'))}" if last_failure else "—"),
+    ]
+    return {"status": status, "detail": {"summary": detail_summary}}
+
+
+def _expected_cycle_hours(sched: dict) -> int:
+    """Ciclo esperado do agendamento (24h diário; 168h semanal) — plan R7.
+    Folga de 1 ciclo aplicada pelo chamador (2× o ciclo)."""
+    return 168 if (sched.get("schedule") == "weekly") else 24
+
+
+@_safe
+def _backup_externo_status_fn(db: Session) -> dict:
+    """Backup Externo (FR-011): config da 045 + registros de cópia já
+    persistidos. Nenhuma cópia e nenhum teste ao abrir a página; teste ativo
+    = ação explícita reutilizando test_destination (plan R4)."""
+    cfg = db.query(BackupExternalConfig).filter(BackupExternalConfig.id == 1).first()
+    if cfg is None:
+        return {"status": STATUS_NAO_CONFIGURADA,
+                "detail": {"summary": [("Configuração", "Não configurada")]}}
+    if not cfg.enabled:
+        return {"status": STATUS_DESABILITADA,
+                "detail": {"summary": [("Cópia externa", "Desabilitada")]}}
+
+    last = (
+        db.query(BackupExternalRecord)
+        .order_by(BackupExternalRecord.copied_at.desc())
+        .first()
+    )
+    dest = (cfg.dest_path or "")
+    if len(dest) > 40:
+        dest = dest[:37] + "..."
+    summary = [("Habilitado", "Sim"),
+               ("Destino", dest or "—"),
+               ("Última cópia", utc_to_recife(last.copied_at).strftime("%d/%m %H:%M") if last else "—")]
+    if last is None:
+        return {"status": STATUS_INATIVA, "detail": {"summary": summary}}
+    if last.status == "FAILURE":
+        return {"status": STATUS_COM_ERRO, "detail": {"summary": summary}}
+    return {"status": STATUS_ATIVA, "detail": {"summary": summary}}
+
+
+@_safe
+def _scheduler_status_fn(db: Session) -> dict:
+    """Agendador (FR-012): leitura direta de scheduler_status() existente —
+    nenhum thread novo; desabilitado ≠ falha (edge case da spec)."""
+    from app.services.backup_scheduler import scheduler_status
+
+    st = scheduler_status()
+    if not st.get("enabled"):
+        return {"status": STATUS_DESABILITADA,
+                "detail": {"summary": [("Backup automático", "Desabilitado")]}}
+    last = st.get("last_result") or {}
+    summary = [
+        ("Agendamento", f"{st.get('schedule') or '—'} {st.get('time_local') or ''}".strip()),
+        ("Próximo backup", str(st.get("next_run_local") or "—")),
+        ("Último resultado", str(last.get("result") or "—")),
+    ]
+    if str(last.get("result", "")).upper() == "FAILURE":
+        return {"status": STATUS_COM_ERRO, "detail": {"summary": summary}}
+    return {"status": STATUS_ATIVA, "detail": {"summary": summary}}
+
+
+# ============================================================================
 # CATÁLOGO DECLARATIVO (plan D1 — extensibilidade SC-007: nova integração =
 # nova entrada aqui, sem alteração estrutural da Central)
 # ============================================================================
 
 INTEGRATIONS: List[dict] = [
+    # === Componentes de saúde do sistema (feature 047 — P-1/P-3: ordem do
+    # mock do pedido; R2: label_by_status; R7: capacidades) ===
     {
-        "key": "email",
-        "name": "E-mail",
-        "description": "Notificação por e-mail de movimentações patrimoniais (feature 030).",
-        "purpose": "Avisar o setor de Patrimônio sobre movimentações concluídas.",
-        "supports_test": True,
+        "key": "app",
+        "name": "Aplicação",
+        "description": "Aplicação SisPatrimônio Pro operacional.",
+        "purpose": "Comprovar que o sistema responde.",
+        "supports_test": False,
         "supports_reprocess": False,
-        "supports_enable_disable": True,
-        "config_route": "/admin/notificacoes",
-        "config_permission": "notificacoes.gerenciar",
-        "status_fn": _email_status_fn,
+        "supports_enable_disable": False,
+        "config_route": None,
+        "config_permission": None,
+        "label_by_status": {STATUS_ATIVA: "Operacional"},
+        "status_fn": _app_status_fn,
     },
     {
-        "key": "onedoc",
-        "name": "1Doc",
-        "description": "Comunicação automática de movimentações no processo 1Doc (feature 031).",
-        "purpose": "Registrar a movimentação no processo administrativo 1Doc já existente.",
-        "supports_test": True,
-        "supports_reprocess": True,
+        "key": "database",
+        "name": "Banco de Dados",
+        "description": "Banco de dados de produção acessível pela conexão do próprio sistema.",
+        "purpose": "Comprovar a conectividade com o banco sem criar conexão nova.",
+        "supports_test": False,
+        "supports_reprocess": False,
         "supports_enable_disable": False,
-        "config_route": "/admin/integracao-1doc",
-        "config_permission": "integracao1doc.reprocessar",
-        "status_fn": _onedoc_status_fn,
+        "config_route": None,
+        "config_permission": None,
+        "label_by_status": {STATUS_ATIVA: "Conectado", STATUS_COM_ERRO: "Falha"},
+        "status_fn": _database_status_fn,
+    },
+    {
+        "key": "storage",
+        "name": "Armazenamento",
+        "description": "Espaço e disponibilidade dos diretórios de backup.",
+        "purpose": "Identificar falta de espaço antes que comprometa os backups.",
+        "supports_test": False,
+        "supports_reprocess": False,
+        "supports_enable_disable": False,
+        "config_route": "/admin/backups",
+        "config_permission": None,
+        "label_by_status": {STATUS_ATIVA: "OK", STATUS_ATENCAO: "Espaço limitado",
+                            STATUS_COM_ERRO: "Falha"},
+        "status_fn": _storage_status_fn,
     },
     {
         "key": "ad",
@@ -263,6 +489,18 @@ INTEGRATIONS: List[dict] = [
         "status_fn": _ad_status_fn,
     },
     {
+        "key": "email",
+        "name": "E-mail",
+        "description": "Notificação por e-mail de movimentações patrimoniais (feature 030).",
+        "purpose": "Avisar o setor de Patrimônio sobre movimentações concluídas.",
+        "supports_test": True,
+        "supports_reprocess": False,
+        "supports_enable_disable": True,
+        "config_route": "/admin/notificacoes",
+        "config_permission": "notificacoes.gerenciar",
+        "status_fn": _email_status_fn,
+    },
+    {
         "key": "glpi",
         "name": "GLPI",
         "description": "Integração prevista com o GLPI (sincronização futura de equipamentos).",
@@ -273,6 +511,60 @@ INTEGRATIONS: List[dict] = [
         "config_route": None,
         "config_permission": None,
         "status_fn": _glpi_status_fn,
+    },
+    {
+        "key": "backup_local",
+        "name": "Backup Local",
+        "description": "Backups no diretório local, com retenção e histórico (features 015/016/020).",
+        "purpose": "Comprovar que há backups válidos recentes no regime vigente.",
+        "supports_test": False,
+        "supports_reprocess": False,
+        "supports_enable_disable": False,
+        "config_route": "/admin/backups",
+        "config_permission": None,
+        "label_by_status": {STATUS_ATIVA: "OK", STATUS_ATENCAO: "Sem backup recente",
+                            STATUS_COM_ERRO: "Falha"},
+        "status_fn": _backup_local_status_fn,
+    },
+    {
+        "key": "backup_externo",
+        "name": "Backup Externo",
+        "description": "Cópia dos backups válidos para o destino externo (feature 045).",
+        "purpose": "Comprovar a cópia externa sem gerar backup nem testar destino ao abrir a página.",
+        "supports_test": True,
+        "test_label": "Testar destino",
+        "supports_reprocess": False,
+        "supports_enable_disable": True,
+        "config_route": "/admin/backups",
+        "config_permission": None,
+        "label_by_status": {STATUS_ATIVA: "OK", STATUS_COM_ERRO: "Falha"},
+        "status_fn": _backup_externo_status_fn,
+    },
+    {
+        "key": "scheduler",
+        "name": "Agendador de Backup",
+        "description": "Agendador do backup automático existente (feature 021/026).",
+        "purpose": "Comprovar que o backup automático está ativo e agendado.",
+        "supports_test": False,
+        "supports_reprocess": False,
+        "supports_enable_disable": False,
+        "config_route": "/admin/backups",
+        "config_permission": None,
+        "label_by_status": {STATUS_ATIVA: "Ativo", STATUS_DESABILITADA: "Desabilitado",
+                            STATUS_COM_ERRO: "Falha"},
+        "status_fn": _scheduler_status_fn,
+    },
+    {
+        "key": "onedoc",
+        "name": "1Doc",
+        "description": "Comunicação automática de movimentações no processo 1Doc (feature 031).",
+        "purpose": "Registrar a movimentação no processo administrativo 1Doc já existente.",
+        "supports_test": True,
+        "supports_reprocess": True,
+        "supports_enable_disable": False,
+        "config_route": "/admin/integracao-1doc",
+        "config_permission": "integracao1doc.reprocessar",
+        "status_fn": _onedoc_status_fn,
     },
 ]
 
@@ -376,7 +668,14 @@ def get_panel(db: Session) -> List[dict]:
     """Cards do painel — derivação SEM I/O externo (NFR-004)."""
     cards: List[dict] = []
     for item in INTEGRATIONS:
-        derived = item["status_fn"](db)
+        try:
+            derived = item["status_fn"](db)
+        except Exception:  # noqa: BLE001 — cinto e suspensório (plan R6/SC-007):
+            # mesmo com status_fn protegidas, uma exceção aqui NUNCA derruba
+            # o painel inteiro; o card afetado entra em erro isolado.
+            logger.exception("Falha ao derivar status de %s.", item["key"])
+            derived = {"status": STATUS_COM_ERRO,
+                       "detail": {"summary": [("Erro", "Não foi possível verificar este componente")]}}
         counters = _execution_counters(db, item["key"])
         cards.append(
             {
@@ -384,8 +683,15 @@ def get_panel(db: Session) -> List[dict]:
                 "name": item["name"],
                 "description": item["description"],
                 "status": derived["status"],
-                "status_label": STATUS_LABELS.get(derived["status"], derived["status"]),
+                # Feature 047 (R2): rótulo específico por componente com
+                # fallback no vocabulário global.
+                "status_label": (item.get("label_by_status") or {}).get(
+                    derived["status"], STATUS_LABELS.get(derived["status"], derived["status"])
+                ),
                 "status_detail": derived.get("detail") or {},
+                # Feature 047 (R4/E2): rótulo do botão de teste (backup_externo
+                # exibe "Testar destino"); fallback = "Testar conexão".
+                "test_label": item.get("test_label") or "Testar conexão",
                 "last_execution_at": counters["last_execution"].created_at if counters["last_execution"] else None,
                 "last_success_at": counters["last_success"].created_at if counters["last_success"] else None,
                 "failures_24h": counters["failures_24h"],
@@ -412,8 +718,11 @@ def get_detail(db: Session, key: str) -> Optional[dict]:
         "description": item["description"],
         "purpose": item["purpose"],
         "status": derived["status"],
-        "status_label": STATUS_LABELS.get(derived["status"], derived["status"]),
+        "status_label": (item.get("label_by_status") or {}).get(
+            derived["status"], STATUS_LABELS.get(derived["status"], derived["status"])
+        ),
         "status_detail": derived.get("detail") or {},
+        "test_label": item.get("test_label") or "Testar conexão",
         "total": counters["total"],
         "failures": counters["failures"],
         "failures_24h": counters["failures_24h"],
@@ -558,6 +867,18 @@ def run_test(db: Session, key: str, *, user=None, ip_address: Optional[str] = No
         ok, message, latency_ms = check_connection()
     elif key == "onedoc":
         ok, message = _onedoc_internal_check()
+        latency_ms = int((time.monotonic() - start) * 1000)
+    elif key == "backup_externo":
+        # Feature 047 (plan R4/E2): reuso INTEGRAL da função existente da 045
+        # (arquivo temporário → grava → lê → valida → remove). Nenhum backup
+        # é gerado e nenhum arquivo de teste fica no destino.
+        from app.services.external_backup_service import test_destination
+
+        cfg = db.query(BackupExternalConfig).filter(BackupExternalConfig.id == 1).first()
+        if cfg is None or not (cfg.dest_path or "").strip():
+            ok, message = False, "Destino externo não configurado."
+        else:
+            ok, message = test_destination(cfg.dest_path)
         latency_ms = int((time.monotonic() - start) * 1000)
     else:
         return False, "Teste não suportado para esta integração."

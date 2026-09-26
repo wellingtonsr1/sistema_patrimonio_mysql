@@ -11,23 +11,28 @@ ARTIGO_CENTRAL_INTEGRACOES: Dict = {
     "module": "Administração",
     "icon": "bi-diagram-3",
     "audience": "admin",
-    "summary": "Painel com o estado das integrações do sistema (E-mail, 1Doc, GLPI, Active Directory): status, diagnóstico, teste de conexão, histórico de execuções e propagação por movimentação.",
+    "summary": "Painel com o estado do sistema e das integrações (Aplicação, Banco de Dados, Armazenamento, Active Directory, E-mail, GLPI, Backup Local, Backup Externo, Agendador de Backup e 1Doc): status, diagnóstico, teste de conexão, histórico de execuções e propagação por movimentação.",
     "keywords": [
         "central", "integrações", "integração", "e-mail", "email", "1doc", "glpi",
         "active directory", "ad", "status", "teste de conexão", "histórico",
         "reprocessar", "propagação", "movimentação", "segredos", "credenciais",
+        "saúde", "aplicação", "banco de dados", "armazenamento", "backup",
+        "backup local", "backup externo", "agendador", "backup automático",
     ],
     "sections": [
         {
             "heading": "O que é",
             "body": (
                 "A Central de Integrações é a área de Administração que reúne, em um único lugar, o estado "
-                "das integrações do SisPatrimônio Pro. Ela não substitui as telas de configuração existentes "
-                "(Notificações, Integração AD, Integração 1Doc): funciona como camada de acompanhamento sobre "
-                "o que já existe.\n\n"
-                "Com ela você responde rapidamente: quais integrações existem, qual está com problema, desde "
-                "quando, quantas operações foram afetadas, se há operações pendentes e se a conexão está "
-                "funcionando agora."
+                "do sistema e das integrações do SisPatrimônio Pro. Ela não substitui as telas de configuração "
+                "existentes (Notificações, Integração AD, Integração 1Doc, Backups): funciona como camada de "
+                "acompanhamento sobre o que já existe.\n\n"
+                "Com ela você responde rapidamente: se a aplicação está operacional, se o banco de dados responde, "
+                "se o armazenamento está adequado, se o Active Directory está acessível, se o e-mail está "
+                "configurado, se o backup local está funcionando, se o backup externo está acessível, se o "
+                "agendador de backup está ativo, quais integrações estão configuradas, não configuradas ou com "
+                "falha — e qual está com problema, desde quando, quantas operações foram afetadas, se há "
+                "operações pendentes e se a conexão está funcionando agora."
             ),
         },
         {
@@ -42,15 +47,31 @@ ARTIGO_CENTRAL_INTEGRACOES: Dict = {
             ),
         },
         {
+            "heading": "Componentes monitorados",
+            "steps": [
+                "Aplicação — o próprio carregamento da Central comprova que o sistema responde.",
+                "Banco de Dados — verificado pela mesma conexão do sistema (sem conexão nova).",
+                "Armazenamento — espaço livre nos diretórios de backup; Atenção quando o espaço livre fica abaixo do tamanho do último backup válido.",
+                "Active Directory — configurado/habilitado e resultado do último teste (teste completo na tela Integração AD).",
+                "E-mail — configurado/não configurado e último teste de conexão SMTP.",
+                "GLPI — integração prevista: permanece Não Configurada até a implementação.",
+                "Backup Local — último backup válido, quantidade de backups válidos no disco e última falha; com agendador ativo, Atenção quando o ciclo esperado passa sem backup novo.",
+                "Backup Externo — habilitado, destino, última cópia e última falha (feature 045).",
+                "Agendador de Backup — ativo/desabilitado, agendamento, próximo backup e último resultado.",
+                "1Doc — comunicação de movimentações; Pendente de Configuração enquanto o contrato não é confirmado pelo fornecedor.",
+            ],
+        },
+        {
             "heading": "Status das integrações",
             "steps": [
                 "Não Configurada — faltam parâmetros mínimos ou a integração ainda não foi implementada (ex.: GLPI).",
                 "Pendente de Configuração — aguardando algo externo (ex.: 1Doc aguardando o fornecedor).",
-                "Desabilitada — implementada, mas explicitamente desligada (ex.: notificações desativadas).",
-                "Ativa — habilitada e operando.",
+                "Desabilitada — implementada, mas explicitamente desligada (ex.: notificações desativadas, backup externo desligado).",
+                "Ativa — habilitado e operando (nos componentes de saúde, exibido como Operacional/Conectado/OK/Ativo).",
+                "Atenção — configurado com ressalva (ex.: pouco espaço de armazenamento, backup atrasado).",
                 "Com Erro — a última execução/verificação falhou.",
                 "Indisponível — serviço externo não alcançável no momento (rede/timeout).",
-                "Inativa — habilitada, porém sem atividade registrada.",
+                "Inativa — habilitado, porém sem atividade registrada.",
             ],
         },
         {
@@ -59,7 +80,8 @@ ARTIGO_CENTRAL_INTEGRACOES: Dict = {
                 "Última execução e último sucesso da integração.",
                 "Falhas recentes nas últimas 24 horas (janela explícita no card).",
                 "Operações pendentes (ex.: comunicações 1Doc aguardando envio).",
-                "Botões: Detalhes, Testar conexão (quando suportado) e Configurar (tela existente).",
+                "Resumo operacional de uma linha por componente (ex.: próximo backup, último backup válido, espaço livre, destino externo).",
+                "Botões: Detalhes, Testar conexão/Testar destino (quando suportado) e Configurar (tela existente).",
             ],
         },
         {
@@ -67,9 +89,12 @@ ARTIGO_CENTRAL_INTEGRACOES: Dict = {
             "body": (
                 "O teste é seguro e não destrutivo: no e-mail, apenas abre conexão e autentica no servidor "
                 "SMTP — nenhuma mensagem é enviada. No 1Doc, verifica apenas a configuração interna (o envio "
-                "real permanece bloqueado até a confirmação do contrato pelo fornecedor). O teste do Active "
-                "Directory continua na tela Integração AD, como sempre. Todo teste fica registrado no histórico "
-                "e na trilha de auditoria."
+                "real permanece bloqueado até a confirmação do contrato pelo fornecedor). No Backup Externo, "
+                "o 'Testar destino' cria um arquivo temporário, grava, lê, valida e remove — nenhum backup é "
+                "gerado e nenhum arquivo fica no destino. O teste do Active Directory continua na tela "
+                "Integração AD, como sempre. Abrir a Central apenas CONSULTA estados já conhecidos: nenhum "
+                "teste é executado automaticamente ao carregar a página. Todo teste fica registrado no "
+                "histórico e na trilha de auditoria."
             ),
             "note": "O teste nunca cria, altera ou exclui dados no sistema externo nem no acervo patrimonial.",
         },
