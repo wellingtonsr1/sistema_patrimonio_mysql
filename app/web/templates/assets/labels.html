@@ -3,6 +3,25 @@
 {% block title %}Etiquetas de Patrimônio{% endblock %}
 
 {% block content %}
+<!-- Feature 044: distribuicao horizontal da tabela de selecao (layout fixo + linha garantida) -->
+<style>
+    .etiq-table { table-layout: fixed; width: 100%; min-width: 1230px; }
+    .etiq-table col.c0 { width: 46px; }
+    .etiq-table col.c1 { width: 150px; }
+    .etiq-table col.c2 { width: 420px; }
+    .etiq-table col.c3 { width: 280px; }
+    .etiq-table col.c4 { width: 334px; }
+    .etiq-table th, .etiq-table td { white-space: nowrap; }
+    .etiq-ellip {
+        display: inline-block;
+        max-width: 100%;
+        vertical-align: bottom;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+
 <!-- Page Header -->
 <div class="page-header no-print">
     <div>
@@ -104,9 +123,16 @@
     {% if assets %}
     <div class="table-responsive">
         <table class="table align-middle">
+            <colgroup>
+                <col class="c0">
+                <col class="c1">
+                <col class="c2">
+                <col class="c3">
+                <col class="c4">
+            </colgroup>
             <thead>
                 <tr>
-                    <th style="width:36px;"></th>
+                    <th></th>
                     <th>Tombamento</th>
                     <th>Equipamento / Modelo</th>
                     <th>Setor</th>
@@ -122,16 +148,21 @@
                     </td>
                     <td><span class="tag-badge">{{ a.tag }}</span></td>
                     <td>
-                        <span class="fw-semibold" style="color:var(--c-text);">{{ a.name }}</span>
+                        <span class="fw-semibold etiq-ellip" style="color:var(--c-text);"
+                              data-bs-toggle="tooltip" data-bs-placement="top" title="{{ a.name }}">{{ a.name }}</span>
                         <div class="text-muted" style="font-size:.76rem;">
-                            {% if a.brand or a.model %}{{ a.brand or '' }} {{ a.model or '' }}{% endif %}
+                            {% if a.brand or a.model %}{% set brand_model = (a.brand or '') ~ ' ' ~ (a.model or '') %}
+                            <span class="etiq-ellip"
+                                  data-bs-toggle="tooltip" data-bs-placement="top" title="{{ brand_model|trim }}">{{ brand_model|trim }}</span>{% endif %}
                         </div>
                     </td>
                     <td class="small text-muted">
-                        {% if a.location and a.location.department %}{{ a.location.department }}{% else %}<span class="text-muted">—</span>{% endif %}
+                        {% if a.location and a.location.department %}<span class="etiq-ellip"
+                              data-bs-toggle="tooltip" data-bs-placement="top" title="{{ a.location.department }}">{{ a.location.department }}</span>{% else %}<span class="text-muted">—</span>{% endif %}
                     </td>
                     <td class="small text-muted">
-                        {% if a.location %}{{ a.location.name }}{% else %}<span class="text-muted">—</span>{% endif %}
+                        {% if a.location %}<span class="etiq-ellip"
+                              data-bs-toggle="tooltip" data-bs-placement="top" title="{{ a.location.name }}">{{ a.location.name }}</span>{% else %}<span class="text-muted">—</span>{% endif %}
                     </td>
                 </tr>
                 {% endfor %}
