@@ -24,6 +24,7 @@ from typing import Dict, List, Optional
 from app.services.help_article_030 import ARTIGO_NOTIFICACOES  # feature 030
 from app.services.help_article_031 import ARTIGO_ONEDOC  # feature 031
 from app.services.help_article_032 import ARTIGO_CENTRAL_INTEGRACOES  # feature 032
+from app.services.help_article_045 import ARTIGO_BACKUP_EXTERNO  # feature 045
 
 # ============================================================================
 # ARTIGOS
@@ -1217,6 +1218,7 @@ ARTICLES: List[Dict] = [
                     "Após salvar, a página recarrega com o modal fechado e a mensagem de confirmação no topo.",
                     "A alteração vale sem reinício (vale no próximo ciclo, em até 30 segundos). Precedência por campo: valor salvo pela tela → variável de ambiente → padrão do sistema.",
                     "Nunca é editável pela tela: caminhos e executáveis do banco (MYSQLDUMP_PATH, BACKUP_DIR, BACKUP_IMPORT_TIMEOUT) e credenciais — esses parâmetros permanecem no servidor.",
+                    "No mesmo modal fica o quadro Backup externo (cópia automática para pasta de rede/NAS) — veja o artigo Backup com destino externo (pasta de rede/NAS).",
                 ],
             },
             {
@@ -1233,6 +1235,7 @@ ARTICLES: List[Dict] = [
     ARTIGO_NOTIFICACOES,  # feature 030 — notificações por e-mail (administração)
     ARTIGO_ONEDOC,  # feature 031 — integração 1Doc (administração)
     ARTIGO_CENTRAL_INTEGRACOES,  # feature 032 — central de integrações (administração)
+    ARTIGO_BACKUP_EXTERNO,  # feature 045 — destino externo de backups (administração)
     {
         "id": "restauracao-de-backup",
         "title": "Restauração de backup (administração)",
