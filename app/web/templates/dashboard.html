@@ -3,6 +3,29 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
+<!--
+  Feature 046 — Ajuste responsivo da tabela "Fluxo Recente de Movimentações":
+  layout determinístico (table-layout: fixed + colgroup) reusando o mecanismo
+  validado nas specs 036–044. CSS escopado a esta tabela (.dash-table): nenhuma
+  regra global, nenhuma outra tela afetada. Rígidas (Data, Tombamento, Ação,
+  Operador, Ações) em PIXELS com folga para a fonte real do app; textuais
+  (Equipamento/Destino) dividem o restante (C-1). Corte controlado com ellipsis
+  + tooltip nas textuais (Equipamento/Destino/Operador) — dado completo
+  acessível por tooltip, sem JS novo.
+-->
+<style>
+  .dash-table { table-layout: fixed; width: 100%; min-width: 1370px; }
+  .dash-table th, .dash-table td { overflow-wrap: break-word; vertical-align: middle; }
+  .dash-table .col-data { width: 135px; }
+  .dash-table .col-tag { width: 150px; }
+  .dash-table .col-equip { width: 330px; }
+  .dash-table .col-acao { width: 200px; }
+  .dash-table .col-destino { width: 330px; }
+  .dash-table .col-operador { width: 130px; }
+  .dash-table .col-acoes { width: 95px; }
+  .dash-table .dash-ellip { display: inline-block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+</style>
+
 <!-- Page Header -->
 <div class="page-header">
     <div>
@@ -240,7 +263,16 @@
 
     {% if stats.recent_movements %}
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table align-middle dash-table">
+            <colgroup>
+                <col class="col-data">
+                <col class="col-tag">
+                <col class="col-equip">
+                <col class="col-acao">
+                <col class="col-destino">
+                <col class="col-operador">
+                <col class="col-acoes">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Data</th>
@@ -259,7 +291,7 @@
                     <td><span class="tag-badge">{{ m.asset.tag }}</span></td>
                     <td>
                         <a href="/assets/{{ m.asset_id }}" class="fw-semibold text-decoration-none" style="color:var(--c-text);">
-                            {{ m.asset.name }}
+                            <span class="dash-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ m.asset.name }}">{{ m.asset.name }}</span>
                         </a>
                     </td>
                     <td>
@@ -269,12 +301,12 @@
                     </td>
                     <td class="small">
                         {% if m.destination_custodian_name %}
-                            <span class="fw-medium" style="color:var(--c-text);"><i class="bi bi-person text-muted me-1"></i>{{ m.destination_custodian_name }}</span>
+                            <span class="fw-medium" style="color:var(--c-text);"><i class="bi bi-person text-muted me-1"></i><span class="dash-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ m.destination_custodian_name }}">{{ m.destination_custodian_name }}</span></span>
                         {% else %}
-                            <span class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ m.destination_location_name or 'Estoque' }}</span>
+                            <span class="text-muted"><i class="bi bi-geo-alt me-1"></i><span class="dash-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ m.destination_location_name or 'Estoque' }}">{{ m.destination_location_name or 'Estoque' }}</span></span>
                         {% endif %}
                     </td>
-                    <td class="text-muted small">{{ m.operator_name }}</td>
+                    <td class="text-muted small"><span class="dash-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ m.operator_name }}">{{ m.operator_name }}</span></td>
                     <td class="text-end text-nowrap">
                         {% if m.term_code %}
                         <a href="/movements/{{ m.id }}/term" class="btn btn-ghost btn-icon" title="Termo de Cautela" target="">
