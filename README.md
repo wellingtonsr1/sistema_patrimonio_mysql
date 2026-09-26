@@ -1250,6 +1250,7 @@ docs/
 ├── BACKUP_AUTOMATICO_TESTES.md
 ├── DEPLOY_PRODUCAO.md
 ├── GUIA_DE_MANUTENCAO.md
+├── TUTORIAL_BACKUP_DESTINO_EXTERNO.md
 ```
 
 As especificações por feature (`specs/NNN-nome/`) registram requisitos, decisões de design e critérios de validação do fluxo de desenvolvimento.
