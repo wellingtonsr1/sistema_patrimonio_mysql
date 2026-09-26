@@ -29,15 +29,18 @@
     Feature 046 (ampliacao) — mesmo mecanismo nas tabelas de inconsistências
     ("Equipamentos sem localização" e "Equipamentos sem responsável"), que
     compartilham o mesmo loop do template: layout fixo + colgroup + corte
-    controlado com tooltip no Equipamento. Colunas em PERCENTUAL (padrão de
-    telas em cards de meia largura): a proporção se mantém do desktop ao
-    celular sem rolagem horizontal.
+    controlado com tooltip no Equipamento e na Observação. Colunas em
+    PERCENTUAL (padrão de telas em cards de meia largura): a proporção se
+    mantém do desktop ao celular sem rolagem horizontal. TUDO em linha única:
+    nowrap no badge do código (com o corte controlado global como fallback,
+    padrão da 044) e spans cortáveis nos textuais.
   */
   .inc-table { table-layout: fixed; width: 100%; }
   .inc-table th, .inc-table td { overflow-wrap: break-word; vertical-align: middle; }
   .inc-table .inc-tag { width: 24%; }
   .inc-table .inc-equip { width: 44%; }
   .inc-table .inc-obs { width: 32%; }
+  .inc-table .tag-badge { white-space: nowrap; max-width: 100%; }
   .inc-table .dash-ellip { display: inline-block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
 </style>
 
@@ -236,7 +239,7 @@
                         <tr>
                             <td><span class="tag-badge">{{ item.tag }}</span></td>
                             <td><span class="dash-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ item.name }}">{{ item.name }}</span></td>
-                            <td class="text-muted small">{{ item.detail }}</td>
+                            <td class="text-muted small"><span class="dash-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ item.detail }}">{{ item.detail }}</span></td>
                         </tr>
                         {% endfor %}
                     </tbody>

@@ -101,6 +101,22 @@ def measure(html: str) -> dict:
     if tb0 is not None:
         _rows(tb0)
     out["rows"] = rows
+    # linhas de texto por tr da tabela de inconsistências (ampliação: prova de
+    # linha única também na Tag/Observação — nowrap do badge + spans cortáveis)
+    otr0 = out.get("other_table")
+    if otr0 is not None:
+        orows = []
+
+        def _orows(bx):
+            el = getattr(bx, "element", None)
+            if el is not None and el.tag == "tr":
+                orows.append(_count_lines(bx))
+                return
+            for c in getattr(bx, "all_children", lambda: [])():
+                _orows(c)
+
+        _orows(otr0)
+        out["other_rows"] = orows
     cols = {}
     for name, cls in zip(COLS, CLS):
         b = found.get(cls)
@@ -285,6 +301,9 @@ def main():
             rows = r.get("rows") or []
             lines.append("  - trs (thead+tbody, linhas de texto por tr): "
                          + ("/".join(str(x) for x in rows) if rows else "-"))
+            orows2 = r.get("other_rows") or []
+            lines.append("  - inc trs (linhas de texto por tr): "
+                         + ("/".join(str(x) for x in orows2) if orows2 else "-"))
             ot = r.get("other_table_width")
             ototal = sum(v for v in r["other_cols"].values() if v)
             if other_body:

@@ -1,6 +1,6 @@
 # validação local 046 — medições WeasyPrint (fase V1)
 
-- spans dash-ellip: 32 · com tooltip (title): 32
+- spans dash-ellip: 46 · com tooltip (title): 46
 
 ## viewport 1440px light (V1)
 - page: 1440.0px · tabela-alvo: 1440.0px · soma cols: 1439.3px
@@ -12,6 +12,7 @@
   - Operador: 139.9px (9.7%)
   - Ações: 104.9px (7.3%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 1440.0px · soma: 1439.1px · cols: Tag=345.4, Equipamento (inc)=633.2, Observação=460.5
 
 ## viewport 1440px dark (V1)
@@ -24,6 +25,7 @@
   - Operador: 139.9px (9.7%)
   - Ações: 104.9px (7.3%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 1440.0px · soma: 1439.1px · cols: Tag=345.4, Equipamento (inc)=633.2, Observação=460.5
 
 ## viewport 1152px light (V1)
@@ -36,6 +38,7 @@
   - Operador: 130.0px (9.5%)
   - Ações: 95.0px (6.9%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 1152.0px · soma: 1150.9px · cols: Tag=276.2, Equipamento (inc)=506.4, Observação=368.3
 
 ## viewport 1152px dark (V1)
@@ -48,6 +51,7 @@
   - Operador: 130.0px (9.5%)
   - Ações: 95.0px (6.9%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 1152.0px · soma: 1150.9px · cols: Tag=276.2, Equipamento (inc)=506.4, Observação=368.3
 
 ## viewport 1024px light (V1)
@@ -60,6 +64,7 @@
   - Operador: 130.0px (9.5%)
   - Ações: 95.0px (6.9%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 1024.0px · soma: 1023.0px · cols: Tag=245.5, Equipamento (inc)=450.1, Observação=327.4
 
 ## viewport 1024px dark (V1)
@@ -72,6 +77,7 @@
   - Operador: 130.0px (9.5%)
   - Ações: 95.0px (6.9%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 1024.0px · soma: 1023.0px · cols: Tag=245.5, Equipamento (inc)=450.1, Observação=327.4
 
 ## viewport 700px light (V1)
@@ -84,6 +90,7 @@
   - Operador: 130.0px (9.5%)
   - Ações: 95.0px (6.9%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 700.0px · soma: 699.1px · cols: Tag=167.8, Equipamento (inc)=307.6, Observação=223.7
 
 ## viewport 700px dark (V1)
@@ -96,6 +103,7 @@
   - Operador: 130.0px (9.5%)
   - Ações: 95.0px (6.9%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 700.0px · soma: 699.1px · cols: Tag=167.8, Equipamento (inc)=307.6, Observação=223.7
 
 ## viewport 375px light (V1)
@@ -108,6 +116,7 @@
   - Operador: 130.0px (9.5%)
   - Ações: 95.0px (6.9%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 375.0px · soma: 374.1px · cols: Tag=89.8, Equipamento (inc)=164.6, Observação=119.7
 
 ## viewport 375px dark (V1)
@@ -120,6 +129,7 @@
   - Operador: 130.0px (9.5%)
   - Ações: 95.0px (6.9%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 375.0px · soma: 374.1px · cols: Tag=89.8, Equipamento (inc)=164.6, Observação=119.7
 
 ## viewport 2880px light (V1)
@@ -132,6 +142,7 @@
   - Operador: 345.6px (12.0%)
   - Ações: 310.6px (10.8%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 2880.0px · soma: 2879.1px · cols: Tag=691.0, Equipamento (inc)=1266.8, Observação=921.3
 
 ## viewport 2880px dark (V1)
@@ -144,6 +155,7 @@
   - Operador: 345.6px (12.0%)
   - Ações: 310.6px (10.8%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 2880.0px · soma: 2879.1px · cols: Tag=691.0, Equipamento (inc)=1266.8, Observação=921.3
 
 ## viewport 1800px light (V1)
@@ -156,6 +168,7 @@
   - Operador: 191.3px (10.6%)
   - Ações: 156.3px (8.7%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 1800.0px · soma: 1799.1px · cols: Tag=431.8, Equipamento (inc)=791.6, Observação=575.7
 
 ## viewport 1800px dark (V1)
@@ -168,6 +181,7 @@
   - Operador: 191.3px (10.6%)
   - Ações: 156.3px (8.7%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 1800.0px · soma: 1799.1px · cols: Tag=431.8, Equipamento (inc)=791.6, Observação=575.7
 
 ## viewport 720px light (V1)
@@ -180,6 +194,7 @@
   - Operador: 130.0px (9.5%)
   - Ações: 95.0px (6.9%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 720.0px · soma: 719.1px · cols: Tag=172.6, Equipamento (inc)=316.4, Observação=230.1
 
 ## viewport 720px dark (V1)
@@ -192,4 +207,5 @@
   - Operador: 130.0px (9.5%)
   - Ações: 95.0px (6.9%)
   - trs (thead+tbody, linhas de texto por tr): 7/7/7/7/7/7/7
+  - inc trs (linhas de texto por tr): 3/3/3/3/3/3/3/3
 - [inc] tabela de inconsistências: 720.0px · soma: 719.1px · cols: Tag=172.6, Equipamento (inc)=316.4, Observação=230.1
