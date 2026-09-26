@@ -311,8 +311,9 @@ def test_geracao_sucesso_cria_arquivo_e_audita(db_session):
         db_session, user, "127.0.0.1", dump_executor=_fake_dump
     )
 
-    # Retorno com os 4 campos (016: sha256 aditivo — contract §7, Teste A adaptado)
-    assert set(result.keys()) == {"filename", "timestamp", "size_bytes", "sha256"}
+    # Retorno com os campos (016: sha256 aditivo — contract §7, Teste A adaptado;
+    # 045: chave "external" aditiva — gancho do destino externo)
+    assert set(result.keys()) == {"filename", "timestamp", "size_bytes", "sha256", "external"}
     assert _BACKUP_NAME_RE.match(result["filename"])
     assert result["size_bytes"] > 0  # 016: tamanho é o do gzip (comprimido)
 
@@ -395,8 +396,8 @@ def test_geracao_v2_produz_gz_com_sha256(db_session):
     h = hashlib.sha256(final_path.read_bytes()).hexdigest()
     assert result["sha256"] == h
 
-    # Retorno com os 4 campos v2
-    assert set(result.keys()) == {"filename", "timestamp", "size_bytes", "sha256"}
+    # Retorno com os campos v2 (+ "external" da 045 — aditivo)
+    assert set(result.keys()) == {"filename", "timestamp", "size_bytes", "sha256", "external"}
 
     # Auditoria SUCCESS com new_data incluindo sha256
     events = _audit_entries(db_session, ACTION_BACKUP_CREATED)
