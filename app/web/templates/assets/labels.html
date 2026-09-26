@@ -103,10 +103,12 @@
                 <input class="form-check-input" type="checkbox" id="select-all-page">
                 <label class="form-check-label small" for="select-all-page">Selecionar todos exibidos</label>
             </div>
-            <button type="button" class="btn btn-ghost btn-sm" id="clear-selection" {% if not selected_list %}disabled{% endif %}>
-                <i class="bi bi-x-lg me-1"></i>Limpar seleção
-            </button>
-            <a href="/assets/labels" class="btn btn-ghost"><i class="bi bi-arrow-left me-1"></i>Voltar para seleção</a>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-ghost btn-sm" id="clear-selection" {% if not selected_list %}disabled{% endif %}>
+                    <i class="bi bi-x-lg me-1"></i>Limpar seleção
+                </button>
+                <a href="/assets/labels" class="btn btn-ghost"><i class="bi bi-arrow-left me-1"></i>Voltar para seleção</a>
+            </div>
         </div>
         <div>
             <button type="button" class="btn btn-primary" id="print-selected" {% if not selected_assets %}disabled{% endif %}>
