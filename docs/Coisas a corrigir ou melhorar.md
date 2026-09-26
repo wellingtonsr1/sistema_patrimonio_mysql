@@ -183,3 +183,55 @@ OBS:Se preferir que mudança de horário para mais tarde no mesmo dia re-dispare
 PS C:\WINDOWS\system32> $cert.Thumbprint
 1CC25F96B53C73D366896A8B6FC71DB47F8214BE
 PS C:\WINDOWS\system32>
+
+
+
+1. 🔐 AD + autorização por grupos
+        ↓
+2. 💾 Backup externo
+        ↓
+3. 📱 Inventário offline/PWA
+        ↓
+4. 🔗 Integração GLPI
+        ↓
+5. 📄 Integração 1Doc
+        ↓
+6. 🔎 Gestão de divergências
+        ↓
+7. 📚 Dossiê/linha do tempo do patrimônio
+        ↓
+8. 📊 Dashboard operacional
+        ↓
+9. 🩺 Saúde das integrações/sistema
+
+
+
+13. Importação inteligente
+
+Como você já trabalha com importação CSV, uma evolução útil seria:
+
+CSV
+ ↓
+Validação
+ ↓
+Pré-visualização
+ ↓
+Identificação de problemas
+ ↓
+Usuário confirma
+ ↓
+Importação
+ ↓
+Relatório
+
+Por exemplo:
+
+1.245 registros analisados
+
+1.210 válidos
+   18 sem responsável
+   10 sem local
+    5 duplicados
+    2 com tombamento inválido
+
+E permitir corrigir antes de gravar.
