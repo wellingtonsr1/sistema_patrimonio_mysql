@@ -775,11 +775,32 @@ class BackupService:
             # do chamador não é retida; erro de metadados NUNCA invalida o
             # arquivo físico válido (data-model: registro é aditivo).
             _record_backup_success(final_path.name, backup_type, size_bytes, digest, db=db)
+            # FEATURE 045 — gancho ÚNICO de destino externo (research R1):
+            # imediatamente após `_record_backup_success` e antes do return.
+            # try/except local que NUNCA altera o fluxo local (C-8): qualquer
+            # exceção do mecanismo externo é engolida e logada; o dict local
+            # de sucesso ganha apenas a chave informativa "external".
+            external_status: Optional[Dict] = None
+            try:
+                from app.services import external_backup_service
+
+                external_status = external_backup_service.process_backup_after_success(
+                    {"filename": final_path.name, "size_bytes": size_bytes, "sha256": digest},
+                    backup_type,
+                )
+            except Exception:  # nunca propaga — falha externa não afeta o local
+                logger.exception(
+                    "Falha inesperada no gancho de destino externo (%s) — "
+                    "backup local preservado.",
+                    final_path.name,
+                )
+                external_status = None
             return {
                 "filename": final_path.name,
                 "timestamp": _filename_to_datetime(final_path.name),
                 "size_bytes": size_bytes,
                 "sha256": digest,
+                "external": external_status,
             }
         except Exception as exc:
             # Remove temporários .part* (BV-8): parcial nunca fica disponível.

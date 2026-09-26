@@ -20,6 +20,8 @@ from app.models.role_permission import RolePermission
 from app.models.audit_log import AuditLog
 from app.models.backup_record import BackupRecord
 from app.models.backup_config import BackupConfig
+from app.models.backup_external_config import BackupExternalConfig
+from app.models.backup_external_record import BackupExternalRecord
 from app.models.ad_settings import ADSettings
 from app.models.ad_group_role import ADGroupRole
 from app.models.setup_claim import SetupClaim
@@ -50,6 +52,8 @@ __all__ = [
     "AuditLog",
     "BackupRecord",
     "BackupConfig",
+    "BackupExternalConfig",
+    "BackupExternalRecord",
     "ADSettings",
     "ADGroupRole",
     "SetupClaim",
