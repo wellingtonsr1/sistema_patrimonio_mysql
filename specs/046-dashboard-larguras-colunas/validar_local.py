@@ -9,9 +9,11 @@ dos cenários V0 (pré-alteração) / V1 (pós-alteração) do quickstart.
 
 Uso: .venv/bin/python specs/046-dashboard-larguras-colunas/validar_local.py [V0|V1] [larguras...]
 
-O script compara ainda a tabela "Necessitam de atenção" (que NÃO é alvo) entre
-as fases: suas medições devem permanecer idênticas V0 → V1 (fronteira de escopo,
-R5 do plan).
+O script mede ainda as tabelas de inconsistências ("Equipamentos sem
+localização" e "Equipamentos sem responsável" — alvo da ampliação da 046):
+em V0 recebem classe de referência + colgroup NEUTRO injetados; em V1 vale o
+markup real do template (colgroup em percentual) — proporção e linha única
+comparáveis V0 → V1.
 """
 import re
 import sys
@@ -33,8 +35,8 @@ if len(sys.argv) > 1 and sys.argv[1] in ("V0", "V1"):
 
 COLS = ["Data", "Tombamento", "Equipamento", "Ação", "Destino", "Operador", "Ações"]
 CLS = ["col-data", "col-tag", "col-equip", "col-acao", "col-destino", "col-operador", "col-acoes"]
-OTHER_COLS = ["Tag", "Equipamento (outra)", "Observação"]
-OTHER_CLS = ["o0", "o1", "o2"]
+INC_COLS = ["Tag", "Equipamento (inc)", "Observação"]
+INC_CLS = ["inc-tag", "inc-equip", "inc-obs"]
 
 
 def build_html(body_html: str, viewport: int, dark: bool) -> str:
@@ -69,11 +71,11 @@ def measure(html: str) -> dict:
             if el.tag == "col" and classes:
                 if classes[0] in CLS and classes[0] not in found:
                     found[classes[0]] = box
-                if classes[0] in OTHER_CLS and classes[0] not in other_found:
+                if classes[0] in INC_CLS and classes[0] not in other_found:
                     other_found[classes[0]] = box
             if "dash-table" in classes and "table" not in out:
                 out["table"] = box
-            if "attn-table" in classes and "other_table" not in out:
+            if "inc-table" in classes and "other_table" not in out:
                 out["other_table"] = box
         for child in getattr(box, "all_children", lambda: [])():
             walk(child)
@@ -105,7 +107,7 @@ def measure(html: str) -> dict:
         cols[name] = round(b.width, 1) if b is not None else None
     out["cols"] = cols
     ocols = {}
-    for name, cls in zip(OTHER_COLS, OTHER_CLS):
+    for name, cls in zip(INC_COLS, INC_CLS):
         b = other_found.get(cls)
         ocols[name] = round(b.width, 1) if b is not None else None
     out["other_cols"] = ocols
@@ -196,12 +198,14 @@ def main():
     app.dependency_overrides.clear()
 
     # Marcação de MEDIÇÃO (somente no HTML capturado — o template real não é
-    # tocado): ambas as tabelas recebem classes de referência e um colgroup
-    # NEUTRO (sem larguras), para que os mesmos seletores (cN/dash-table/
-    # attn-table) existam em V0 e V1 e a comparação reflita apenas o CSS da fase.
+    # tocado): em V0, as tabelas de inconsistências recebem classe de
+    # referência + colgroup NEUTRO, para que os mesmos seletores (inc-table/
+    # inc-*) existam em V0 e V1 e a comparação reflita apenas o CSS da fase.
     m = re.search(r"(<style>.*?</style>)", body, re.S)
     inline_style = m.group(1) if m else ""
-    # 1) Tabela "Necessitam de atenção" (se renderizada): classes de referência.
+    # 1) Tabelas de inconsistências (se renderizadas): em V0 injeta classe de
+    #    referência + colgroup NEUTRO; em V1 o template já traz inc-table +
+    #    colgroup real e este marcador não roda (padrão com fecho em aspas).
     #    O corte precisa começar na TAG <table ...>: se começar no atributo
     #    class=, o fragmento fica com a tag de abertura cortada, o parser
     #    descarta table/colgroup e a medição de escopo sai None.
@@ -211,14 +215,14 @@ def main():
         o_end = body.find("</table>", o_attr) + len("</table>")
         attn = body[o_ini:o_end]
         attn_marked = attn.replace('class="table align-middle table-sm"',
-                                   'class="table align-middle table-sm attn-table"')
-        attn_marked = attn_marked.replace("<th>Tag</th>", '<th class="o0">Tag</th>')
-        attn_marked = attn_marked.replace("<th>Equipamento</th>", '<th class="o1">Equipamento</th>')
-        attn_marked = attn_marked.replace("<th>Observação</th>", '<th class="o2">Observação</th>')
+                                   'class="table align-middle table-sm inc-table"')
+        attn_marked = attn_marked.replace("<th>Tag</th>", '<th class="inc-tag">Tag</th>')
+        attn_marked = attn_marked.replace("<th>Equipamento</th>", '<th class="inc-equip">Equipamento</th>')
+        attn_marked = attn_marked.replace("<th>Observação</th>", '<th class="inc-obs">Observação</th>')
         if "<colgroup>" not in attn_marked:
             attn_marked = attn_marked.replace(
                 "<thead>",
-                '<colgroup><col class="o0"><col class="o1"><col class="o2"></colgroup><thead>',
+                '<colgroup><col class="inc-tag"><col class="inc-equip"><col class="inc-obs"></colgroup><thead>',
                 1,
             )
         body = body[:o_ini] + attn_marked + body[o_end:]
@@ -242,7 +246,9 @@ def main():
     # Corpo medido: da outra tabela (já marcada, precede a tabela-alvo) até o
     # fim do bloco da tabela-alvo — AMBAS no mesmo HTML (prova de escopo R5).
     # idem acima: recuar até a tag <table de cada tabela marcada
-    o2_attr = body.find("attn-table")
+    # âncora no ATRIBUTO class citado (o seletor .inc-table do <style> aparece
+    # antes das tabelas e não pode servir de âncora para o slice)
+    o2_attr = body.find('class="table align-middle table-sm inc-table"')
     o2_ini = body.rfind("<table", 0, o2_attr) if o2_attr >= 0 else -1
     d2_attr = body.find('class="table align-middle dash-table"')
     d2_ini = body.rfind("<table", 0, d2_attr) if d2_attr >= 0 else -1
@@ -253,7 +259,7 @@ def main():
 
     # Corpo de referência de escopo: a OUTRA tabela sozinha (medição independente,
     # robusta a diferenças de parsing do layout engine entre as duas tabelas).
-    o3_attr = body.find("attn-table")
+    o3_attr = body.find('class="table align-middle table-sm inc-table"')
     o3_ini = body.rfind("<table", 0, o3_attr) if o3_attr >= 0 else -1
     if o3_ini >= 0:
         o3_fim = body.find("<!-- Recent Movements -->", o3_attr)
@@ -284,12 +290,12 @@ def main():
             if other_body:
                 r2 = measure(build_html(inline_style + other_body, vp, dark))
                 ot2 = r2.get("other_table_width")
-                oc2 = {n: r2["other_cols"][n] for n in OTHER_COLS}
+                oc2 = {n: r2["other_cols"][n] for n in INC_COLS}
             else:
-                ot2, oc2 = ot, {n: r["other_cols"][n] for n in OTHER_COLS}
+                ot2, oc2 = ot, {n: r["other_cols"][n] for n in INC_COLS}
             ot2_total = sum(v for v in oc2.values() if v)
-            lines.append(f"- [escopo] outra tabela: {ot2}px · soma: {round(ot2_total, 1)}px · cols: "
-                         + ", ".join(f"{n}={oc2[n]}" for n in OTHER_COLS))
+            lines.append(f"- [inc] tabela de inconsistências: {ot2}px · soma: {round(ot2_total, 1)}px · cols: "
+                         + ", ".join(f"{n}={oc2[n]}" for n in INC_COLS))
             lines.append("")
     OUT.write_text("\n".join(lines), encoding="utf-8")
     print("\n".join(lines))

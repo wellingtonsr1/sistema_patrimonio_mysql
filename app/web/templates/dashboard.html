@@ -24,6 +24,21 @@
   .dash-table .col-operador { width: 130px; }
   .dash-table .col-acoes { width: 95px; }
   .dash-table .dash-ellip { display: inline-block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+
+  /*
+    Feature 046 (ampliacao) — mesmo mecanismo nas tabelas de inconsistências
+    ("Equipamentos sem localização" e "Equipamentos sem responsável"), que
+    compartilham o mesmo loop do template: layout fixo + colgroup + corte
+    controlado com tooltip no Equipamento. Colunas em PERCENTUAL (padrão de
+    telas em cards de meia largura): a proporção se mantém do desktop ao
+    celular sem rolagem horizontal.
+  */
+  .inc-table { table-layout: fixed; width: 100%; }
+  .inc-table th, .inc-table td { overflow-wrap: break-word; vertical-align: middle; }
+  .inc-table .inc-tag { width: 24%; }
+  .inc-table .inc-equip { width: 44%; }
+  .inc-table .inc-obs { width: 32%; }
+  .inc-table .dash-ellip { display: inline-block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
 </style>
 
 <!-- Page Header -->
@@ -203,7 +218,12 @@
             </div>
             {% if inc.item_list %}
             <div class="table-responsive mt-3">
-                <table class="table align-middle table-sm">
+                <table class="table align-middle table-sm inc-table">
+                    <colgroup>
+                        <col class="inc-tag">
+                        <col class="inc-equip">
+                        <col class="inc-obs">
+                    </colgroup>
                     <thead>
                         <tr>
                             <th>Tag</th>
@@ -215,7 +235,7 @@
                         {% for item in inc.item_list %}
                         <tr>
                             <td><span class="tag-badge">{{ item.tag }}</span></td>
-                            <td class="text-truncate" style="max-width:200px;">{{ item.name }}</td>
+                            <td><span class="dash-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ item.name }}">{{ item.name }}</span></td>
                             <td class="text-muted small">{{ item.detail }}</td>
                         </tr>
                         {% endfor %}
