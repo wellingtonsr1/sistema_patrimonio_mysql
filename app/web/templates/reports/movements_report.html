@@ -3,6 +3,41 @@
 {% block title %}Relatório de Auditoria de Movimentações{% endblock %}
 
 {% block content %}
+<style>
+    /* Feature 042: larguras proporcionais e linha garantida na tabela da trilha (escopado).
+       Layout fixo + colgroup com TODAS as colunas em px, calibradas para a fonte real do app
+       (Plus Jakarta Sans, ~20–30% mais larga que fontes de medição fallback). Objetivo: valores
+       em uma única linha — corte controlado por ellipsis + tooltip (dado completo acessível);
+       abaixo da largura mínima, rolagem confinada ao contêiner da tabela. */
+    .movrep-table { table-layout: fixed; width: 100%; min-width: 1380px; }
+    .movrep-table .c1 { width: 146px; }
+    .movrep-table .c2 { width: 126px; }
+    .movrep-table .c3 { width: 138px; }
+    .movrep-table .c4 { width: 136px; }
+    .movrep-table .c5 { width: 146px; }
+    .movrep-table .c6 { width: 146px; }
+    .movrep-table .c7 { width: 130px; }
+    .movrep-table .c8 { width: 156px; }
+    .movrep-table .c9 { width: 106px; }
+    .movrep-table .c10 { width: 146px; }
+    .movrep-table .nw { white-space: nowrap; }
+    .movrep-ellip { display: inline-block; max-width: 100%; white-space: nowrap;
+                    overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+    /* Badges desta tabela podem quebrar ENTRE PALAVRAS quando a coluna for estreita
+       (FR-006): o padrão Bootstrap (.badge) é nowrap e transbordaria a célula fixa. */
+    .movrep-table .badge { white-space: normal; }
+
+    /* Segurança de impressão (Feature 042): o papel nunca herda o layout de tela —
+       textos completos no papel (sem ellipsis); o bloco global de impressão dos
+       relatórios permanece intocado. */
+    @media print {
+        .movrep-table { table-layout: auto !important; width: 100% !important; min-width: 0 !important; }
+        .movrep-table col { width: auto !important; }
+        .movrep-table th, .movrep-table td { white-space: normal !important; }
+        .movrep-ellip { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+    }
+</style>
+
 <div class="page-header no-print">
     <div>
         <h3 class="page-header-title">Trilha de Auditoria & Fluxo</h3>
@@ -27,7 +62,11 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle small mb-0">
+        <table class="table table-bordered table-hover align-middle small mb-0 movrep-table">
+            <colgroup>
+                <col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5">
+                <col class="c6"><col class="c7"><col class="c8"><col class="c9"><col class="c10">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Data / Hora</th>
@@ -46,21 +85,21 @@
                 {% for m in movements %}
                 <tr>
                     <td class="text-nowrap">{{ (m.timestamp | localtime).strftime('%d/%m/%Y %H:%M') }}</td>
-                    <td class="font-monospace fw-bold">{{ m.asset.tag }}</td>
-                    <td>{{ m.asset.name }}</td>
+                    <td class="font-monospace fw-bold nw">{{ m.asset.tag }}</td>
+                    <td class="nw"><span class="movrep-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ m.asset.name }}">{{ m.asset.name }}</span></td>
                     <td><span class="badge badge-soft-primary" style="font-size:.68rem;">{{ m.movement_type.label }}</span></td>
                     <td class="small">
-                        {{ m.origin_location_name or '-' }}
-                        {% if m.origin_custodian_name %}<br><span class="text-muted">({{ m.origin_custodian_name }})</span>{% endif %}
+                        <span class="movrep-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ m.origin_location_name or '-' }}">{{ m.origin_location_name or '-' }}</span>
+                        {% if m.origin_custodian_name %}<br><span class="text-muted movrep-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="({{ m.origin_custodian_name }})">({{ m.origin_custodian_name }})</span>{% endif %}
                     </td>
                     <td class="small">
-                        <strong style="color:var(--c-primary-text);">{{ m.destination_location_name or '-' }}</strong>
-                        {% if m.destination_custodian_name %}<br><span style="color:var(--c-primary-text);">({{ m.destination_custodian_name }})</span>{% endif %}
+                        <strong style="color:var(--c-primary-text);"><span class="movrep-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ m.destination_location_name or '-' }}">{{ m.destination_location_name or '-' }}</span></strong>
+                        {% if m.destination_custodian_name %}<br><span style="color:var(--c-primary-text);" class="movrep-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="({{ m.destination_custodian_name }})">({{ m.destination_custodian_name }})</span>{% endif %}
                     </td>
-                    <td><span class="status-pill status-pill-{{ m.new_status.value }}">{{ m.new_status.label }}</span></td>
-                    <td class="truncate-2" style="max-width:200px;">{{ m.reason }}</td>
-                    <td class="small text-muted">{{ m.operator_name }}</td>
-                    <td class="font-monospace text-center small">
+                    <td class="nw"><span class="status-pill status-pill-{{ m.new_status.value }}">{{ m.new_status.label }}</span></td>
+                    <td class="nw"><span class="movrep-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ m.reason }}">{{ m.reason }}</span></td>
+                    <td class="small text-muted nw"><span class="movrep-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ m.operator_name }}">{{ m.operator_name }}</span></td>
+                    <td class="font-monospace text-center small nw">
                         {% if m.term_code %}
                         <a href="/movements/{{ m.id }}/term" target="_blank" class="text-decoration-none" style="color:var(--c-primary-text);">{{ m.term_code }}</a>
                         {% else %}-{% endif %}
