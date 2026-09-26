@@ -848,6 +848,10 @@ def admin_backups(
                 "types_by_filename": {},
                 "config_form": None,
                 "listing_unavailable": True,
+                "external_by_filename": {},
+                "last_external": None,
+                "external_config": {"enabled": False, "dest_path": None},
+                "external_config_row": None,
                 "active_tab": "admin",
             },
         )
@@ -860,9 +864,35 @@ def admin_backups(
         .filter(BackupRecord.filename.in_([b["filename"] for b in backups]))
         .all()
     }
-    # 021→022: SEM efeito colateral de escrita — a listagem lê a efetiva com
-    # create=False (nunca cria/commita a linha singleton) para pré-preencher o
-    # modal de Configurações de Backup que agora vive nesta página.
+    # FEATURE 045 (contract §2/§4): coluna "Externo" do histórico e card
+    # "Destino externo" — derivação SEM efeito colateral de escrita
+    # (leituras puras; listas de leitura usam a sessão do request).
+    from app.models.backup_external_record import BackupExternalRecord
+    from app.services import external_backup_service as _ebs
+
+    external_by_filename = {
+        r.filename: r
+        for r in db.query(BackupExternalRecord)
+        .filter(
+            BackupExternalRecord.filename.in_([b["filename"] for b in backups])
+        )
+        .all()
+    }
+    last_external = (
+        db.query(BackupExternalRecord)
+        .order_by(BackupExternalRecord.copied_at.desc())
+        .first()
+    )
+    # Leitura sem efeito colateral (mesma política do get_effective_config(create=False))
+    ext_row = (
+        db.query(_ebs.BackupExternalConfig)
+        .filter(_ebs.BackupExternalConfig.id == 1)
+        .first()
+    )
+    external_config_view = {
+        "enabled": bool(ext_row.enabled) if ext_row else False,
+        "dest_path": ext_row.dest_path if ext_row else None,
+    }
     return templates.TemplateResponse(
         request=request,
         name="admin/backups.html",
@@ -876,6 +906,10 @@ def admin_backups(
             "retention_summary": retention_monitoring_summary(db),
             "types_by_filename": types_by_filename,
             "config_form": backup_config_service.get_effective_config(db, create=False),
+            "external_by_filename": external_by_filename,
+            "last_external": last_external,
+            "external_config": external_config_view,
+            "external_config_row": ext_row,
             "active_tab": "admin",
         },
     )
@@ -886,10 +920,61 @@ def admin_backup_gerar(request: Request, db: Session = Depends(get_db)):
     actor = request.state.user
     try:
         result = BackupService.generate_backup(db, actor, _client_ip(request))
-        msg = f"Backup gerado com sucesso: {result['filename']}"
+        # FEATURE 045 (contract §2/§15): flash compõe local + externo a partir
+        # da chave "external" (None = mecanismo desabilitado/não aplicável).
+        msg = f"Backup local: SUCESSO ({result['filename']})"
+        external = result.get("external")
+        if external:
+            if external.get("external_status") == "SUCCESS":
+                msg += " / Backup externo: SUCESSO"
+            else:
+                motivo = external.get("external_reason") or "motivo não informado"
+                msg += f" / Backup externo: FALHA ({motivo})"
         return RedirectResponse(url=f"/admin/backups?success={_quote(msg)}", status_code=303)
     except backup_service.BackupError as err:
         return RedirectResponse(url=f"/admin/backups?error={_quote(str(err))}", status_code=303)
+
+
+# ============================================================================
+# DESTINO EXTERNO DE BACKUPS (feature 045) — backup.gerenciar (existente;
+# nenhuma permissão nova — C-13). Ações delegam ao serviço (contract §2).
+# ============================================================================
+
+@admin_router.post("/admin/backups/externo/testar", dependencies=[Depends(require_permission("backup.gerenciar"))])
+def admin_backup_externo_testar(
+    request: Request,
+    db: Session = Depends(get_db),
+    dest_path: str = Form(""),
+):
+    """Testa o destino informado (§24 — acesso+escrita+leitura+remoção de
+    temporário; SEM backup). Auditado como BACKUP_DESTINO_EXTERNO_TESTADO."""
+    from app.services.audit_service import ACTION_BACKUP_DESTINO_EXTERNO_TESTADO
+    from app.services import external_backup_service
+
+    actor = request.state.user
+    ok, message = external_backup_service.test_destination(dest_path)
+    try:
+        write_audit(
+            db,
+            user=actor,
+            action=ACTION_BACKUP_DESTINO_EXTERNO_TESTADO,
+            module="Backup",
+            resource="backup_external_config",
+            resource_ref="1",
+            ip_address=_client_ip(request),
+            result=RESULT_SUCCESS if ok else RESULT_FAILURE,
+            description=f"Teste do destino externo: {message}",
+            new_data={"dest_path": (dest_path or "").strip() or None,
+                      "resultado": "SUCCESS" if ok else "FAILURE",
+                      "motivo": None if ok else message},
+        )
+    except Exception:  # auditoria nunca quebra a resposta
+        pass
+    params = "success" if ok else "error"
+    return RedirectResponse(
+        url=f"/admin/backups?{params}={_quote(message)}",
+        status_code=303,
+    )
 
 
 @admin_router.get("/admin/backups/{filename}/download", dependencies=[Depends(require_permission("backup.gerenciar"))])
@@ -925,6 +1010,10 @@ def admin_backup_config_form(request: Request, db: Session = Depends(get_db)):
     """Formulário de configuração (021): pré-preenchido com a configuração EFETIVA."""
     eff = backup_config_service.get_effective_config(db)
     row = backup_config_service.get_backup_config(db)
+    # FEATURE 045: singleton do destino externo pré-preenche o fieldset novo.
+    from app.services import external_backup_service
+
+    external_row = external_backup_service.get_external_config(db)
     return templates.TemplateResponse(
         request=request,
         name="admin/backups.html",
@@ -936,6 +1025,7 @@ def admin_backup_config_form(request: Request, db: Session = Depends(get_db)):
             "types_by_filename": {},
             "config_form": eff,
             "config_row": row,
+            "external_config_row": external_row,
             "success": request.query_params.get("success"),
             "error": request.query_params.get("error"),
             "info": None,
@@ -1179,6 +1269,8 @@ def admin_backup_config_save(
     retention_weekly_weeks: int = Form(12),
     retention_monthly_months: int = Form(12),
     keep_pre_restore: int = Form(0),
+    externo_enabled: Optional[str] = Form(None),  # checkbox 045: ausente = false
+    externo_dest_path: str = Form(""),
 ):
     """Salva a configuração (021): valida no backend, persiste (commit único),
     audita com before/after por campo e confirma — fluxo §17 do briefing."""
@@ -1228,6 +1320,19 @@ def admin_backup_config_save(
             after={k: v["depois"] for k, v in changed.items()},
             description="Alteração da configuração de backup (tela).",
         )
+
+    # FEATURE 045 (contract §2): o mesmo formulário persiste o singleton do
+    # destino externo quando presente (campos externo_enabled/externo_dest_path).
+    from app.services import external_backup_service
+
+    externo_enabled = externo_enabled is not None
+    external_backup_service.save_external_config(
+        db,
+        enabled=externo_enabled,
+        dest_path=externo_dest_path,
+        updated_by=getattr(actor, "username", None),
+    )
+
     return RedirectResponse(
         # 022: sucesso também volta para a página principal (modal nasce fechado).
         url=f"/admin/backups?success={_quote('Configuração salva.')}",

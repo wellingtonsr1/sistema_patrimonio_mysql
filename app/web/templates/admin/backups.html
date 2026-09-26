@@ -212,6 +212,28 @@
                         <input type="number" min="1" class="form-control form-control-sm" id="cfg-ret-monthly" name="retention_monthly_months" value="{{ config_form.retention_monthly_months }}" required>
                     </div>
                     </div>
+
+                    <!-- FEATURE 045: fieldset "Backup externo" dentro do formulário existente -->
+                    <fieldset class="border rounded p-2 mt-3">
+                        <legend class="small fw-semibold mb-1 px-1" style="width:auto;">Backup externo</legend>
+                        <div class="row g-3">
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="cfg-externo-enabled" name="externo_enabled" {% if external_config_row and external_config_row.enabled %}checked{% endif %}>
+                                <label class="form-check-label" for="cfg-externo-enabled">Cópia externa ativada (após cada backup local válido)</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-lg-4">
+                            <label class="form-label small mb-1">Tipo de destino</label>
+                            <input type="text" class="form-control form-control-sm" value="Pasta de rede/NAS" disabled>
+                            <div class="form-text small">Pasta já montada no servidor (sem credenciais no sistema).</div>
+                        </div>
+                        <div class="col-sm-6 col-lg-8">
+                            <label class="form-label small mb-1" for="cfg-externo-dest">Destino (caminho montado)</label>
+                            <input type="text" class="form-control form-control-sm font-monospace" id="cfg-externo-dest" name="externo_dest_path" placeholder="/mnt/backup-sispatrimonio" value="{{ external_config_row.dest_path if external_config_row and external_config_row.dest_path else '' }}">
+                        </div>
+                        </div>
+                    </fieldset>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -224,6 +246,38 @@
     </div>
 </div>
 {% endif %}
+
+<!-- FEATURE 045: card de status do destino externo -->
+<div class="card p-3 mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <h6 class="fw-semibold mb-0"><i class="bi bi-hdd-network me-1"></i>Destino externo</h6>
+        {% if external_config and external_config.enabled %}
+        <span class="badge bg-success-subtle text-success">Ativado</span>
+        {% else %}
+        <span class="badge bg-secondary-subtle text-secondary">Desativado</span>
+        {% endif %}
+    </div>
+    <dl class="row mb-0">
+        <dt class="col-sm-4 col-lg-2 small">Destino</dt>
+        <dd class="col-sm-8 col-lg-4 small font-monospace mb-1">{{ external_config.dest_path if external_config and external_config.dest_path else '—' }}</dd>
+        <dt class="col-sm-4 col-lg-2 small">Última cópia/tentativa</dt>
+        <dd class="col-sm-8 col-lg-4 small mb-1">
+            {% if last_external %}{{ (last_external.copied_at | localtime).strftime('%d/%m/%Y %H:%M:%S') }}{% else %}<span class="text-muted">Nenhuma ainda</span>{% endif %}
+        </dd>
+        <dt class="col-sm-4 col-lg-2 small">Último resultado</dt>
+        <dd class="col-sm-8 col-lg-10 small mb-0">
+            {% if last_external %}
+                {% if last_external.status == 'SUCCESS' %}
+                <span class="badge bg-success-subtle text-success">SUCESSO</span>
+                {% else %}
+                <span class="badge bg-danger-subtle text-danger" title="{{ last_external.error_description }}">FALHA</span>
+                {% endif %}
+                {% if last_external.error_description %}<span class="text-muted">— {{ last_external.error_description }}</span>{% endif %}
+                <span class="text-muted">({{ last_external.backup_type | lower }})</span>
+            {% else %}<span class="text-muted">Nenhuma cópia/tentativa registrada.</span>{% endif %}
+        </dd>
+    </dl>
+</div>
 
 <!-- Gerar -->
 <div class="card p-3 mb-4">
@@ -258,6 +312,7 @@
                     <th>Arquivo</th>
                     <th>Tipo</th>
                     <th>Data/Hora</th>
+                    <th class="text-center">Externo</th>
                     <th class="text-end">Tamanho</th>
                     <th class="text-center">Integridade</th>
                     <th>SHA-256</th>
@@ -281,6 +336,16 @@
                         {% endif %}
                     </td>
                     <td class="small">{{ (b.timestamp | localtime).strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                    {% set b_ext = external_by_filename.get(b.filename) if external_by_filename else none %}
+                    <td class="text-center">
+                        {% if b_ext and b_ext.status == 'SUCCESS' %}
+                        <span class="badge bg-success-subtle text-success" title="Cópia externa validada ({{ b_ext.backup_type | lower }})">✓</span>
+                        {% elif b_ext %}
+                        <span class="badge bg-danger-subtle text-danger" title="{{ b_ext.error_description }}">✗</span>
+                        {% else %}
+                        <span class="text-muted" title="Sem cópia externa">—</span>
+                        {% endif %}
+                    </td>
                     <td class="text-end small">{{ (b.size_bytes / 1024) | round(1) }} KB</td>
                     {% if b.integrity == 'OK' %}
                     <td class="text-center"><span class="badge bg-success-subtle text-success" title="Arquivo legível e verificado">OK</span></td>
@@ -304,7 +369,7 @@
                 {% else %}
                 {# 028 US3: estado vazio — em manutenção a listagem é indisponível (modo degradado) #}
                 <tr>
-                    <td colspan="7" class="text-center text-muted small py-3">
+                    <td colspan="8" class="text-center text-muted small py-3">
                         {% if listing_unavailable %}Listagem indisponível durante a restauração — acompanhe o ciclo no indicador acima.{% else %}Nenhum backup encontrado.{% endif %}
                     </td>
                 </tr>
