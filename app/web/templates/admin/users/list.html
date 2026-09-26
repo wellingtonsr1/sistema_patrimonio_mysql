@@ -3,6 +3,27 @@
 {% block title %}Usuários | SisPatrimônio Pro{% endblock %}
 
 {% block content %}
+<style>
+    /* Feature 043: larguras proporcionais e linha garantida na tabela de usuários (escopado).
+       Layout fixo + colgroup com TODAS as colunas em px, calibradas para a fonte real do app
+       (Plus Jakarta Sans, ~20–30% mais larga que fontes de medição fallback). Objetivo: valores
+       em uma única linha — corte controlado por ellipsis + tooltip (dado completo acessível);
+       abaixo da largura mínima, rolagem confinada ao contêiner da tabela. */
+    .usr-lista-table { table-layout: fixed; width: 100%; min-width: 1330px; }
+    .usr-lista-table .c1 { width: 150px; }
+    .usr-lista-table .c2 { width: 200px; }
+    .usr-lista-table .c3 { width: 120px; }
+    .usr-lista-table .c4 { width: 150px; }
+    .usr-lista-table .c5 { width: 90px; }
+    .usr-lista-table .c6 { width: 150px; }
+    .usr-lista-table .c7 { width: 70px; }
+    .usr-ellip { display: inline-block; max-width: 100%; white-space: nowrap;
+                 overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+    /* Badges desta tabela podem quebrar ENTRE PALAVRAS quando a coluna for estreita:
+       o padrão Bootstrap (.badge) é nowrap e transbordaria a célula fixa. */
+    .usr-lista-table .badge { white-space: normal; }
+</style>
+
 <div class="page-header">
     <div>
         <h3 class="page-header-title">Usuários do Sistema</h3>
@@ -47,7 +68,10 @@
 
     {% if users %}
     <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table align-middle usr-lista-table">
+            <colgroup>
+                <col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"><col class="c6"><col class="c7">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Usuário</th>
@@ -64,14 +88,14 @@
                 <tr>
                     <td>
                         <div class="fw-semibold" style="color:var(--c-text);">
-                            <i class="bi bi-person-circle text-muted me-1"></i>{{ u.username }}
+                            <i class="bi bi-person-circle text-muted me-1"></i><span class="usr-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ u.username }}">{{ u.username }}</span>
                             {% if u.is_admin %}<span class="badge badge-soft-primary ms-1" style="font-size:.62rem;">ADMIN</span>{% endif %}
                         </div>
                         {% if u.full_name %}
-                        <div class="text-muted" style="font-size:.74rem;">{{ u.full_name }}</div>
+                        <div class="text-muted" style="font-size:.74rem;"><span class="usr-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ u.full_name }}">{{ u.full_name }}</span></div>
                         {% endif %}
                     </td>
-                    <td class="small text-muted">{{ u.email or '-' }}</td>
+                    <td class="small text-muted"><span class="usr-ellip" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ u.email or '-' }}">{{ u.email or '-' }}</span></td>
                     <td>
                         {% if u.auth_provider == 'ad' %}
                         <span class="badge badge-soft-primary" style="font-size:.66rem;"><i class="bi bi-hdd-network me-1"></i>Active Directory</span>
