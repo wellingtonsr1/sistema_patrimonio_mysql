@@ -283,10 +283,10 @@ def main():
     else:
         other_body = ""
 
-    spans_ellip = re.findall(r"<span[^>]*dash-ellip[^>]*>", measured_body)
-    n_title = sum(1 for s in spans_ellip if "title=" in s)
+    spans_full = re.findall(r"<span[^>]*dash-full[^>]*>", measured_body)
+    n_ellip = len(re.findall(r"dash-ellip", measured_body))
     lines = [f"# validação local 046 — medições WeasyPrint (fase {PHASE})", "",
-             f"- spans dash-ellip: {len(spans_ellip)} · com tooltip (title): {n_title}", ""]
+             f"- spans dash-full: {len(spans_full)} · reticências remanescentes (dash-ellip): {n_ellip}", ""]
     for vp in widths:
         for dark in (False, True):
             html = build_html(inline_style + measured_body, vp, dark)

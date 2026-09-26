@@ -52,9 +52,21 @@ Conjunto **único** em px (soma 1370px → `min-width: 1370px`), sem media query
 - **Zoom 80%–200%** (1800px/720px): ✓ colunas px mantêm a distribuição por construção; nenhuma fonte reduzida; page = viewport em todos os cenários (SC-004: zero overflow de página).
 - **Temas claro E escuro**: ✓ medições idênticas entre temas em todas as larguras (R8).
 
-## 6. Ampliação — tabelas de inconsistências ("Equipamentos sem localização" e "Equipamentos sem responsável")
+## 6-A. Revisão pós-feedback (data da revisão): SEM reticências — valor completo + rolagem confinada
 
-A pedido do solicitante pós-entrega da 046, o mesmo mecanismo foi aplicado às tabelas de inconsistências do mesmo template (compartilham o mesmo loop `item_list` — a alteração cobre as duas por construção):
+A pedido do solicitante, o mecanismo foi **revisado**: **nenhuma célula exibe reticências** nas três tabelas do dashboard. Novo mecanismo (CSS escopado, 2 regras):
+
+- `.dash-table th/td, .inc-table th/td { white-space: nowrap }` — **valores sempre completos em linha única** (sem `text-overflow`);
+- **Layout automático** (colgroup e `table-layout: fixed` REMOVIDOS): as células expandem pelo conteúdo e a rolagem horizontal fica **confinada ao `table-responsive` de cada card** (mecanismo do projeto);
+- `.tag-badge` escopado com `max-width: none` — neutraliza o corte global (140px) dentro das tabelas do dashboard;
+- spans `.dash-ellip` + tooltips **substituídos** por spans `.dash-full` (marcação neutra para medição, sem corte e sem tooltip — o valor é sempre visível por inteiro);
+- **Comprovação pelo script**: `dash-ellip: 0` (zero reticências); linha única em TODAS as larguras — `trs 7/7/7...` e `inc trs 3/3/3...` inclusive em 375px (no mecanismo anterior, 375px só mantinha linha única via corte); page = viewport em todas as larguras (nenhuma rolagem da PÁGINA — a rolagem fica dentro do card);
+- **Nota de medição (WeasyPrint)**: sem colgroup/fixed, o engine reporta as larguras por `col` como None (não há colunas dimensionadas) — as linhas `inc trs` e a largura da página seguem sendo as provas de linha única e de confinamento.
+- Suíte: **748 passed**.
+
+## 6-B. Ampliação — tabelas de inconsistências ("Equipamentos sem localização" e "Equipamentos sem responsável")
+
+A pedido do solicitante pós-entrega da 046, o mesmo mecanismo foi aplicado às tabelas de inconsistências do mesmo template (compartilham o mesmo loop `item_list` — a alteração cobre as duas por construção). **Histórico**: esta seção descreve a versão com colgroup/ellipsis, substituída pela revisão 6-A (mantida para trilha de decisão):
 
 - **CSS escopado `.inc-table`** no mesmo bloco `<style>`: `table-layout: fixed` + colgroup em **PERCENTUAL** (Tag 24% · Equipamento 44% · Observação 32% — padrão de telas em cards de meia largura, como `assets/list.html`), **sem min-width**: as proporções se mantêm do desktop ao celular sem rolagem horizontal (page = viewport em todas as larguras/temas).
 - **Colgroup real** no template (`inc-tag`/`inc-equip`/`inc-obs`) e spans `.dash-ellip` + tooltip no **Equipamento** e na **Observação** (substituem o `text-truncate` com `max-width:200px` — antes: largura travada em ~200px com corte sem consulta; depois: 44%/32% da largura do card, cortando apenas quando excede, com tooltip).
