@@ -233,6 +233,15 @@
                             <input type="text" class="form-control form-control-sm font-monospace" id="cfg-externo-dest" name="externo_dest_path" placeholder="/mnt/backup-sispatrimonio" value="{{ external_config_row.dest_path if external_config_row and external_config_row.dest_path else '' }}">
                         </div>
                         </div>
+                        <!-- FEATURE 045: teste do destino (§24) — formaction envia o MESMO
+                             formulário para a rota de teste (que lê externo_dest_path e NÃO
+                             salva nada); formnovalidate ignora o required de outros campos -->
+                        <div class="d-flex justify-content-end mt-2">
+                            <button type="submit" formaction="/admin/backups/externo/testar" formnovalidate
+                                    class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-plug me-1"></i>Testar destino
+                            </button>
+                        </div>
                     </fieldset>
                 </div>
                 <div class="modal-footer">

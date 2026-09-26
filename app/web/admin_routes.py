@@ -945,11 +945,14 @@ def admin_backup_externo_testar(
     request: Request,
     db: Session = Depends(get_db),
     dest_path: str = Form(""),
+    externo_dest_path: str = Form(""),  # 045: mesmo form do modal (botão formaction)
 ):
     """Testa o destino informado (§24 — acesso+escrita+leitura+remoção de
     temporário; SEM backup). Auditado como BACKUP_DESTINO_EXTERNO_TESTADO."""
     from app.services.audit_service import ACTION_BACKUP_DESTINO_EXTERNO_TESTADO
     from app.services import external_backup_service
+
+    dest_path = dest_path or externo_dest_path
 
     actor = request.state.user
     ok, message = external_backup_service.test_destination(dest_path)
