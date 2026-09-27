@@ -927,10 +927,12 @@ def list_movements_view(
     request: Request,
     movement_type: Optional[str] = None,
     asset_id: Optional[int] = None,
+    search: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     m_type_enum = MovementType(movement_type) if movement_type and movement_type in [e.value for e in MovementType] else None
-    filters = MovementFilter(movement_type=m_type_enum, asset_id=asset_id)
+    clean_search = search.strip() if search and search.strip() else None
+    filters = MovementFilter(movement_type=m_type_enum, asset_id=asset_id, search=clean_search)
     movements, total = MovementService.get_all_movements(db, filters=filters, limit=200)
 
     return templates.TemplateResponse(
@@ -940,6 +942,7 @@ def list_movements_view(
             "movements": movements,
             "total": total,
             "selected_type": movement_type or "",
+            "search": clean_search or "",
             "movement_types": MovementType,
             "active_tab": "movements"
         }

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional, Tuple, Dict, Any
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 from app.utils.time_utils import now_utc, format_local, local_to_utc
 from app.models.asset import Asset
 from app.models.movement import Movement
@@ -510,6 +510,56 @@ class MovementService:
                 query = query.filter(Movement.timestamp >= local_to_utc(filters.start_date))
             if filters.end_date:
                 query = query.filter(Movement.timestamp <= local_to_utc(filters.end_date))
+            if filters.search and filters.search.strip():
+                clean_term = filters.search.strip()
+                search_filter = f"%{clean_term}%"
+                term_lower = clean_term.lower()
+
+                # Identifica correspondências de tipo de movimentação pelo rótulo ou valor técnico
+                matching_types = [
+                    mt for mt in MovementType
+                    if term_lower in mt.value.lower() or term_lower in mt.label.lower()
+                ]
+
+                conditions = [
+                    # Tombamento e nome/descrição do equipamento
+                    Movement.asset.has(
+                        or_(
+                            Asset.tag.ilike(search_filter),
+                            Asset.name.ilike(search_filter)
+                        )
+                    ),
+                    # Snapshots de local de origem e destino
+                    Movement.origin_location_name.ilike(search_filter),
+                    Movement.destination_location_name.ilike(search_filter),
+                    # Snapshots de colaborador de origem e destino
+                    Movement.origin_custodian_name.ilike(search_filter),
+                    Movement.destination_custodian_name.ilike(search_filter),
+                    # Colaborador relacionado (nome e matrícula)
+                    Movement.origin_custodian.has(
+                        or_(
+                            Custodian.name.ilike(search_filter),
+                            Custodian.registration_code.ilike(search_filter)
+                        )
+                    ),
+                    Movement.destination_custodian.has(
+                        or_(
+                            Custodian.name.ilike(search_filter),
+                            Custodian.registration_code.ilike(search_filter)
+                        )
+                    ),
+                    # Localização relacionada (nome)
+                    Movement.origin_location.has(Location.name.ilike(search_filter)),
+                    Movement.destination_location.has(Location.name.ilike(search_filter)),
+                    # Operador e Termo
+                    Movement.operator_name.ilike(search_filter),
+                    Movement.term_code.ilike(search_filter),
+                ]
+
+                if matching_types:
+                    conditions.append(Movement.movement_type.in_(matching_types))
+
+                query = query.filter(or_(*conditions))
 
         total = query.count()
         items = query.order_by(desc(Movement.timestamp)).offset(skip).limit(limit).all()

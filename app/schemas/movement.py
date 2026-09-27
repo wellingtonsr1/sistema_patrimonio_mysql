@@ -59,3 +59,4 @@ class MovementFilter(BaseModel):
     location_id: Optional[int] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    search: Optional[str] = None

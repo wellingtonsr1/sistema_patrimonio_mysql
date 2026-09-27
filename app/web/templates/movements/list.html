@@ -53,8 +53,15 @@
 
 <!-- Filters -->
 <div class="card p-3 mb-4">
-    <form method="get" action="/movements" class="row g-3">
-        <div class="col-12 col-md-6">
+    <form method="get" action="/movements" class="row g-3 align-items-end">
+        <div class="col-12 col-md-6 col-lg-5">
+            <label class="form-label small fw-semibold">Pesquisar</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Pesquisar por tombamento, equipamento, colaborador, local, termo..." value="{{ search }}">
+            </div>
+        </div>
+        <div class="col-12 col-md-4 col-lg-4">
             <label class="form-label small fw-semibold">Tipo de Movimentação</label>
             <select name="movement_type" class="form-select">
                 <option value="">Todos os Tipos</option>
@@ -63,7 +70,7 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="col-12 col-md-6 d-flex align-items-end gap-2">
+        <div class="col-12 col-md-2 col-lg-3 d-flex gap-2">
             <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i> Filtrar</button>
             <a href="/movements" class="btn btn-ghost">Limpar</a>
         </div>
@@ -150,8 +157,16 @@
     {% else %}
     <div class="empty-state">
         <i class="bi bi-clock-history empty-state-icon"></i>
+        {% if search %}
+        <div class="empty-state-title">Nenhuma movimentação encontrada para a pesquisa informada</div>
+        <div class="empty-state-text">Verifique o termo digitado ou limpe a pesquisa para visualizar os demais registros.</div>
+        <a href="/movements{% if selected_type %}?movement_type={{ selected_type }}{% endif %}" class="btn btn-outline-primary btn-sm mt-3">
+            <i class="bi bi-x-circle me-1"></i> Limpar Pesquisa
+        </a>
+        {% else %}
         <div class="empty-state-title">Nenhuma movimentação encontrada</div>
         <div class="empty-state-text">Ajuste os filtros ou registre uma nova movimentação.</div>
+        {% endif %}
     </div>
     {% endif %}
 </div>
