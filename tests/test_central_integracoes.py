@@ -449,6 +449,50 @@ class TestRunTest:
         resp = client.post("/admin/integracoes/glpi/testar", follow_redirects=False)
         assert resp.status_code == 404
 
+    def test_ad_testar_executa_e_redireciona_com_resultado(self, client, db, admin_user, monkeypatch):
+        """Correção pós-homologação: o botão "Testar conexão" do AD na Central
+        apenas redirecionava à tela AD SEM executar o teste (POST não sobrevive
+        a redirect). Agora executa (bind somente leitura), audita, registra no
+        histórico unificado e redireciona à tela AD com o resultado."""
+        _grant(db, admin_user, "integracoes.visualizar")
+        _grant(db, admin_user, "integracoes.testar")
+        _login(client, db, admin_user)
+
+        chamadas = []
+        def _fake_test_connection(settings):
+            chamadas.append(settings)
+            return {"ok": True, "message": "LDAP conectado (RootDSE lida).", "server_info": "x"}
+        monkeypatch.setattr("app.services.ad_ldap.test_connection", _fake_test_connection)
+
+        resp = client.post("/admin/integracoes/ad/testar", follow_redirects=False)
+        assert resp.status_code == 303
+        assert "/admin/ad" in resp.headers["location"]
+        assert "success=" in resp.headers["location"]
+        import urllib.parse as _up
+        assert "Conexão OK" in _up.unquote(resp.headers["location"])
+        # Teste executado exatamente 1 vez
+        assert len(chamadas) == 1
+        # Histórico unificado gravado
+        rows = db.query(IntegrationExecution).filter_by(integration_key="ad", operation="CONNECTION_TEST").all()
+        assert len(rows) == 1
+        assert rows[0].result == RESULT_SUCCESS
+
+    def test_ad_testar_falha_registra_e_avisa(self, client, db, admin_user, monkeypatch):
+        _grant(db, admin_user, "integracoes.visualizar")
+        _grant(db, admin_user, "integracoes.testar")
+        _login(client, db, admin_user)
+
+        monkeypatch.setattr(
+            "app.services.ad_ldap.test_connection",
+            lambda settings: {"ok": False, "message": "Host não encontrado.", "server_info": ""},
+        )
+        resp = client.post("/admin/integracoes/ad/testar", follow_redirects=False)
+        assert resp.status_code == 303
+        assert "error=" in resp.headers["location"]
+        rows = db.query(IntegrationExecution).filter_by(integration_key="ad", operation="CONNECTION_TEST").all()
+        assert len(rows) == 1
+        assert rows[0].result == RESULT_FAILURE
+
     def test_auditoria_do_teste(self, db, monkeypatch, admin_user):
         from app.services.audit_service import get_audit_logs
 

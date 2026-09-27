@@ -1173,14 +1173,44 @@ def admin_integracoes_historico(request: Request, key: str, db: Session = Depend
 def admin_integracoes_testar(request: Request, key: str, db: Session = Depends(get_db)):
     """Teste de conexão seguro e não destrutivo (FR-011/D8).
 
-    - ad → conduz ao teste existente da tela AD (guarda vigente — P-3);
+    - ad → EXECUTA o teste (bind LDAP somente leitura) e redireciona à tela
+      AD com o resultado (correção pós-homologação: antes apenas redirecionava
+      sem testar — POST não sobrevive a redirect); auditoria + histórico
+      unificado mantidos (mesmo caminho do botão da tela AD);
     - glpi → 404 amigável (não configurada, sem teste);
     - email/onedoc → run_test (email: check_connection sem envio; onedoc: interno).
     """
     from app.services import integration_center_service as ics
 
     if key == "ad":
-        return RedirectResponse(url="/admin/ad", status_code=303)
+        actor = request.state.user
+        settings = ad_service._effective_settings(db)
+        result = ad_ldap.test_connection(settings)
+        write_audit(
+            db,
+            user=actor,
+            action=ACTION_AD_CONNECTION_TESTED,
+            module="Integração AD",
+            resource="ADSettings",
+            resource_id=settings.id,
+            ip_address=_client_ip(request),
+            result="SUCCESS" if result.get("ok") else "FAILURE",
+            description=f"Teste de conexão AD ({settings.server}:{settings.port}): {result.get('message', '')}",
+        )
+        # Feature 032 — histórico unificado (best-effort, mesmo caminho da tela AD)
+        ics.record_execution(
+            db,
+            "ad",
+            "CONNECTION_TEST",
+            "SUCCESS" if result.get("ok") else "FAILURE",
+            user=actor,
+            detail=None if result.get("ok") else result.get("message"),
+        )
+        if result.get("ok"):
+            msg = _quote(f"Conexão OK: {result.get('message')}")
+            return RedirectResponse(url=f"/admin/ad?success={msg}", status_code=303)
+        msg = _quote(f"Falha: {result.get('message')}")
+        return RedirectResponse(url=f"/admin/ad?error={msg}", status_code=303)
     if ics.get_integration(key) is None or not ics.get_integration(key)["supports_test"]:
         raise HTTPException(status_code=404, detail="Integração não encontrada")
 
