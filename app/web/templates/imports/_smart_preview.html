@@ -99,12 +99,20 @@
                         {% if smart.needs_resolution %}
                         <td>
                             {% if r.status == 'NAO_ENCONTRADO' %}
+                            {% set valor_csv = r.resolved_values.get('custodiante', '') %}
                             <select class="form-select form-select-sm" name="resolution_{{ r.row_num }}"
                                     form="form-confirmar-importacao">
                                 <option value="sem_custodia" selected>Importar sem custódia (aviso)</option>
                                 <option value="skip">Pular linha</option>
-                                <option value="assign:{{ r.resolved_values.get('custodiante', '') }}">Atribuir a… (informe o colaborador exato)</option>
+                                {% if custodians_for_assign %}
+                                <optgroup label="Atribuir a…">
+                                    {% for c in custodians_for_assign %}
+                                    <option value="assign:{{ c.id }}">{{ c.name }}{% if c.registration_code %} ({{ c.registration_code }}){% endif %}</option>
+                                    {% endfor %}
+                                </optgroup>
+                                {% endif %}
                             </select>
+                            {% if valor_csv %}<div class="small text-muted mt-1">CSV: “{{ valor_csv }}”</div>{% endif %}
                             {% else %}—{% endif %}
                         </td>
                         {% endif %}

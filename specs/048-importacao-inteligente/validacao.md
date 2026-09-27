@@ -9,6 +9,7 @@
 | Baseline (pós-047, T001) | **775 passed** |
 | Após a feature (T018) | **815 passed** (775 + 40 novos), 0 falhas |
 | Correção do fluxo real de UI (pós-homologação) | **817 passed** (775 + 42 novos), 0 falhas |
+| Dropdown "Atribuir a…" (pós-homologação) | **818 passed** (775 + 43 novos), 0 falhas |
 
 - Suíte executada: `.venv/bin/python -m pytest tests/ -q` → `815 passed, 3 warnings` (~85 s).
 - **R9/SC-007**: todos os testes existentes dos importadores passam **sem alteração de regras**
@@ -91,12 +92,19 @@ extensão não-CSV, consistência tabela↔parser.
    novo). Dois testes de regressão do fluxo real foram adicionados (submit exatamente como o
    navegador envia): `test_fluxo_real_do_formulario_mapeamento` e
    `test_fluxo_real_resolucao_por_linha_no_confirm`.
+6. **Dropdown "Atribuir a…" (correção pós-homologação)**: a opção original era um placeholder
+   sem ação ("informe o colaborador exato") cujo valor apontava para nome e não id — a linha
+   seria descartada. Agora cada linha NAO_ENCONTRADO recebe um `<optgroup>` com os colaboradores
+   ativos do cadastro (nome + matrícula, valor `assign:<id>`); o `apply_resolutions` resolve por
+   id e aceita fallback defensivo por matrícula/nome exato via `_resolver_custodiante` (nunca por
+   aproximação); a matrícula escolhida é o valor repassado à gravação (identificador único).
+   Teste: `test_preview_renderiza_dropdown_atribuir_a`.
 
 ## 5. Limitações
 
-- Atribuição por `assign:<id>` na UI ainda não oferece autocomplete/busca client-side de
-  colaboradores (o select aponta para informe do colaborador; a busca existe como
-  `search_custodian_candidates` para uso próximo). Nenhuma atribuição automática, como exige a spec.
+- ~~Atribuição por `assign:<id>` na UI ainda não oferece busca de colaboradores~~ **Resolvida**:
+  a preview agora lista os colaboradores ativos do cadastro no dropdown "Atribuir a…" (item 6
+  acima).
 - `row_results` cobre os resultados processados pelo `execute_*`; linhas removidas antes da
   gravação (ERRO/IGNORADO/skip) não aparecem no relatório final (aparecem na preview).
 - Validação manual de UI (browser) não executada neste ambiente; a interface é exercitada pelos

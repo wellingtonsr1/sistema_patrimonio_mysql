@@ -550,7 +550,9 @@ def test_responsavel_inexistente_resolucao_interativa(db_session):
     assert len(lote_sem) == 1 and lote_sem[0]["custodiante"] == ""
 
     lote_assign = apply_resolutions(preview["rows"], {row["row_num"]: f"assign:{c.id}"}, db_session)
-    assert lote_assign[0]["custodiante"] == "Colaborador R4"
+    # assign resolve para a MATRÍCULA do colaborador escolhido (identificador
+    # único e determinístico; _resolver_custodiante prioriza matrícula)
+    assert lote_assign[0]["custodiante"] == "MAT-R4"
 
 
 def test_local_inexistente_avisos_e_regras_atuais(db_session):
@@ -917,6 +919,47 @@ def test_fluxo_real_do_formulario_mapeamento(client):
     assert step_analyze.status_code == 200
     assert "Pré-visualização Classificada" in step_analyze.text
     assert "TMB-FORM1" in step_analyze.text
+
+
+def test_preview_renderiza_dropdown_atribuir_a(client):
+    """Regressão da resolução real: cada linha NAO_ENCONTRADO oferece o grupo
+    "Atribuir a…" com opções assign:<id> dos colaboradores ativos do cadastro
+    (nome + matrícula) — e não mais o placeholder sem ação."""
+    from app.models.custodian import Custodian as _C
+    db = db_from_client(client)
+    try:
+        db.add(_C(registration_code="MAT-DROP1", name="Diana Droppable",
+                  email="diana@x.com", role="Tech", department="TI"))
+        db.commit()
+    finally:
+        db.close()
+
+    content = (
+        "tombamento,equipamento,categoria,responsavel\n"
+        "TMB-DROP1,Notebook,notebook,Ninguém Assim\n"
+    )
+    upload = _upload_csv(client, "/assets/import", content)
+    step_analyze = client.post(
+        "/assets/import",
+        data={
+            "step": "analyze",
+            "csv_content": content,
+            "skip_duplicates": "true",
+            "mapping_tombamento": "tombamento",
+            "mapping_equipamento": "equipamento",
+            "mapping_categoria": "categoria",
+            "mapping_responsavel": "custodiante",
+        },
+    )
+    assert "Pré-visualização Classificada" in step_analyze.text
+    assert 'optgroup label="Atribuir a…"' in step_analyze.text
+    diana = db_from_client(client)
+    try:
+        c = diana.query(_C).filter_by(registration_code="MAT-DROP1").first()
+        assert f'assign:{c.id}' in step_analyze.text
+        assert "Diana Droppable (MAT-DROP1)" in step_analyze.text
+    finally:
+        diana.close()
 
 
 def test_fluxo_real_resolucao_por_linha_no_confirm(client):

@@ -579,13 +579,26 @@ def apply_resolutions(rows: List[Dict], resolutions: Dict,
             if action == "sem_custodia":
                 resolved["custodiante"] = ""
             elif isinstance(action, str) and action.startswith("assign:"):
-                custodian_id = action.split(":", 1)[1]
-                custodian = db.query(Custodian).filter(Custodian.id == custodian_id).first()
+                valor = action.split(":", 1)[1].strip()
+                custodian = None
+                try:
+                    custodian = db.query(Custodian).filter(Custodian.id == int(valor)).first()
+                except ValueError:
+                    custodian = None
+                if custodian is None and valor:
+                    # fallback defensivo: resolução exata pelo mecanismo
+                    # existente (matrícula → nome exato) — sem aproximação
+                    custodian = _resolver_custodiante(db, valor)
                 if custodian:
                     # valor do cadastro escolhido — a gravação segue o caminho
-                    # existente (_resolver_custodiante) no execute_import
-                    resolved["custodiante"] = custodian.name
+                    # existente (_resolver_custodiante) no execute_import; a
+                    # matrícula é o identificador único e determinístico
+                    resolved["custodiante"] = (
+                        custodian.registration_code or custodian.name
+                    )
                 else:
+                    # escolha sem correspondência: linha removida (nunca
+                    # atribuir por aproximação)
                     continue
         else:
             action = (resolutions or {}).get(row_num) or (resolutions or {}).get(str(row_num))

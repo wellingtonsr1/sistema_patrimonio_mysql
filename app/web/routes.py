@@ -1552,6 +1552,20 @@ def _render_smart_preview(request: Request, template_name: str, kind: str,
     analysis = analyze_columns(content, kind)
     rows = _apply_mapping_to_rows(content, mapping, kind)
     preview = classify_rows(rows, db, kind)
+
+    # R4: colaboradores ativos para o dropdown "Atribuir a…" das linhas
+    # NAO_ENCONTRADO (pesquisa do cadastro reutilizada; nunca cria)
+    custodians_for_assign = []
+    if preview["needs_resolution"]:
+        from app.models.custodian import Custodian as _Custodian
+
+        custodians_for_assign = (
+            db.query(_Custodian)
+            .filter(_Custodian.is_active == True)  # noqa: E712 — filtro SQLAlchemy
+            .order_by(_Custodian.name.asc())
+            .all()
+        )
+
     return templates.TemplateResponse(
         request=request,
         name=template_name,
@@ -1565,6 +1579,7 @@ def _render_smart_preview(request: Request, template_name: str, kind: str,
             "filename": filename,
             "skip_duplicates": skip_duplicates,
             "field_labels": IMPORT_FIELD_LABELS[kind],
+            "custodians_for_assign": custodians_for_assign,
             "form_action": form_action,
             "back_url": back_url,
         }
