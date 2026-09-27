@@ -346,40 +346,61 @@ def _classify_asset_row(row: dict, row_num: int, db: Session,
                 "identify": _identify(row, "assets"), "internal_dup_of": None}
 
     key = _natural_key(row, "assets")
+    internal_dup_of = None
     if key in seen:
-        return {"row_num": row_num, "status": "DUPLICADO",
-                "problems": [f"Tombamento repetido no próprio arquivo (linha {seen[key]})"],
-                "identify": _identify(row, "assets"), "internal_dup_of": seen[key]}
-    seen[key] = row_num
+        internal_dup_of = seen[key]  # registrado como problema; status decidido adiante
+    else:
+        seen[key] = row_num
 
     tag = (row.get("tombamento") or "").strip().upper()
+    loc_raw = (row.get("localizacao") or "").strip()
+    cust_raw = (row.get("custodiante") or "").strip()
+
+    # Regra atual preservada (F6/G): local informado e inexistente rejeita a
+    # linha (mesmo comportamento do execute_import)
+    if loc_raw and LocationService.get_by_name(db, loc_raw) is None:
+        return {"row_num": row_num, "status": "ERRO",
+                "problems": [f"Local '{loc_raw}' não encontrado no cadastro de locais"],
+                "identify": tag, "internal_dup_of": None}
+
+    # Responsável informado e inexistente → NAO_ENCONTRADO, verificado em
+    # TODAS as linhas (inclusive duplicadas — a reimportação com
+    # skip_duplicates desmarcado atualiza o bem e também tenta aplicar a
+    # custódia; esconder o problema DUPLICADO levaria a erro só na execução)
+    problems: List[str] = []
+    custodian_missing = bool(cust_raw) and _resolver_custodiante(db, cust_raw) is None
+    if custodian_missing:
+        problems.append(f"Responsável não encontrado: {cust_raw}")
+
+    # DUPLICADO (banco): tombamento já cadastrado (frequentemente o caso da
+    # reimportação para atualização — comportamento 029 com skip desmarcado)
+    duplicates: List[str] = []
     existing = db.query(Asset).filter(Asset.tag == tag).first()
     if existing:
-        return {"row_num": row_num, "status": "DUPLICADO",
-                "problems": [f"Tombamento já existe no cadastro: {existing.tag}"],
-                "identify": tag, "internal_dup_of": None}
+        duplicates.append(f"Tombamento já existe no cadastro: {existing.tag}")
 
     serial = (row.get("serie") or "").strip()
     if serial:
         serial_owner = db.query(Asset).filter(Asset.serial_number == serial).first()
         if serial_owner:
-            return {"row_num": row_num, "status": "DUPLICADO",
-                    "problems": [
-                        f"Número de série já cadastrado para o tombamento '{serial_owner.tag}'"],
-                    "identify": tag, "internal_dup_of": None}
+            duplicates.append(
+                f"Número de série já cadastrado para o tombamento '{serial_owner.tag}'"
+            )
 
-    loc_raw = (row.get("localizacao") or "").strip()
-    if loc_raw and LocationService.get_by_name(db, loc_raw) is None:
-        # Regra atual preservada (F6/G): local inexistente rejeita a linha
-        return {"row_num": row_num, "status": "ERRO",
-                "problems": [f"Local '{loc_raw}' não encontrado no cadastro de locais"],
-                "identify": tag, "internal_dup_of": None}
+    # Prioridade do status (o mais grave vence): NAO_ENCONTRADO > DUPLICADO >
+    # AVISO > VALIDO — todos os motivos ficam visíveis na tabela (SC-009);
+    # duplicidade interna ao arquivo também entra como problema visível
+    if internal_dup_of is not None:
+        duplicates.append(f"Tombamento repetido no próprio arquivo (linha {internal_dup_of})")
 
-    cust_raw = (row.get("custodiante") or "").strip()
-    if cust_raw and _resolver_custodiante(db, cust_raw) is None:
+    if custodian_missing:
         return {"row_num": row_num, "status": "NAO_ENCONTRADO",
-                "problems": [f"Responsável não encontrado: {cust_raw}"],
-                "identify": tag, "internal_dup_of": None}
+                "problems": problems + duplicates,
+                "identify": tag, "internal_dup_of": internal_dup_of}
+    if duplicates:
+        return {"row_num": row_num, "status": "DUPLICADO",
+                "problems": duplicates,
+                "identify": tag, "internal_dup_of": internal_dup_of}
 
     if not loc_raw:
         problems.append("Local não informado")  # AVISO informacional (F3) — sem valor fabricado (SC-004)

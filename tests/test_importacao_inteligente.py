@@ -555,6 +555,33 @@ def test_responsavel_inexistente_resolucao_interativa(db_session):
     assert lote_assign[0]["custodiante"] == "MAT-R4"
 
 
+def test_duplicado_com_responsavel_inexistente_revela_ambos(db_session):
+    """Regressão do caso real (homologação): linha com tombamento JÁ CADASTRADO
+    e responsável INEXISTENTE era classificada só como DUPLICADO — o problema do
+    responsável só estourava na execução ('Linha 20: colaborador ... não
+    encontrado'). Agora a preview mostra NAO_ENCONTRADO com ambos os motivos e
+    oferece a resolução interativa também nessas linhas."""
+    from app.models.asset import Asset
+
+    db_session.add(Asset(tag="TMB-DUPCUST", name="Existente", category="OTHER"))
+    db_session.commit()
+
+    content = (
+        "tombamento,equipamento,categoria,responsavel\n"
+        "TMB-DUPCUST,Notebook Atualizado,notebook,Fabíola Inexistente\n"
+    )
+    rows = _apply(content, "assets")
+    preview = classify_rows(rows, db_session, "assets")
+    row = preview["rows"][0]
+
+    # A linha NÃO passa como DUPLICADO 'limpo': o problema do responsável fica
+    # visível ANTES da gravação (SC-005/SC-009)
+    assert row["status"] == "NAO_ENCONTRADO"
+    assert any("Responsável não encontrado: Fabíola Inexistente" in p for p in row["problems"])
+    assert any("Tombamento já existe" in p for p in row["problems"])
+    assert preview["needs_resolution"] == [row["row_num"]]
+
+
 def test_local_inexistente_avisos_e_regras_atuais(db_session):
     """Teste G (F6): local inexistente em equipamentos → regra atual preservada
     (linha rejeitada com mensagem clara); sem local → AVISO informacional."""

@@ -10,6 +10,7 @@
 | Após a feature (T018) | **815 passed** (775 + 40 novos), 0 falhas |
 | Correção do fluxo real de UI (pós-homologação) | **817 passed** (775 + 42 novos), 0 falhas |
 | Dropdown "Atribuir a…" (pós-homologação) | **818 passed** (775 + 43 novos), 0 falhas |
+| Duplicado + responsável inexistente (pós-homologação) | **819 passed** (775 + 44 novos), 0 falhas |
 
 - Suíte executada: `.venv/bin/python -m pytest tests/ -q` → `815 passed, 3 warnings` (~85 s).
 - **R9/SC-007**: todos os testes existentes dos importadores passam **sem alteração de regras**
@@ -99,6 +100,15 @@ extensão não-CSV, consistência tabela↔parser.
    id e aceita fallback defensivo por matrícula/nome exato via `_resolver_custodiante` (nunca por
    aproximação); a matrícula escolhida é o valor repassado à gravação (identificador único).
    Teste: `test_preview_renderiza_dropdown_atribuir_a`.
+7. **Duplicado com responsável inexistente (correção pós-homologação)**: a classificação
+   retornava cedo ao encontrar tombamento já cadastrado e nunca verificava o responsável —
+   linhas duplicadas com responsável inexistente passavam como "DUPLICADO" e o problema só
+   estourava na execução ("Linha 20: colaborador ... não encontrado"), quando o usuário optou
+   por reimportação com atualização (skip desmarcado). Agora o responsável é verificado em
+   TODAS as linhas; a prioridade de status é NAO_ENCONTRADO > DUPLICADO > AVISO > VALIDO, com
+   todos os motivos visíveis (também na duplicidade interna ao arquivo). A resolução
+   interativa (atribuir/sem custódia/pular) passa a ser oferecida nessas linhas. Teste:
+   `test_duplicado_com_responsavel_inexistente_revela_ambos`.
 
 ## 5. Limitações
 
