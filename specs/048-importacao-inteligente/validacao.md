@@ -13,6 +13,7 @@
 | Duplicado + responsável inexistente (pós-homologação) | **819 passed** (775 + 44 novos), 0 falhas |
 | Orientação das 3 opções na preview + ajuda (pós-homologação) | **820 passed** (775 + 45 novos), 0 falhas |
 | Filtros da preview corrigidos (pós-homologação) | **821 passed** (775 + 46 novos), 0 falhas |
+| Filtro Erros separado de Não encontrados (pós-homologação) | suíte mantida verde (46 novos) |
 
 - Suíte executada: `.venv/bin/python -m pytest tests/ -q` → `815 passed, 3 warnings` (~85 s).
 - **R9/SC-007**: todos os testes existentes dos importadores passam **sem alteração de regras**
@@ -126,6 +127,10 @@ extensão não-CSV, consistência tabela↔parser.
    cliente — defesa em profundidade), aplicando as resoluções escolhidas. Testes:
    `test_filtros_da_preview_reenviam_post_e_nao_vao_para_upload` e ajustes dos testes US3 ao
    fluxo real do formulário.
+10. **Filtro Erros separado de Não encontrados (ajuste pós-homologação)**: o filtro "Erros"
+    combinava ERRO + NAO_ENCONTRADO (igualando-o ao filtro "Não encontrados" quando não havia
+    ERRO de verdade). Cada botão agora mostra apenas a própria situação e o resumo passou a ter
+    cartões separados (Erros / Não encontrados), em grade de 7 cartões.
 
 ## 5. Limitações
 

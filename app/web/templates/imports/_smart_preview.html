@@ -15,28 +15,32 @@
     <div class="card-body">
         {% set s = smart.summary %}
         <!-- Resumo -->
-        <div class="row mb-3">
-            <div class="col-md-2"><div class="border rounded p-2 text-center">
+        <div class="row row-cols-md-4 row-cols-2 g-2 mb-3">
+            <div class="col"><div class="border rounded p-2 text-center">
                 <div class="fs-4 fw-bold text-primary">{{ s.total }}</div>
                 <div class="text-muted small">Total</div>
             </div></div>
-            <div class="col-md-2"><div class="border rounded p-2 text-center">
+            <div class="col"><div class="border rounded p-2 text-center">
                 <div class="fs-4 fw-bold text-success">{{ s.validos }}</div>
                 <div class="text-muted small">Válidos</div>
             </div></div>
-            <div class="col-md-2"><div class="border rounded p-2 text-center">
+            <div class="col"><div class="border rounded p-2 text-center">
                 <div class="fs-4 fw-bold text-warning">{{ s.avisos }}</div>
                 <div class="text-muted small">Com aviso</div>
             </div></div>
-            <div class="col-md-2"><div class="border rounded p-2 text-center">
+            <div class="col"><div class="border rounded p-2 text-center">
                 <div class="fs-4 fw-bold text-secondary">{{ s.duplicados }}</div>
                 <div class="text-muted small">Duplicados</div>
             </div></div>
-            <div class="col-md-2"><div class="border rounded p-2 text-center">
-                <div class="fs-4 fw-bold text-danger">{{ s.erros + s.nao_encontrados }}</div>
-                <div class="text-muted small">Erros / Não encontrados</div>
+            <div class="col"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-danger">{{ s.erros }}</div>
+                <div class="text-muted small">Erros</div>
             </div></div>
-            <div class="col-md-2"><div class="border rounded p-2 text-center">
+            <div class="col"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-info">{{ s.nao_encontrados }}</div>
+                <div class="text-muted small">Não encontrados</div>
+            </div></div>
+            <div class="col"><div class="border rounded p-2 text-center">
                 <div class="fs-4 fw-bold text-muted">{{ s.ignorados }}</div>
                 <div class="text-muted small">Ignorados</div>
             </div></div>
@@ -112,7 +116,7 @@
                     </thead>
                     <tbody>
                         {% for r in smart.rows %}
-                        {% if filtro == 'todos' or filtro == r.status or (filtro == 'ERRO' and r.status == 'NAO_ENCONTRADO') %}
+                        {% if filtro == 'todos' or filtro == r.status %}
                         <tr data-test-status="{{ r.status }}" {% if r.status in ('ERRO', 'NAO_ENCONTRADO') %}class="table-danger"{% elif r.status == 'DUPLICADO' %}class="table-secondary"{% elif r.status == 'AVISO' %}class="table-warning"{% endif %}>
                             <td class="text-muted small">{{ r.row_num }}</td>
                             <td class="fw-semibold"><span class="tag-badge">{{ r.identify }}</span></td>
