@@ -12,6 +12,7 @@
 | Dropdown "Atribuir a…" (pós-homologação) | **818 passed** (775 + 43 novos), 0 falhas |
 | Duplicado + responsável inexistente (pós-homologação) | **819 passed** (775 + 44 novos), 0 falhas |
 | Orientação das 3 opções na preview + ajuda (pós-homologação) | **820 passed** (775 + 45 novos), 0 falhas |
+| Filtros da preview corrigidos (pós-homologação) | **821 passed** (775 + 46 novos), 0 falhas |
 
 - Suíte executada: `.venv/bin/python -m pytest tests/ -q` → `815 passed, 3 warnings` (~85 s).
 - **R9/SC-007**: todos os testes existentes dos importadores passam **sem alteração de regras**
@@ -114,7 +115,17 @@ extensão não-CSV, consistência tabela↔parser.
    diferença entre Importar sem custódia (cadastra o bem sem responsável; alocação depois no
    Fluxo), Pular linha (nada é gravado; corrigir o CSV e reenviar) e Atribuir a… (custódia do
    colaborador escolhido); a Central de Ajuda (artigo "importar-equipamentos") ganhou seção
-   com a mesma explicação. Teste: `test_preview_explica_as_tres_opcoes_de_resolucao`.
+   com a mesma explicação.   Teste: `test_preview_explica_as_tres_opcoes_de_resolucao`.
+9. **Filtros da preview (correção pós-homologação)**: os filtros eram links GET
+   (`?filtro=...`), que caíam na rota GET (formulário de upload) — a preview é resultado de
+   POST e seu estado não existe em GET. Redesenho server-side: um único formulário por fase
+   (csv_content + mapping como estado), filtros como **botões submit** com badge de contagem
+   que reenviam a fase analyze (reclassificação somente leitura — sempre contra o estado atual
+   do banco) e botão Confirmar com `formaction` para o /confirm. O confirm agora **reexecuta a
+   classificação server-side** a partir de csv_content + mapping (nunca confia em payload do
+   cliente — defesa em profundidade), aplicando as resoluções escolhidas. Testes:
+   `test_filtros_da_preview_reenviam_post_e_nao_vao_para_upload` e ajustes dos testes US3 ao
+   fluxo real do formulário.
 
 ## 5. Limitações
 

@@ -62,10 +62,16 @@ def db_from_client(client):
 
 
 def _extract_preview_payload(step_analyze):
-    """Extrai e desserializa o payload classificado do textarea oculto."""
-    import html as _html
-    raw = step_analyze.text.split('name="csv_data" style="display:none;">')[1].split("</textarea>")[0]
-    return json.loads(_html.unescape(raw))
+    """Situações da preview lidas da própria resposta (linha/status nos badges
+    e tabela) — a nova preview não transporta payload JSON do cliente; o
+    confirm reclassifica server-side. Helper mantido para os testes 
+    verificarem as situações renderizadas."""
+    import re as _re
+    statuses = _re.findall(r'data-test-status="([A-Z_]+)"', step_analyze.text)
+    return [
+        {"status": s, "row_num": i + 2}
+        for i, s in enumerate(statuses)
+    ]
 
 
 def _login(client, username, password="senha@1234"):
@@ -645,8 +651,9 @@ def test_classificacao_colaboradores_e_locais(db_session):
 # ============================================================
 
 def _confirmar_smart(client, url_confirm, csv_content, kind, extra=None):
-    """Fluxo completo: upload → mapeamento (padrão) → confirm com payload
-    classificado. Retorna (resposta_do_confirm, payload_da_preview)."""
+    """Fluxo completo: upload → mapeamento (padrão) → confirm pelo desenho real
+    do formulário: o confirm recebe csv_content + mapping e o servidor
+    reclassifica (defesa em profundidade). Retorna (confirm, None)."""
     upload = _upload_csv(client, url_confirm.replace("/confirm", ""), csv_content)
     assert "Mapeamento de Colunas" in upload.text
     analysis = analyze_columns(csv_content, kind)
@@ -663,7 +670,8 @@ def _confirmar_smart(client, url_confirm, csv_content, kind, extra=None):
     assert "Pré-visualização Classificada" in step_analyze.text
 
     data = {
-        "csv_data": step_analyze.text.split('name="csv_data" style="display:none;">')[1].split("</textarea>")[0],
+        "csv_content": csv_content,
+        "mapping": json.dumps(mapping),
         "skip_duplicates": "true",
     }
     data.update(extra or {})
@@ -725,7 +733,6 @@ def test_us3_resolucoes_aplicadas_na_gravacao(client):
     )
 
     import re as _re
-    payload = step_analyze.text.split('name="csv_data" style="display:none;">')[1].split("</textarea>")[0]
     rows_payload = _extract_preview_payload(step_analyze)
     neno = [r for r in rows_payload if r["status"] == "NAO_ENCONTRADO"]
     assert len(neno) == 2
@@ -737,7 +744,8 @@ def test_us3_resolucoes_aplicadas_na_gravacao(client):
     confirm = client.post(
         "/assets/import/confirm",
         data={
-            "csv_data": payload,
+            "csv_content": content,
+            "mapping": json.dumps(mapping),
             "skip_duplicates": "true",
             "resolutions": json.dumps(resolutions),
         },
@@ -789,10 +797,9 @@ def test_us3_duplicados_com_skip_duplicates(client):
         data={"step": "analyze", "csv_content": content, "mapping": json.dumps(mapping),
               "skip_duplicates": "false"},
     )
-    payload = step_analyze.text.split('name="csv_data" style="display:none;">')[1].split("</textarea>")[0]
     confirm3 = client.post(
         "/assets/import/confirm",
-        data={"csv_data": payload, "skip_duplicates": "false"},
+        data={"csv_content": content, "mapping": json.dumps(mapping), "skip_duplicates": "false"},
     )
     assert "Importação Concluída" in confirm3.text
     db = db_from_client(client)
@@ -1052,7 +1059,11 @@ def test_fluxo_real_resolucao_por_linha_no_confirm(client):
     confirm = client.post(
         "/assets/import/confirm",
         data={
-            "csv_data": step_analyze.text.split('name="csv_data" style="display:none;">')[1].split("</textarea>")[0],
+            "csv_content": content,
+            "mapping": json.dumps({
+                "tombamento": "tombamento", "equipamento": "equipamento",
+                "categoria": "categoria", "responsavel": "custodiante",
+            }),
             "skip_duplicates": "true",
             f"resolution_{neno[0]['row_num']}": "sem_custodia",
             f"resolution_{neno[1]['row_num']}": "skip",
@@ -1069,6 +1080,61 @@ def test_fluxo_real_resolucao_por_linha_no_confirm(client):
         assert db.query(_A).filter(_A.tag == "TMB-RES2").first() is None      # skip removeu
     finally:
         db.close()
+
+
+def test_filtros_da_preview_reenviam_post_e_nao_vao_para_upload(client):
+    """Regressão do bug de navegação: os filtros da preview eram links GET
+    (?filtro=...), que caíam na rota GET (formulário de upload). Agora são
+    botões submit do form da fase analyze: clicar 'Avisos' reenvia o POST
+    com csv_content + mapping + filtro e permanece na preview, mostrando
+    apenas as linhas da situação escolhida."""
+    content = (
+        "tombamento,equipamento,categoria\n"
+        "TMB-FLT1,Notebook,notebook\n"      # AVISO (sem local/responsável)
+        "TMB-FLT2,Impressora,\n"            # ERRO (sem categoria)
+    )
+    upload = _upload_csv(client, "/assets/import", content)
+    assert "Mapeamento de Colunas" in upload.text
+
+    # Clique no filtro 'Avisos' — exatamente como o formulário envia
+    filtro_avisos = client.post(
+        "/assets/import",
+        data={
+            "step": "analyze",
+            "csv_content": content,
+            "mapping": json.dumps({
+                "tombamento": "tombamento", "equipamento": "equipamento",
+                "categoria": "categoria",
+            }),
+            "skip_duplicates": "true",
+            "filtro": "AVISO",
+        },
+    )
+    # Permanece na preview (não volta para o formulário de upload)
+    assert "Pré-visualização Classificada" in filtro_avisos.text
+    assert "Envie seu arquivo CSV" not in filtro_avisos.text
+    # A tabela mostra só a linha AVISO (a ERRO fica fora da tabela; o
+    # csv_content embutido no form oculto contém o CSV inteiro — não conta)
+    tabela = filtro_avisos.text.split("<tbody>")[1].split("</tbody>")[0]
+    assert 'data-test-status="AVISO"' in tabela
+    assert 'data-test-status="ERRO"' not in tabela
+    assert "TMB-FLT1" in tabela
+    assert "TMB-FLT2" not in tabela
+
+    # Filtro 'Todos' volta a mostrar ambas
+    filtro_todos = client.post(
+        "/assets/import",
+        data={
+            "step": "analyze", "csv_content": content,
+            "mapping": json.dumps({
+                "tombamento": "tombamento", "equipamento": "equipamento",
+                "categoria": "categoria",
+            }),
+            "skip_duplicates": "true", "filtro": "todos",
+        },
+    )
+    tabela_todos = filtro_todos.text.split("<tbody>")[1].split("</tbody>")[0]
+    assert "TMB-FLT1" in tabela_todos and "TMB-FLT2" in tabela_todos
 
 
 def test_importacao_bloqueada_sem_permissao(db_session, unauth_client):

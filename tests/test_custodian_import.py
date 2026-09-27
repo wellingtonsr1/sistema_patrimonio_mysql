@@ -229,13 +229,13 @@ MAT-6001;Paula Rocha;paula.rocha@empresa.com;Advogada;Jurídico
     assert "Pré-visualização Classificada" in analyze.text
     assert "MAT-6001" in analyze.text or "Paula Rocha" in analyze.text
 
-    # Confirma a importação com o payload classificado da página
-    import html as _html
-    raw_payload = analyze.text.split('name="csv_data" style="display:none;">')[1].split("</textarea>")[0]
+    # Confirma a importação — o confirm recebe csv_content + mapping e o
+    # servidor reclassifica (defesa em profundidade, mesmo desenho do form real)
     confirm = client.post(
         "/custodians/import/confirm",
         data={
-            "csv_data": raw_payload,
+            "csv_content": csv_content,
+            "mapping": json.dumps(mapping),
             "skip_duplicates": "true",
         },
     )
