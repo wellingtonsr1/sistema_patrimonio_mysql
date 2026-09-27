@@ -131,6 +131,14 @@ extensão não-CSV, consistência tabela↔parser.
     combinava ERRO + NAO_ENCONTRADO (igualando-o ao filtro "Não encontrados" quando não havia
     ERRO de verdade). Cada botão agora mostra apenas a própria situação e o resumo passou a ter
     cartões separados (Erros / Não encontrados), em grade de 7 cartões.
+11. **Homologação HTTP real (servidor isolado)**: cenário executado contra uvicorn na porta
+    8001 com SQLite temporário (`scripts/homolog_048_serve.py` — nada toca no banco de
+    produção), via HTTP real (requests), cobrindo: upload → mapeamento → preview com CSV
+    misto (1 VÁLIDO, 2 AVISO, 1 ERRO, 1 NAO_ENCONTRADO, 1 DUPLICADO), cartões do resumo
+    separados e corretos, filtros ERRO/NAO_ENCONTRADO/VALIDO/DUPLICADO mostrando exatamente
+    a própria situação, dropdown "Atribuir a…" com `assign:<id>`, confirmação com resolução
+    aplicada (TMB-H-NE gravado custodiado para Helena), ERRO nunca gravado (TMB-H-ERR
+    ausente), duplicado pulado (TMB-SEED-X/Y únicos) e relatório por linha presente.
 
 ## 5. Limitações
 
