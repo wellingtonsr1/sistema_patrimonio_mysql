@@ -65,3 +65,12 @@ Execuções: `pytest tests/test_central_saude.py tests/test_central_integracoes.
 - Falha de cópia externa antiga (fora de 24h) não entra em `failures_24h`, mas ainda define o status COM_ERRO do card Backup Externo (regra da entrega original, mantida).
 - `total`/`failures` no detalhe dos cards de backup agora refletem os registros de backup (antes sempre 0) — muda a leitura de "Operações realizadas/com erro" na página de detalhe.
 - Validação visual em homologação (recarregar `/admin/integracoes`) pendente de confirmação pelo operador — não executada neste ambiente.
+
+## 6. Commits e estado final da suíte
+
+| Commit | Conteúdo |
+|---|---|
+| `22dffe9` | Feature 047: correções dos cards de backup da Central (service + templates + testes) e este relatório |
+| `a91b7ad` | Feature 019 (efeito colateral desta investigação): estabilização de `test_backup_restore.py` na suíte completa — fixture autouse `_restore_worker_isolation` zera o estado global do worker (slot `RESTORE_IN_PROGRESS`, `maintenance_mode.last_ok/last_message`) antes/depois de cada teste. O worker roda em thread; sem o fixture, um worker vivo durante o `drop_all` do teste seguinte falhava com `DetachedInstanceError` em `AuditLog` e gravava `last_ok=False`, fazendo o teste seguinte ler o resultado alheio (falha intermitente, só na suíte completa — confirmada pré-existente no commit anterior). Zero linhas em código de produção |
+
+Suíte completa final: **833 passed, 3 warnings** — 4 rodadas consecutivas verdes pós-estabilização (≈100 s cada). A 047 não toca código de restore; a instabilidade da 019 foi detectada durante a validação desta feature e tratada em commit separado.
