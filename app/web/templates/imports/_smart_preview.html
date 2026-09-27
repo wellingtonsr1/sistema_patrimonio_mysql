@@ -42,27 +42,37 @@
         </div>
 
         {% if smart.needs_resolution %}
-        <div class="alert alert-info small">
-            <strong><i class="bi bi-person-x me-1"></i>Responsáveis não encontrados:</strong>
-            resolva linha a linha abaixo. Nenhuma atribuição automática será feita.
-            <hr class="my-2">
-            <div class="row">
-                <div class="col-md-4">
-                    <strong>Importar sem custódia (aviso)</strong> — cadastra o equipamento
-                    <strong>sem responsável</strong>: entra no patrimônio com a movimentação de
-                    entrada normal e fica disponível para alocação depois, pelo
-                    Fluxo &amp; Movimentação. Use quando o bem é real e deve ser tombado agora.
-                </div>
-                <div class="col-md-4">
-                    <strong>Pular linha</strong> — <strong>nada é gravado</strong>: o equipamento
-                    não é cadastrado nem entra no Fluxo. Use quando a linha estiver errada ou
-                    você preferir corrigir o CSV e reenviar (a reanálise relê o banco — nada é
-                    duplicado).
-                </div>
-                <div class="col-md-4">
-                    <strong>Atribuir a…</strong> — grava o equipamento <strong>com a custódia</strong>
-                    do colaborador escolhido no cadastro (nome + matrícula), gerando a alocação
-                    no Fluxo. Nenhuma pessoa é atribuída por semelhança de nome.
+        <div class="alert alert-info small py-2 px-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <span>
+                    <i class="bi bi-person-x me-1"></i><strong>Responsáveis não encontrados:</strong>
+                    resolva cada linha abaixo — nenhuma atribuição automática será feita.
+                </span>
+                <a class="btn btn-sm btn-ghost py-0 px-2" data-bs-toggle="collapse"
+                   href="#ajuda-resolucao" role="button" aria-expanded="false" aria-controls="ajuda-resolucao">
+                    <i class="bi bi-question-circle me-1"></i>o que faz cada opção?
+                </a>
+            </div>
+            <div class="collapse" id="ajuda-resolucao">
+                <hr class="my-2">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Importar sem custódia (aviso)</strong> — cadastra o equipamento
+                        <strong>sem responsável</strong>: entra no patrimônio com a movimentação de
+                        entrada normal e fica disponível para alocação depois, pelo
+                        Fluxo &amp; Movimentação. Use quando o bem é real e deve ser tombado agora.
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Pular linha</strong> — <strong>nada é gravado</strong>: o equipamento
+                        não é cadastrado nem entra no Fluxo. Use quando a linha estiver errada ou
+                        você preferir corrigir o CSV e reenviar (a reanálise relê o banco — nada é
+                        duplicado).
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Atribuir a…</strong> — grava o equipamento <strong>com a custódia</strong>
+                        do colaborador escolhido no cadastro (nome + matrícula), gerando a alocação
+                        no Fluxo. Nenhuma pessoa é atribuída por semelhança de nome.
+                    </div>
                 </div>
             </div>
         </div>
