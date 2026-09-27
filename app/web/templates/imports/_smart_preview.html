@@ -1,0 +1,148 @@
+{# Parcial: pré-visualização classificada — Feature 048 (contrato §4).
+   Requerido no contexto: smart (PreviewSmart — data-model §2.3), mapping_json,
+   csv_content, filename, skip_duplicates, field_labels, form_action,
+   back_url. Badges existentes do sistema (P-2). Filtros server-side via
+   querystring ?filtro=. Nada é gravado nesta fase (SC-001). #}
+{% set filtro = filtro or 'todos' %}
+<div class="card mb-4" id="preview-classificada">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">
+            <i class="bi bi-eye text-primary me-2"></i>Pré-visualização Classificada
+        </h5>
+        <span class="badge bg-primary-subtle text-primary">{{ smart.summary.total }} registro(s)</span>
+    </div>
+    <div class="card-body">
+        {% set s = smart.summary %}
+        <!-- Resumo -->
+        <div class="row mb-3">
+            <div class="col-md-2"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-primary">{{ s.total }}</div>
+                <div class="text-muted small">Total</div>
+            </div></div>
+            <div class="col-md-2"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-success">{{ s.validos }}</div>
+                <div class="text-muted small">Válidos</div>
+            </div></div>
+            <div class="col-md-2"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-warning">{{ s.avisos }}</div>
+                <div class="text-muted small">Com aviso</div>
+            </div></div>
+            <div class="col-md-2"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-secondary">{{ s.duplicados }}</div>
+                <div class="text-muted small">Duplicados</div>
+            </div></div>
+            <div class="col-md-2"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-danger">{{ s.erros + s.nao_encontrados }}</div>
+                <div class="text-muted small">Erros / Não encontrados</div>
+            </div></div>
+            <div class="col-md-2"><div class="border rounded p-2 text-center">
+                <div class="fs-4 fw-bold text-muted">{{ s.ignorados }}</div>
+                <div class="text-muted small">Ignorados</div>
+            </div></div>
+        </div>
+
+        {% if smart.needs_resolution %}
+        <div class="alert alert-info small">
+            <strong><i class="bi bi-person-x me-1"></i>Responsáveis não encontrados:</strong>
+            resolva linha a linha abaixo (atribuir a um colaborador, importar sem
+            custódia ou pular). Nenhuma atribuição automática será feita.
+        </div>
+        {% endif %}
+
+        <!-- Filtros (componentes existentes) -->
+        <ul class="nav nav-pills mb-3">
+            {% for key, label in [('todos','Todos'), ('VALIDO','Válidos'), ('AVISO','Avisos'), ('ERRO','Erros'), ('DUPLICADO','Duplicados'), ('NAO_ENCONTRADO','Não encontrados'), ('IGNORADO','Ignorados')] %}
+            <li class="nav-item">
+                <a class="nav-link {% if filtro == key %}active{% else %}btn-ghost{% endif %} py-1 px-2 me-1"
+                   href="?filtro={{ key }}">{{ label }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <!-- Tabela por linha -->
+        <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-light" style="position:sticky; top:0;">
+                    <tr>
+                        <th>Linha</th>
+                        <th>Identificador</th>
+                        <th>Situação</th>
+                        <th>Problema</th>
+                        {% if smart.needs_resolution %}<th>Resolução</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in smart.rows %}
+                    {% if filtro == 'todos' or filtro == r.status or (filtro == 'ERRO' and r.status == 'NAO_ENCONTRADO') %}
+                    <tr {% if r.status in ('ERRO', 'NAO_ENCONTRADO') %}class="table-danger"{% elif r.status == 'DUPLICADO' %}class="table-secondary"{% elif r.status == 'AVISO' %}class="table-warning"{% endif %}>
+                        <td class="text-muted small">{{ r.row_num }}</td>
+                        <td class="fw-semibold"><span class="tag-badge">{{ r.identify }}</span></td>
+                        <td>
+                            {% if r.status == 'VALIDO' %}
+                            <span class="badge bg-success">VÁLIDO</span>
+                            {% elif r.status == 'AVISO' %}
+                            <span class="badge bg-warning text-dark">AVISO</span>
+                            {% elif r.status == 'DUPLICADO' %}
+                            <span class="badge bg-secondary">DUPLICADO</span>
+                            {% elif r.status == 'ERRO' %}
+                            <span class="badge bg-danger">ERRO</span>
+                            {% elif r.status == 'NAO_ENCONTRADO' %}
+                            <span class="badge bg-info text-dark">NÃO ENCONTRADO</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark border">IGNORADO</span>
+                            {% endif %}
+                        </td>
+                        <td class="small">
+                            {% for p in r.problems %}<div>{{ p }}</div>{% endfor %}
+                            {% if not r.problems %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        {% if smart.needs_resolution %}
+                        <td>
+                            {% if r.status == 'NAO_ENCONTRADO' %}
+                            <select class="form-select form-select-sm" name="resolution_{{ r.row_num }}"
+                                    form="form-confirmar-importacao">
+                                <option value="sem_custodia" selected>Importar sem custódia (aviso)</option>
+                                <option value="skip">Pular linha</option>
+                                <option value="assign:{{ r.resolved_values.get('custodiante', '') }}">Atribuir a… (informe o colaborador exato)</option>
+                            </select>
+                            {% else %}—{% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Aviso: skip_duplicates explicitado -->
+        <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" name="skip_duplicates"
+                   id="skip_duplicates_smart" value="true"
+                   form="form-confirmar-importacao" {% if skip_duplicates %}checked{% endif %}>
+            <label class="form-check-label" for="skip_duplicates_smart">
+                <strong>Pular duplicados</strong> — marcado, registros duplicados são pulados;
+                desmarcado, a reimportação atualiza o registro existente.
+            </label>
+        </div>
+
+        <!-- Confirmação (fase seguinte — nada gravado aqui) -->
+        <form id="form-confirmar-importacao" method="post" action="{{ form_action }}" class="mt-4">
+            <textarea name="csv_data" style="display:none;">{{ smart.rows | tojson | e }}</textarea>
+            <input type="hidden" name="mapping" value="{{ mapping_json | e }}">
+            <input type="hidden" name="csv_content" value="{{ csv_content | e }}">
+            <input type="hidden" name="filename" value="{{ filename | e }}">
+            <input type="hidden" name="filtro" value="todos">
+
+            <div class="d-flex align-items-center justify-content-end gap-3">
+                <a href="{{ back_url }}" class="btn btn-ghost btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg me-1"></i>Confirmar Importação
+                    <span class="badge bg-white text-primary ms-2">{{ s.validos + s.avisos }}</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

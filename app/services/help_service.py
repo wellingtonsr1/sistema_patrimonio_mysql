@@ -324,24 +324,28 @@ ARTICLES: List[Dict] = [
         "module": "Patrimônio & Equipamentos",
         "icon": "bi-filetype-csv",
         "audience": "user",
-        "summary": "Importação de vários bens de uma vez a partir de um arquivo CSV.",
-        "keywords": ["importar", "csv", "planilha", "massa", "vários", "equipamentos"],
+        "summary": "Importação de vários bens de uma vez a partir de um arquivo CSV, com mapeamento de colunas e pré-visualização classificada antes de gravar.",
+        "keywords": ["importar", "csv", "planilha", "massa", "vários", "equipamentos", "mapeamento", "colunas", "duplicados"],
         "sections": [
             {
                 "heading": "Passo a passo",
                 "steps": [
                     "Na tela Equipamentos, clique em Importar CSV.",
                     "Selecione um arquivo .csv com os dados dos bens.",
-                    "O sistema exibe uma pré-visualização antes de gravar.",
-                    "Confirme a importação. Bens duplicados (mesmo tombamento) podem ser ignorados.",
+                    "Passo Mapeamento de Colunas: o sistema analisa o arquivo (sem gravar nada) e sugere o campo de cada coluna. Confira as sugestões; colunas ambíguas pedem confirmação e colunas sem campo correspondente aparecem como “não utilizada”. Ajuste o que for preciso e clique em Analisar Registros.",
+                    "Passo Pré-visualização Classificada: cada registro é avaliado individualmente — VÁLIDO, AVISO (ex.: responsável não informado), DUPLICADO (já no cadastro ou repetido no arquivo), ERRO, NÃO ENCONTRADO (responsável inexistente — escolha atribuir a um colaborador, importar sem custódia ou pular a linha) e IGNORADO (linha em branco). Use os filtros para conferir cada situação.",
+                    "Confirme a importação. O resumo mostra o que será gravado e a opção “Pular duplicados” está explicitada: marcada, duplicados são pulados; desmarcada, a reimportação atualiza o equipamento.",
+                    "Ao final, o relatório da importação mostra linha a linha o resultado (importados, duplicados, erros) com o motivo.",
                 ],
             },
             {
                 "heading": "Importante",
                 "note": (
-                    "A importação exige permissão de cadastro de patrimônio. A pré-visualização permite "
-                    "conferir os dados antes de confirmar; erros de leitura do arquivo são exibidos "
-                    "para correção."
+                    "A importação exige permissão de cadastro de patrimônio. Todo o processo de análise, "
+                    "mapeamento e pré-visualização é apenas de consulta: nada é gravado até a confirmação "
+                    "explícita, e cancelar em qualquer fase não produz efeito no banco. Registros com ERRO "
+                    "nunca são gravados. Arquivos inválidos (vazio, sem registros, corrompido ou com "
+                    "encoding incorreto) recebem uma mensagem clara antes da análise."
                 ),
             },
             {
@@ -820,8 +824,13 @@ ARTICLES: List[Dict] = [
             {
                 "heading": "Importação em massa",
                 "body": (
-                    "Também é possível importar colaboradores via arquivo CSV, com pré-visualização "
-                    "antes de confirmar (exige permissão de cadastro de colaboradores)."
+                    "Também é possível importar colaboradores via arquivo CSV (exige permissão de cadastro "
+                    "de colaboradores). O fluxo tem três fases, todas apenas de consulta: envio do arquivo → "
+                    "Mapeamento de Colunas (o sistema sugere o campo de cada coluna; confira, altere ou "
+                    "marque como não utilizada) → Pré-visualização Classificada (cada linha é avaliada: "
+                    "VÁLIDO, AVISO — matrícula não informada gera provisória —, DUPLICADO por matrícula ou "
+                    "e-mail, ERRO ou IGNORADO) → confirmação com resumo e relatório final por linha. Nada é "
+                    "gravado até a confirmação; cancelar não produz efeito."
                 ),
             },
             {
@@ -867,6 +876,18 @@ ARTICLES: List[Dict] = [
                     "ignora maiúsculas e minúsculas e ignora espaços extras no início e no fim do termo. "
                     "Ela não busca por filial, departamento ou gestor — apenas pelo nome exibido no registro. "
                     "Use Filtrar para aplicar e Limpar para voltar à lista completa."
+                ),
+            },
+            {
+                "heading": "Importação em massa",
+                "body": (
+                    "Também é possível importar locais via arquivo CSV (exige permissão de cadastro de "
+                    "locais). O fluxo tem três fases, todas apenas de consulta: envio do arquivo → "
+                    "Mapeamento de Colunas (sugestões por coluna, com confirmação de ambíguas) → "
+                    "Pré-visualização Classificada (VÁLIDO, DUPLICADO por nome já cadastrado ou repetido "
+                    "no arquivo, ERRO, IGNORADO) → confirmação com resumo e relatório final por linha. "
+                    "Nada é gravado até a confirmação; a importação de locais é operação de criação e "
+                    "não altera locais existentes."
                 ),
             },
             {

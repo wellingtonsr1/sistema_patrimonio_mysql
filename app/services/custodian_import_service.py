@@ -275,6 +275,15 @@ def execute_custodian_import(
     imported = 0
     skipped = 0
     errors = []
+    row_results = []  # Feature 048 (R8): relatório por linha (retorno aditivo)
+
+    def _row_result(num, status, row, motivo=""):
+        row_results.append({
+            "row_num": num,
+            "status": status,
+            "identify": (row.get("name", "") or "").strip(),
+            "motivo": motivo,
+        })
 
     for i, row in enumerate(rows, start=2):
         try:
@@ -291,6 +300,7 @@ def execute_custodian_import(
 
             if existing and skip_duplicates:
                 skipped += 1
+                _row_result(i, "DUPLICADO", row, "Matrícula já cadastrada (pulada)")
                 continue
 
             if existing and not skip_duplicates:
@@ -313,6 +323,7 @@ def execute_custodian_import(
                     existing.is_active = is_active
                 db.flush()
                 imported += 1
+                _row_result(i, "IMPORTADO", row, "Colaborador atualizado (reimportação)")
                 continue
 
             # Matrícula nova: verifica se o e-mail já pertence a outro cadastro
@@ -320,11 +331,13 @@ def execute_custodian_import(
             if email_owner:
                 if skip_duplicates:
                     skipped += 1
+                    _row_result(i, "DUPLICADO", row, "E-mail já cadastrado (pulado)")
                 else:
                     errors.append(
                         f"Linha {i}: e-mail '{email}' já cadastrado para a matrícula "
                         f"'{email_owner.registration_code}' — não é possível atualizar por matrícula diferente"
                     )
+                    _row_result(i, "ERRO", row, f"E-mail '{email}' já cadastrado para a matrícula '{email_owner.registration_code}'")
                 continue
 
             # Cria novo colaborador
@@ -348,9 +361,11 @@ def execute_custodian_import(
             db.add(custodian)
             db.flush()
             imported += 1
+            _row_result(i, "IMPORTADO", row, "Colaborador importado")
 
         except Exception as e:
             errors.append(f"Linha {i}: {str(e)}")
+            _row_result(i, "ERRO", row, str(e))
             continue
 
     if errors:
@@ -364,4 +379,5 @@ def execute_custodian_import(
         "skipped": skipped,
         "errors": errors,
         "total_processed": imported + skipped + len(errors),
+        "row_results": row_results,  # Feature 048 (R8) — aditivo
     }

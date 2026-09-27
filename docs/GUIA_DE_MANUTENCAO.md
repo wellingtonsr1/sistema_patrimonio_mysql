@@ -286,3 +286,9 @@ cards em `CATEGORIES`. Nenhum código de rota precisa mudar para editar conteúd
 7. Coluna nova em tabela existente: modelo **+** `_ensure_schema_migrations`.
 8. Senhas: só PBKDF2 via `auth_service.hash_password`; sessões invalidadas em
    troca/reset de senha e bloqueio.
+9. Importadores CSV (feature 048): a inteligência pré-gravação vive em
+   `app/services/import_intelligence.py` (análise/classificação/resoluções —
+   consumida pelos 3 `*_import_service.py`); as regras específicas de entidade
+   permanecem em cada service; os `execute_*` continuam sendo a única gravação
+   e o preview NUNCA escreve no banco (ver `ARQUITETURA_E_MANUTENCAO.md`,
+   seção Importação Inteligente).

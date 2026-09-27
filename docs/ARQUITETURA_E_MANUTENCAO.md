@@ -590,9 +590,24 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
     cálculo por meses, valor mínimo zero.
   - **Importação CSV** (`import_service.py`): delimitador detectado (`;` ou `,`), aliases de
     colunas extensivos (`COLUMN_ALIASES`), categorias/condições normalizadas de texto livre,
-    valores BR (`1.234,56`), datas `DD/MM/AAAA` ou `AAAA-MM-DD`; fluxo web em duas etapas
-    (preview → confirm) e endpoint direto `/api/v1/assets/import/csv`; opção
-    `skip_duplicates` (ignora ou **atualiza** o existente).
+    valores BR (`1.234,56`), datas `DD/MM/AAAA` ou `AAAA-MM-DD`; fluxo web com mapeamento e
+    pré-visualização classificada (feature 048 — abaixo) e endpoint direto `/api/v1/assets/import/csv`;
+    opção `skip_duplicates` (ignora ou **atualiza** o existente).
+  - **Importação Inteligente (feature 048)**: camada compartilhada pré-gravação
+    (`app/services/import_intelligence.py`) consumida pelos três importadores web
+    (Equipamentos/Colaboradores/Locais — mesmas URLs, fase `step` no POST): (1) `analyze_columns`
+    sugere o campo de cada coluna a partir dos `COLUMN_ALIASES` do kind (auto/ambígua por
+    colisão/desconhecida — nunca mapeia silenciosamente), com guardas de arquivo vazio, sem
+    registros, sem cabeçalho, corrompido (`csv.Error`) e encoding inválido (`UnicodeDecodeError`);
+    (2) passo dedicado de mapeamento (`imports/_mapping_step.html`) com o arquivo em campo oculto
+    e avanço condicionado aos obrigatórios da entidade mapeados; (3) `classify_rows` classifica
+    cada registro (VALIDO/AVISO/DUPLICADO/ERRO/NAO_ENCONTRADO/IGNORADO) como casca sobre
+    `_validate_row`, duplicidades existentes e duplicidade interna ao arquivo (chave natural por
+    entidade); (4) resolução interativa de responsáveis inexistentes (`skip`/`sem_custodia`/
+    `assign:<id>` via `apply_resolutions` — nenhuma atribuição automática); (5) os `execute_*`
+    permanecem a única gravação, com retorno aditivo `row_results` (relatório por linha nos
+    templates) e auditoria do confirm com quantidades por classificação. Análise/preview não
+    escrevem no banco; zero migração/rota/permissão/CSS novo. Testes: `tests/test_importacao_inteligente.py`.
   - **Integração da importação com o Fluxo (feature 029):** a coluna `Custodiante`/`colaborador`
     (aliases `custodiante`/`custodian`/`colaborador`/`responsavel`) é resolvida pelo cadastro de
     colaboradores (precedência de matrícula; nome exato com `order_by(Custodian.id)` — nunca

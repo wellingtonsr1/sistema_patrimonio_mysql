@@ -214,6 +214,15 @@ def execute_locations_import(
     imported = 0
     skipped = 0
     errors: List[str] = []
+    row_results: List[Dict] = []  # Feature 048 (R8): relatório por linha (aditivo)
+
+    def _row_result(num, status, row, motivo=""):
+        row_results.append({
+            "row_num": num,
+            "status": status,
+            "identify": (row.get("name", "") or "").strip(),
+            "motivo": motivo,
+        })
 
     for i, row in enumerate(rows, start=2):
         try:
@@ -230,6 +239,7 @@ def execute_locations_import(
             existing = _find_existing_location(db, name)
             if existing and skip_duplicates:
                 skipped += 1
+                _row_result(i, "DUPLICADO", row, "Já existe local com este nome (pulado)")
                 continue
 
             if existing and not skip_duplicates:
@@ -237,6 +247,7 @@ def execute_locations_import(
                 errors.append(
                     f"Linha {i}: já existe um local cadastrado com o nome '{existing.name}'"
                 )
+                _row_result(i, "ERRO", row, f"Já existe local cadastrado com o nome '{existing.name}'")
                 continue
 
             # Cria novo local usando o modelo e o serviço existentes
@@ -253,9 +264,11 @@ def execute_locations_import(
             db.add(location)
             db.flush()
             imported += 1
+            _row_result(i, "IMPORTADO", row, "Local criado")
 
         except Exception as exc:
             errors.append(f"Linha {i}: {str(exc)}")
+            _row_result(i, "ERRO", row, str(exc))
             continue
 
     try:
@@ -269,4 +282,5 @@ def execute_locations_import(
         "skipped": skipped,
         "errors": errors,
         "total_processed": imported + skipped + len(errors),
+        "row_results": row_results,  # Feature 048 (R8) — aditivo
     }

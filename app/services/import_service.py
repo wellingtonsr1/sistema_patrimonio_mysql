@@ -431,6 +431,16 @@ def execute_import(
     imported = 0
     skipped = 0
     errors = []
+    row_results = []  # Feature 048 (R8): relatório por linha (retorno aditivo)
+
+    def _row_result(num, status, row, motivo=""):
+        """Feature 048 (R8): registro aditivo do resultado por linha."""
+        row_results.append({
+            "row_num": num,
+            "status": status,
+            "identify": (row.get("tombamento", "") or "").strip().upper(),
+            "motivo": motivo,
+        })
 
     for i, row in enumerate(rows, start=2):
         try:
@@ -475,6 +485,7 @@ def execute_import(
                     errors.append(
                         f"Linha {i}: local '{loc_raw}' não encontrado no cadastro de locais"
                     )
+                    _row_result(i, "ERRO", row, f"Local '{loc_raw}' não encontrado no cadastro de locais")
                     db.rollback()
                     continue
 
@@ -491,6 +502,7 @@ def execute_import(
                     errors.append(
                         f"Linha {i}: colaborador '{cust_raw}' não encontrado no cadastro de colaboradores"
                     )
+                    _row_result(i, "ERRO", row, f"Colaborador '{cust_raw}' não encontrado no cadastro")
                     db.rollback()
                     continue
 
@@ -498,6 +510,7 @@ def execute_import(
             existing = db.query(Asset).filter(Asset.tag == tag).first()
             if existing and skip_duplicates:
                 skipped += 1
+                _row_result(i, "DUPLICADO", row, "Tombamento já cadastrado (pulado)")
                 continue
 
             if existing and not skip_duplicates:
@@ -512,6 +525,7 @@ def execute_import(
                             f"Linha {i}: número de série '{serial_number}' já cadastrado para o tombamento "
                             f"'{serial_owner.tag}'"
                         )
+                        _row_result(i, "ERRO", row, f"Número de série '{serial_number}' já cadastrado para o tombamento '{serial_owner.tag}'")
                         continue
                 existing.name = name
                 existing.category = category
@@ -561,6 +575,7 @@ def execute_import(
                     )
                 db.commit()
                 imported += 1
+                _row_result(i, "IMPORTADO", row, "Equipamento atualizado (reimportação)")
                 continue
 
             # Verificar duplicata de serial_number antes de criar
@@ -570,12 +585,14 @@ def execute_import(
                 ).first()
                 if serial_existing and skip_duplicates:
                     skipped += 1
+                    _row_result(i, "DUPLICADO", row, f"Número de série '{serial_number}' já cadastrado para o tombamento '{serial_existing.tag}' (pulado)")
                     continue
                 if serial_existing and not skip_duplicates:
                     errors.append(
                         f"Linha {i}: número de série '{serial_number}' já cadastrado para o tombamento "
                         f"'{serial_existing.tag}'"
                     )
+                    _row_result(i, "ERRO", row, f"Número de série '{serial_number}' já cadastrado para o tombamento '{serial_existing.tag}'")
                     continue
 
             # Criar novo asset — status inicial sempre disponível: a custódia
@@ -650,10 +667,12 @@ def execute_import(
                 # (com custodiante, create_movement já fez o commit da linha)
                 db.commit()
             imported += 1
+            _row_result(i, "IMPORTADO", row, "Equipamento importado")
 
         except Exception as e:
             db.rollback()
             errors.append(f"Linha {i}: {str(e)}")
+            _row_result(i, "ERRO", row, str(e))
             continue
 
     return {
@@ -661,4 +680,5 @@ def execute_import(
         "skipped": skipped,
         "errors": errors,
         "total_processed": imported + skipped + len(errors),
+        "row_results": row_results,  # Feature 048 (R8) — aditivo
     }

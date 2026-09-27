@@ -1,4 +1,5 @@
 import io
+import json
 
 from app.models.custodian import Custodian
 from app.services.custodian_import_service import (
@@ -192,30 +193,54 @@ def test_web_custodians_report_page_renders(client):
 
 
 def test_web_import_upload_preview_and_confirm(client):
+    """Feature 048: upload → passo de mapeamento (sugestões aceitas) →
+    pré-visualização classificada → confirmação. O resultado final do fluxo
+    legado é preservado (R9): o colaborador é gravado com os mesmos dados."""
     csv_content = """matricula;nome;email;cargo;setor
 MAT-6001;Paula Rocha;paula.rocha@empresa.com;Advogada;Jurídico
 """
-    # Upload gera a pré-visualização
+    # Upload gera o passo de mapeamento de colunas
     upload = client.post(
         "/custodians/import",
         files={"file": ("colaboradores.csv", io.BytesIO(csv_content.encode("utf-8")), "text/csv")},
         data={"skip_duplicates": "true"},
     )
     assert upload.status_code == 200
-    assert "Pré-visualização da Importação" in upload.text
-    assert "MAT-6001" in upload.text
+    assert "Mapeamento de Colunas" in upload.text
 
-    # Confirma a importação com os dados que a página envia no textarea oculto
+    # Mapeamento aceito como sugerido → pré-visualização classificada
+    from app.services.import_intelligence import analyze_columns
+    analysis = analyze_columns(csv_content, "custodians")
+    mapping = {
+        s["column"]: s["field"]
+        for s in analysis["suggestions"]
+        if s["field"]
+    }
+    analyze = client.post(
+        "/custodians/import",
+        data={
+            "step": "analyze",
+            "csv_content": csv_content,
+            "mapping": json.dumps(mapping),
+            "skip_duplicates": "true",
+        },
+    )
+    assert analyze.status_code == 200
+    assert "Pré-visualização Classificada" in analyze.text
+    assert "MAT-6001" in analyze.text or "Paula Rocha" in analyze.text
+
+    # Confirma a importação com o payload classificado da página
+    import html as _html
+    raw_payload = analyze.text.split('name="csv_data" style="display:none;">')[1].split("</textarea>")[0]
     confirm = client.post(
         "/custodians/import/confirm",
         data={
-            "csv_data": '[{"registration_code": "MAT-6001", "name": "Paula Rocha", '
-                        '"email": "paula.rocha@empresa.com", "role": "Advogada", "department": "Jurídico"}]',
+            "csv_data": raw_payload,
             "skip_duplicates": "true",
         },
     )
     assert confirm.status_code == 200
-    assert "Importação Concluída com Sucesso" in confirm.text
+    assert "Importação Concluída" in confirm.text
 
     # Registro persistido e visível na listagem
     list_res = client.get("/api/v1/custodians")

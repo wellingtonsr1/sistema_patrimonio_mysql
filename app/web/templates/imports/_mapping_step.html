@@ -1,0 +1,102 @@
+{# Parcial: passo de mapeamento de colunas — Feature 048 (contrato §3).
+   Requerido no contexto: analysis (data-model §2.1), csv_content (conteúdo
+   original do arquivo), filename, delimiter, form_action (URL do POST),
+   back_url (link cancelar), required_labels (rótulos dos campos obrigatórios),
+   skip_duplicates. Campo de entrada por coluna: mapping_<coluna>. #}
+<div class="card mb-4" id="passo-mapeamento">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h5 class="mb-0">
+            <i class="bi bi-diagram-3 text-primary me-2"></i>Mapeamento de Colunas
+        </h5>
+        <span class="badge bg-primary-subtle text-primary">{{ analysis.total_rows }} registro(s)</span>
+    </div>
+    <div class="card-body">
+        {% if analysis.parse_errors %}
+        <!-- Guardas R6 -->
+        <div class="alert alert-warning small">
+            <strong><i class="bi bi-exclamation-triangle me-1"></i>Não foi possível analisar o arquivo:</strong>
+            <ul class="mb-0 mt-1">
+                {% for e in analysis.parse_errors %}
+                <li>{{ e }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <p class="text-muted small mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            Confira a sugestão de cada coluna, altere quando necessário ou marque como
+            <strong>“não utilizada”</strong>. Delimitador detectado:
+            <code>{{ ',' if analysis.delimiter == ',' else ';' }}</code>.
+        </p>
+
+        {% if not analysis.parse_errors %}
+        <form method="post" action="{{ form_action }}">
+            <input type="hidden" name="step" value="analyze">
+            <input type="hidden" name="csv_content" value="{{ csv_content | e }}">
+            <input type="hidden" name="filename" value="{{ filename | e }}">
+            <input type="hidden" name="skip_duplicates" value="{{ 'true' if skip_duplicates else 'false' }}">
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Coluna do arquivo</th>
+                            <th>Amostra (1º registro)</th>
+                            <th>Campo do sistema</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in analysis.suggestions %}
+                        <tr {% if s.confidence != 'auto' %}class="table-warning"{% endif %}>
+                            <td class="fw-semibold">{{ s.column }}</td>
+                            <td class="small text-muted"><code>{{ samples.get(s.column, '—') }}</code></td>
+                            <td>
+                                <select class="form-select form-select-sm"
+                                        name="mapping_{{ s.column }}"
+                                        data-confidence="{{ s.confidence }}">
+                                    {% if s.confidence == 'auto' %}
+                                    <option value="{{ s.field }}" selected>{{ field_labels.get(s.field, s.field) }}</option>
+                                    {% elif s.confidence == 'ambigua' %}
+                                    <option value="" selected>— confirme o campo —</option>
+                                    {% for c in s.candidates %}
+                                    <option value="{{ c }}">{{ field_labels.get(c, c) }}</option>
+                                    {% endfor %}
+                                    {% else %}
+                                    <option value="" selected>não utilizada</option>
+                                    {% endif %}
+                                    <option value="">não utilizada</option>
+                                    {% for f, label in field_labels.items() %}
+                                    {% if s.field != f and s.confidence != 'ambigua' or s.confidence == 'ambigua' and f not in s.candidates %}
+                                    <option value="{{ f }}">{{ label }}</option>
+                                    {% endif %}
+                                    {% endfor %}
+                                </select>
+                                {% if s.confidence == 'ambigua' %}
+                                <div class="small text-danger mt-1">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Coluna ambígua — confirme o campo.
+                                </div>
+                                {% elif s.confidence == 'desconhecida' %}
+                                <div class="small text-muted mt-1">
+                                    <i class="bi bi-eye-slash me-1"></i>Coluna não utilizada.
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-end gap-3 mt-4">
+                <a href="{{ back_url }}" class="btn btn-ghost btn-lg">
+                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-arrow-right me-1"></i>Analisar Registros
+                </button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>

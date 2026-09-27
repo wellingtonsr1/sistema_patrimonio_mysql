@@ -28,6 +28,49 @@ from app.services.movement_service import MovementService
 from app.services.import_service import parse_csv, preview_import, execute_import
 from app.services.custodian_import_service import parse_custodian_csv, preview_custodian_import, execute_custodian_import
 from app.services.location_import_service import parse_locations_csv, preview_locations_import, execute_locations_import
+# Feature 048 — Importação Inteligente: camada de análise pré-gravação
+from app.services.import_intelligence import (
+    analyze_columns,
+    classify_rows,
+    apply_resolutions,
+    classify_summary_counts,
+    REQUIRED_FIELDS as IMPORT_REQUIRED_FIELDS,
+    FIELD_LABELS as IMPORT_FIELD_LABELS,
+)
+
+
+def _confirm_payload_rows(csv_data: str, resolutions: Optional[str], db: Session):
+    """Feature 048: aceita dois formatos no campo csv_data do confirm —
+    (a) lista de dicts canônicos (fluxo antigo/compatibilidade R9, sem alteração)
+    (b) payload classificado da preview ({row_num, status, resolved_values,...}),
+        do qual apenas os registros permitidos seguem para o execute_* via
+        apply_resolutions (ERRO/IGNORADO nunca — FR-014; NAO_ENCONTRADO
+        conforme as decisões coletadas na preview — R4).
+    Retorna (lote_para_execute, counts_ou_None, erro_ou_None)."""
+    import json as _json
+    import html as _html_mod
+    try:
+        decoded = _html_mod.unescape(csv_data)
+        payload = _json.loads(decoded)
+        if not isinstance(payload, list):
+            raise ValueError("Dados inválidos: esperado uma lista de registros")
+    except (ValueError, _json.JSONDecodeError) as e:
+        return None, None, str(e)
+
+    if payload and isinstance(payload[0], dict) and "resolved_values" in payload[0]:
+        resolutions_map: dict = {}
+        if resolutions:
+            try:
+                parsed = _json.loads(resolutions)
+                if isinstance(parsed, dict):
+                    resolutions_map = parsed
+            except (ValueError, _json.JSONDecodeError):
+                resolutions_map = {}
+        lote = apply_resolutions(payload, resolutions_map, db)
+        counts = classify_summary_counts(payload)
+        return lote, counts, None
+
+    return payload, None, None
 from app.services.custodian_service import CustodianService
 from app.services.location_service import LocationService
 from app.services.department_service import DepartmentService
@@ -483,52 +526,149 @@ def form_import_assets(request: Request):
     )
 
 
-@web_router.post("/assets/import", response_class=HTMLResponse, dependencies=[Depends(require_permission("patrimonio.criar"))])
-def process_import_assets(
-    request: Request,
-    file: UploadFile = File(...),
-    skip_duplicates: bool = Form(False),
-    db: Session = Depends(get_db)
-):
-    """Processa o upload e exibe pré-visualização da importação"""
+def _read_csv_upload(request: Request, file: UploadFile, template_name: str, active_tab: str):
+    """Feature 048 (R6/FR-021): leitura guardada do upload — extensão, encoding
+    e decodificação controladas. Retorna (content, error_response).
+    Nenhuma exceção cruza para o usuário."""
     if not file.filename or not file.filename.endswith(".csv"):
-        return templates.TemplateResponse(
+        return None, templates.TemplateResponse(
             request=request,
-            name="assets/import.html",
+            name=template_name,
             context={
-                "active_tab": "assets",
+                "active_tab": active_tab,
                 "error": "Arquivo inválido. Envie um arquivo .csv",
             }
         )
+    raw = file.file.read()
+    try:
+        content = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return None, templates.TemplateResponse(
+            request=request,
+            name=template_name,
+            context={
+                "active_tab": active_tab,
+                "error": "Encoding inválido: o arquivo deve estar em UTF-8 (com ou sem BOM). "
+                         "Refaça o upload salvando o arquivo como UTF-8.",
+            }
+        )
+    return content, None
 
-    content = file.file.read().decode("utf-8-sig")
-    rows, parse_errors = parse_csv(content)
 
-    if not rows and parse_errors:
+def _mapping_samples(content: str, kind: str) -> dict:
+    """Feature 048: primeira linha de dados por coluna (amostra do passo de
+    mapeamento), usando a detecção de delimitador do kind."""
+    import csv as _csv
+    import io as _io
+    from app.services.import_intelligence import _detect_delimiter
+
+    analysis = analyze_columns(content, kind)
+    if analysis["parse_errors"] and analysis["total_rows"] == 0:
+        return {}
+    try:
+        reader = _csv.DictReader(_io.StringIO(content), delimiter=analysis["delimiter"])
+        first = next(reader, None) or {}
+        return {
+            col: (first.get(col) or "").strip()
+            for col in (analysis["header"] or [])
+        }
+    except Exception:
+        return {}
+
+
+def _render_mapping_step(request: Request, template_name: str, kind: str,
+                         content: str, filename: str, skip_duplicates: bool,
+                         active_tab: str, form_action: str, back_url: str):
+    """Feature 048 (R5): passo intermediário dedicado de mapeamento de colunas
+    (decisão clarify 2026-09-26). Renderiza o parcial compartilhado com as
+    sugestões de analyze_columns. Somente leitura — nada é gravado (SC-001)."""
+    analysis = analyze_columns(content, kind)
+    return templates.TemplateResponse(
+        request=request,
+        name=template_name,
+        context={
+            "active_tab": active_tab,
+            "show_mapping": True,
+            "analysis": analysis,
+            "samples": _mapping_samples(content, kind),
+            "csv_content": content,
+            "filename": filename,
+            "skip_duplicates": skip_duplicates,
+            "field_labels": IMPORT_FIELD_LABELS[kind],
+            "required_fields": IMPORT_REQUIRED_FIELDS[kind],
+            "form_action": form_action,
+            "back_url": back_url,
+        }
+    )
+
+
+@web_router.post("/assets/import", response_class=HTMLResponse, dependencies=[Depends(require_permission("patrimonio.criar"))])
+def process_import_assets(
+    request: Request,
+    step: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    csv_content: Optional[str] = Form(None),
+    mapping: Optional[str] = Form(None),
+    filename: Optional[str] = Form(None),
+    skip_duplicates: bool = Form(False),
+    db: Session = Depends(get_db)
+):
+    """Processa o upload e exibe o passo de mapeamento (Feature 048 — R5);
+    com step=analyze, reexecuta a análise server-side e classifica os registros
+    (pré-visualização — nada gravado, SC-001)."""
+    if step == "analyze":
+        # Fase 2: mapeamento confirmado → classificação por registro
+        if not csv_content or not mapping:
+            return templates.TemplateResponse(
+                request=request,
+                name="assets/import.html",
+                context={
+                    "active_tab": "assets",
+                    "error": "Dados do mapeamento ausentes. Envie o arquivo novamente.",
+                }
+            )
+        return _render_smart_preview(
+            request=request,
+            template_name="assets/import.html",
+            kind="assets",
+            content=csv_content,
+            mapping_raw=mapping,
+            filename=filename or "",
+            skip_duplicates=skip_duplicates,
+            active_tab="assets",
+            form_action="/assets/import/confirm",
+            back_url="/assets/import",
+            db=db,
+        )
+
+    # Fase 1: upload do arquivo → passo de mapeamento
+    content, error_response = _read_csv_upload(request, file, "assets/import.html", "assets")
+    if error_response is not None:
+        return error_response
+
+    # Guarda R6: vazio/só BOM → erro puro (sem o cartão de mapeamento)
+    _analysis = analyze_columns(content, "assets")
+    if _analysis["parse_errors"] and _analysis["total_rows"] == 0 and not _analysis["header"]:
         return templates.TemplateResponse(
             request=request,
             name="assets/import.html",
             context={
                 "active_tab": "assets",
-                "error": "Erros ao ler o arquivo CSV:",
-                "parse_errors": parse_errors,
+                "error": "Não foi possível analisar o arquivo:",
+                "parse_errors": _analysis["parse_errors"],
             }
         )
 
-    preview = preview_import(rows, db)
-
-    return templates.TemplateResponse(
+    return _render_mapping_step(
         request=request,
-        name="assets/import.html",
-        context={
-            "active_tab": "assets",
-            "show_preview": True,
-            "preview": preview,
-            "csv_rows": rows,
-            "parse_errors": parse_errors,
-            "skip_duplicates": skip_duplicates,
-            "filename": file.filename,
-        }
+        template_name="assets/import.html",
+        kind="assets",
+        content=content,
+        filename=file.filename or "",
+        skip_duplicates=skip_duplicates,
+        active_tab="assets",
+        form_action="/assets/import",
+        back_url="/assets/import",
     )
 
 
@@ -537,18 +677,13 @@ def confirm_import_assets(
     request: Request,
     csv_data: str = Form(...),
     skip_duplicates: bool = Form(True),
+    resolutions: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    """Confirma e executa a importação"""
-    import json
-    import html as html_mod
-    try:
-        # Decodifica entidades HTML que o textarea pode ter inserido
-        decoded = html_mod.unescape(csv_data)
-        rows = json.loads(decoded)
-        if not isinstance(rows, list):
-            raise ValueError("Dados inválidos: esperado uma lista de registros")
-    except (json.JSONDecodeError, ValueError) as e:
+    """Confirma e executa a importação (Feature 048: payload classificado ou
+    lista canônica legada — mesma URL, mesmo execute_import)"""
+    rows, class_counts, parse_err = _confirm_payload_rows(csv_data, resolutions, db)
+    if parse_err is not None:
         return templates.TemplateResponse(
             request=request,
             name="assets/import.html",
@@ -558,7 +693,7 @@ def confirm_import_assets(
                 "result": {
                     "imported": 0,
                     "skipped": 0,
-                    "errors": [f"Erro ao processar dados: {str(e)}"],
+                    "errors": [f"Erro ao processar dados: {parse_err}"],
                     "total_processed": 0,
                 },
             }
@@ -585,6 +720,10 @@ def confirm_import_assets(
             }
         )
 
+    _counts_desc = ""
+    if class_counts:
+        _counts_desc = ", ".join(f"{k}: {v}" for k, v in sorted(class_counts.items()))
+        _counts_desc = f"; classificações da pré-visualização [{_counts_desc}]"
     write_audit(
         db,
         user=request.state.user,
@@ -594,7 +733,8 @@ def confirm_import_assets(
         resource_ref="importacao-csv",
         ip_address=_client_ip(request),
         description=f"Importação CSV de bens: {result.get('imported', 0)} importados, "
-                    f"{result.get('skipped', 0)} ignorados, {len(result.get('errors', []))} erros",
+                    f"{result.get('skipped', 0)} ignorados, {len(result.get('errors', []))} erros"
+                    f"{_counts_desc}",
         new_data={"imported": result.get("imported", 0), "skipped": result.get("skipped", 0)},
     )
 
@@ -1069,49 +1209,55 @@ def form_import_custodians(request: Request):
 @web_router.post("/custodians/import", response_class=HTMLResponse, dependencies=[Depends(require_permission("colaboradores.criar"))])
 def process_import_custodians(
     request: Request,
-    file: UploadFile = File(...),
+    step: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    csv_content: Optional[str] = Form(None),
+    mapping: Optional[str] = Form(None),
+    filename: Optional[str] = Form(None),
     skip_duplicates: bool = Form(False),
     db: Session = Depends(get_db)
 ):
-    """Processa o upload e exibe pré-visualização da importação"""
-    if not file.filename or not file.filename.endswith(".csv"):
-        return templates.TemplateResponse(
+    """Processa o upload e exibe o passo de mapeamento (Feature 048 — R5);
+    com step=analyze, reexecuta a análise server-side e classifica os registros
+    (pré-visualização — nada gravado, SC-001)."""
+    if step == "analyze":
+        if not csv_content or not mapping:
+            return templates.TemplateResponse(
+                request=request,
+                name="custodians/import.html",
+                context={
+                    "active_tab": "custodians",
+                    "error": "Dados do mapeamento ausentes. Envie o arquivo novamente.",
+                }
+            )
+        return _render_smart_preview(
             request=request,
-            name="custodians/import.html",
-            context={
-                "active_tab": "custodians",
-                "error": "Arquivo inválido. Envie um arquivo .csv",
-            }
+            template_name="custodians/import.html",
+            kind="custodians",
+            content=csv_content,
+            mapping_raw=mapping,
+            filename=filename or "",
+            skip_duplicates=skip_duplicates,
+            active_tab="custodians",
+            form_action="/custodians/import/confirm",
+            back_url="/custodians/import",
+            db=db,
         )
 
-    content = file.file.read().decode("utf-8-sig")
-    rows, parse_errors = parse_custodian_csv(content)
+    content, error_response = _read_csv_upload(request, file, "custodians/import.html", "custodians")
+    if error_response is not None:
+        return error_response
 
-    if not rows and parse_errors:
-        return templates.TemplateResponse(
-            request=request,
-            name="custodians/import.html",
-            context={
-                "active_tab": "custodians",
-                "error": "Erros ao ler o arquivo CSV:",
-                "parse_errors": parse_errors,
-            }
-        )
-
-    preview = preview_custodian_import(rows, db)
-
-    return templates.TemplateResponse(
+    return _render_mapping_step(
         request=request,
-        name="custodians/import.html",
-        context={
-            "active_tab": "custodians",
-            "show_preview": True,
-            "preview": preview,
-            "csv_rows": rows,
-            "parse_errors": parse_errors,
-            "skip_duplicates": skip_duplicates,
-            "filename": file.filename,
-        }
+        template_name="custodians/import.html",
+        kind="custodians",
+        content=content,
+        filename=file.filename or "",
+        skip_duplicates=skip_duplicates,
+        active_tab="custodians",
+        form_action="/custodians/import",
+        back_url="/custodians/import",
     )
 
 
@@ -1120,18 +1266,12 @@ def confirm_import_custodians(
     request: Request,
     csv_data: str = Form(...),
     skip_duplicates: bool = Form(True),
+    resolutions: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    """Confirma e executa a importação de colaboradores"""
-    import json
-    import html as html_mod
-    try:
-        # Decodifica entidades HTML que o textarea pode ter inserido
-        decoded = html_mod.unescape(csv_data)
-        rows = json.loads(decoded)
-        if not isinstance(rows, list):
-            raise ValueError("Dados inválidos: esperado uma lista de registros")
-    except (json.JSONDecodeError, ValueError) as e:
+    """Confirma e executa a importação de colaboradores (Feature 048)"""
+    rows, class_counts, parse_err = _confirm_payload_rows(csv_data, resolutions, db)
+    if parse_err is not None:
         return templates.TemplateResponse(
             request=request,
             name="custodians/import.html",
@@ -1141,7 +1281,7 @@ def confirm_import_custodians(
                 "result": {
                     "imported": 0,
                     "skipped": 0,
-                    "errors": [f"Erro ao processar dados: {str(e)}"],
+                    "errors": [f"Erro ao processar dados: {parse_err}"],
                     "total_processed": 0,
                 },
             }
@@ -1165,6 +1305,10 @@ def confirm_import_custodians(
             }
         )
 
+    _counts_desc = ""
+    if class_counts:
+        _counts_desc = ", ".join(f"{k}: {v}" for k, v in sorted(class_counts.items()))
+        _counts_desc = f"; classificações da pré-visualização [{_counts_desc}]"
     write_audit(
         db,
         user=request.state.user,
@@ -1174,7 +1318,8 @@ def confirm_import_custodians(
         resource_ref="importacao-csv",
         ip_address=_client_ip(request),
         description=f"Importação CSV de colaboradores: {result.get('imported', 0)} importados, "
-                    f"{result.get('skipped', 0)} ignorados, {len(result.get('errors', []))} erros",
+                    f"{result.get('skipped', 0)} ignorados, {len(result.get('errors', []))} erros"
+                    f"{_counts_desc}",
         new_data={"imported": result.get("imported", 0), "skipped": result.get("skipped", 0)},
     )
 
@@ -1237,48 +1382,153 @@ def form_import_locations(request: Request):
 @web_router.post("/locations/import", response_class=HTMLResponse, dependencies=[Depends(require_permission("locais.criar"))])
 def process_import_locations(
     request: Request,
-    file: UploadFile = File(...),
+    step: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    csv_content: Optional[str] = Form(None),
+    mapping: Optional[str] = Form(None),
+    filename: Optional[str] = Form(None),
     skip_duplicates: bool = Form(False),
     db: Session = Depends(get_db)
 ):
-    """Processa o upload e exibe pré-visualização da importação"""
-    if not file.filename or not file.filename.endswith(".csv"):
+    """Processa o upload e exibe o passo de mapeamento (Feature 048 — R5);
+    com step=analyze, reexecuta a análise server-side e classifica os registros
+    (pré-visualização — nada gravado, SC-001)."""
+    if step == "analyze":
+        if not csv_content or not mapping:
+            return templates.TemplateResponse(
+                request=request,
+                name="locations/import.html",
+                context={
+                    "active_tab": "locations",
+                    "error": "Dados do mapeamento ausentes. Envie o arquivo novamente.",
+                }
+            )
+        return _render_smart_preview(
+            request=request,
+            template_name="locations/import.html",
+            kind="locations",
+            content=csv_content,
+            mapping_raw=mapping,
+            filename=filename or "",
+            skip_duplicates=skip_duplicates,
+            active_tab="locations",
+            form_action="/locations/import/confirm",
+            back_url="/locations/import",
+            db=db,
+        )
+
+    content, error_response = _read_csv_upload(request, file, "locations/import.html", "locations")
+    if error_response is not None:
+        return error_response
+
+    return _render_mapping_step(
+        request=request,
+        template_name="locations/import.html",
+        kind="locations",
+        content=content,
+        filename=file.filename or "",
+        skip_duplicates=skip_duplicates,
+        active_tab="locations",
+        form_action="/locations/import",
+        back_url="/locations/import",
+    )
+
+
+def _apply_mapping_to_rows(content: str, mapping: dict, kind: str) -> list:
+    """Feature 048: renormaliza as linhas do CSV pelo mapeamento confirmado
+    (data-model §2.3 resolved_values). Valores originais preservados (R7) —
+    o strip() já vigente nos services é mantido."""
+    import csv as _csv
+    import io as _io
+    from app.services.import_intelligence import _detect_delimiter
+
+    delimiter = _detect_delimiter(content, kind)
+    reader = _csv.DictReader(_io.StringIO(content), delimiter=delimiter)
+    rows = []
+    row_num = 2  # linha 1 = cabeçalho (mesma convenção dos parsers)
+    for raw in reader:
+        resolved = {field: "" for field in set(mapping.values()) if field}
+        for original_col, value in raw.items():
+            field = mapping.get(original_col or "")
+            if field:
+                resolved[field] = (value or "").strip()
+        rows.append({"row_num": row_num, "resolved": resolved})
+        row_num += 1
+    return rows
+
+
+def _render_smart_preview(request: Request, template_name: str, kind: str,
+                          content: str, mapping_raw: str, filename: str,
+                          skip_duplicates: bool, active_tab: str,
+                          form_action: str, back_url: str, db: Session):
+    """Feature 048 (US2): classificação por registro + pré-visualização
+    classificada. Reexecuta a análise server-side (nunca confia só no cliente).
+    Somente leitura — o banco permanece inalterado (SC-001)."""
+    import json as _json
+
+    try:
+        mapping = _json.loads(mapping_raw)
+        if not isinstance(mapping, dict):
+            raise ValueError("mapping inválido")
+    except (ValueError, _json.JSONDecodeError):
+        mapping = None
+    if mapping is None:
         return templates.TemplateResponse(
             request=request,
-            name="locations/import.html",
+            name=template_name,
             context={
-                "active_tab": "locations",
-                "error": "Arquivo inválido. Envie um arquivo .csv",
+                "active_tab": active_tab,
+                "error": "Mapeamento inválido. Envie o arquivo novamente.",
             }
         )
 
-    content = file.file.read().decode("utf-8-sig")
-    rows, parse_errors = parse_locations_csv(content)
-
-    if not rows and parse_errors:
+    # Guarda do contrato §3: obrigatórios da entidade mapeados
+    required = IMPORT_REQUIRED_FIELDS[kind]
+    mapped_fields = {v for v in mapping.values() if v}
+    missing = [f for f in required if f not in mapped_fields]
+    if missing:
+        analysis = analyze_columns(content, kind)
+        labels = IMPORT_FIELD_LABELS[kind]
         return templates.TemplateResponse(
             request=request,
-            name="locations/import.html",
+            name=template_name,
             context={
-                "active_tab": "locations",
-                "error": "Erros ao ler o arquivo CSV:",
-                "parse_errors": parse_errors,
+                "active_tab": active_tab,
+                "show_mapping": True,
+                "analysis": analysis,
+                "samples": _mapping_samples(content, kind),
+                "csv_content": content,
+                "filename": filename,
+                "skip_duplicates": skip_duplicates,
+                "field_labels": labels,
+                "required_fields": required,
+                "form_action": form_action.replace("/confirm", ""),
+                "back_url": back_url,
+                "mapping_error": (
+                    "Avançar exige os campos obrigatórios mapeados: "
+                    + ", ".join(labels.get(f, f) for f in missing)
+                ),
             }
         )
 
-    preview = preview_locations_import(rows, db)
-
+    analysis = analyze_columns(content, kind)
+    rows = _apply_mapping_to_rows(content, mapping, kind)
+    preview = classify_rows(rows, db, kind)
     return templates.TemplateResponse(
         request=request,
-        name="locations/import.html",
+        name=template_name,
         context={
-            "active_tab": "locations",
-            "show_preview": True,
-            "preview": preview,
-            "csv_rows": rows,
-            "parse_errors": parse_errors,
+            "active_tab": active_tab,
+            "show_smart_preview": True,
+            "smart": preview,
+            "mapping": mapping,
+            "mapping_json": _json.dumps(mapping),
+            "csv_content": content,
+            "filename": filename,
             "skip_duplicates": skip_duplicates,
-            "filename": file.filename,
+            "field_labels": IMPORT_FIELD_LABELS[kind],
+            "form_action": form_action,
+            "back_url": back_url,
         }
     )
 
@@ -1288,17 +1538,12 @@ def confirm_import_locations(
     request: Request,
     csv_data: str = Form(...),
     skip_duplicates: bool = Form(True),
+    resolutions: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    """Confirma e executa a importação de locais"""
-    import json
-    import html as html_mod
-    try:
-        decoded = html_mod.unescape(csv_data)
-        rows = json.loads(decoded)
-        if not isinstance(rows, list):
-            raise ValueError("Dados inválidos: esperado uma lista de registros")
-    except (json.JSONDecodeError, ValueError) as e:
+    """Confirma e executa a importação de locais (Feature 048)"""
+    rows, class_counts, parse_err = _confirm_payload_rows(csv_data, resolutions, db)
+    if parse_err is not None:
         return templates.TemplateResponse(
             request=request,
             name="locations/import.html",
@@ -1308,7 +1553,7 @@ def confirm_import_locations(
                 "result": {
                     "imported": 0,
                     "skipped": 0,
-                    "errors": [f"Erro ao processar dados: {str(e)}"],
+                    "errors": [f"Erro ao processar dados: {parse_err}"],
                     "total_processed": 0,
                 },
             }
@@ -1332,6 +1577,10 @@ def confirm_import_locations(
             }
         )
 
+    _counts_desc = ""
+    if class_counts:
+        _counts_desc = ", ".join(f"{k}: {v}" for k, v in sorted(class_counts.items()))
+        _counts_desc = f"; classificações da pré-visualização [{_counts_desc}]"
     write_audit(
         db,
         user=request.state.user,
@@ -1341,7 +1590,8 @@ def confirm_import_locations(
         resource_ref="importacao-csv",
         ip_address=_client_ip(request),
         description=f"Importação CSV de locais: {result.get('imported', 0)} criados, "
-                    f"{result.get('skipped', 0)} ignorados, {len(result.get('errors', []))} erros",
+                    f"{result.get('skipped', 0)} ignorados, {len(result.get('errors', []))} erros"
+                    f"{_counts_desc}",
         new_data={"imported": result.get("imported", 0), "skipped": result.get("skipped", 0)},
     )
 
