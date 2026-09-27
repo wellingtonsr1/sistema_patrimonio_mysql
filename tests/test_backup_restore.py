@@ -167,6 +167,41 @@ def _clean_backup_dir():
     _cleanup_backups()
 
 
+@pytest.fixture(autouse=True)
+def _restore_worker_isolation():
+    """Isolamento do estado global do restore (estabilização da suíte).
+
+    Problema: o worker 019 roda em THREAD e mantém estado global em
+    `backup_service` (slot _RESTORE_IN_PROGRESS, flag maintenance_mode com
+    last_ok/last_message). Se um worker de um teste anterior ainda estiver
+    drenando o pool/auditando quando o fixture dropa as tabelas, ele falha
+    com DetachedInstanceError ("Could not refresh instance '<AuditLog>'") e
+    grava last_ok=False — o teste seguinte então lê status ok=False/finished
+    inconsistente (falha/erro intermitente, dependente da ordem da suíte).
+
+    Garantias por teste: worker anterior concluído (slot livre, com espera
+    limitada), manutenção desligada e last_ok/last_message zerados — o
+    "resultado anterior" só pode vir do próprio teste (o restore_backup
+    limpa as chaves ao iniciar um ciclo).
+    """
+    import time
+
+    from app.services import backup_service
+
+    deadline = time.monotonic() + 5.0
+    while backup_service.restore_in_progress() and time.monotonic() < deadline:
+        time.sleep(0.05)
+    with backup_service._RESTORE_LOCK:
+        backup_service._RESTORE_IN_PROGRESS = False
+    backup_service._maintenance_set(False)
+    backup_service.maintenance_mode.pop("last_ok", None)
+    backup_service.maintenance_mode.pop("last_message", None)
+    yield
+    deadline = time.monotonic() + 5.0
+    while backup_service.restore_in_progress() and time.monotonic() < deadline:
+        time.sleep(0.05)
+
+
 def _audit_entries(db, action):
     return [log for log in get_audit_logs(db) if log.action == action]
 
