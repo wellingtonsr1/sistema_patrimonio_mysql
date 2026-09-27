@@ -989,6 +989,36 @@ def test_preview_renderiza_dropdown_atribuir_a(client):
         diana.close()
 
 
+def test_preview_explica_as_tres_opcoes_de_resolucao(client):
+    """Orientação ao usuário (Princípio XI): quando há linhas NAO_ENCONTRADO, a
+    preview explica a diferença entre as três opções — Importar sem custódia
+    (cadastra o bem sem responsável), Pular linha (nada é gravado) e Atribuir
+    a… (custódia do colaborador escolhido)."""
+    content = (
+        "tombamento,equipamento,categoria,responsavel\n"
+        "TMB-HELP1,Notebook,notebook,Ninguém Assim\n"
+    )
+    upload = _upload_csv(client, "/assets/import", content)
+    step_analyze = client.post(
+        "/assets/import",
+        data={
+            "step": "analyze",
+            "csv_content": content,
+            "skip_duplicates": "true",
+            "mapping_tombamento": "tombamento",
+            "mapping_equipamento": "equipamento",
+            "mapping_categoria": "categoria",
+            "mapping_responsavel": "custodiante",
+        },
+    )
+    assert "Pré-visualização Classificada" in step_analyze.text
+    # Painel explicativo das três opções
+    assert "cadastra o equipamento" in step_analyze.text          # sem custódia
+    assert "nada é gravado" in step_analyze.text                  # pular linha
+    assert "com a custódia" in step_analyze.text                  # atribuir a…
+    assert "Fluxo &amp; Movimentação" in step_analyze.text        # destino pós-importação
+
+
 def test_fluxo_real_resolucao_por_linha_no_confirm(client):
     """Regressão do confirm real: resoluções chegam como selects por linha
     (resolution_<row_num>), não como JSON único. sem_custodia grava sem

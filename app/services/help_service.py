@@ -339,6 +339,22 @@ ARTICLES: List[Dict] = [
                 ],
             },
             {
+                "heading": "Resolvendo responsáveis não encontrados: as três opções",
+                "body": (
+                    "Quando o responsável citado no CSV não existe no cadastro de colaboradores, a linha "
+                    "fica NÃO ENCONTRADO e você decide cada uma individualmente:\n\n"
+                    "Importar sem custódia (aviso) — cadastra o equipamento SEM responsável: ele entra no "
+                    "patrimônio com a movimentação de entrada normal e fica disponível para alocação depois, "
+                    "pelo Fluxo & Movimentação. Use quando o bem é real e deve ser tombado agora.\n\n"
+                    "Pular linha — nada é gravado: o equipamento não é cadastrado nem entra no Fluxo. Use "
+                    "quando a linha estiver errada ou você preferir corrigir o CSV e reenviar (a reanálise "
+                    "relê o estado atual do banco — nada é duplicado).\n\n"
+                    "Atribuir a… — grava o equipamento com a custódia do colaborador escolhido no cadastro "
+                    "(nome + matrícula), gerando a alocação com termo no Fluxo. Nenhuma pessoa é atribuída "
+                    "por semelhança de nome."
+                ),
+            },
+            {
                 "heading": "Importante",
                 "note": (
                     "A importação exige permissão de cadastro de patrimônio. Todo o processo de análise, "

@@ -11,6 +11,7 @@
 | Correção do fluxo real de UI (pós-homologação) | **817 passed** (775 + 42 novos), 0 falhas |
 | Dropdown "Atribuir a…" (pós-homologação) | **818 passed** (775 + 43 novos), 0 falhas |
 | Duplicado + responsável inexistente (pós-homologação) | **819 passed** (775 + 44 novos), 0 falhas |
+| Orientação das 3 opções na preview + ajuda (pós-homologação) | **820 passed** (775 + 45 novos), 0 falhas |
 
 - Suíte executada: `.venv/bin/python -m pytest tests/ -q` → `815 passed, 3 warnings` (~85 s).
 - **R9/SC-007**: todos os testes existentes dos importadores passam **sem alteração de regras**
@@ -109,6 +110,11 @@ extensão não-CSV, consistência tabela↔parser.
    todos os motivos visíveis (também na duplicidade interna ao arquivo). A resolução
    interativa (atribuir/sem custódia/pular) passa a ser oferecida nessas linhas. Teste:
    `test_duplicado_com_responsavel_inexistente_revela_ambos`.
+8. **Orientação das três opções (Princípio XI)**: o aviso da preview passou a explicar a
+   diferença entre Importar sem custódia (cadastra o bem sem responsável; alocação depois no
+   Fluxo), Pular linha (nada é gravado; corrigir o CSV e reenviar) e Atribuir a… (custódia do
+   colaborador escolhido); a Central de Ajuda (artigo "importar-equipamentos") ganhou seção
+   com a mesma explicação. Teste: `test_preview_explica_as_tres_opcoes_de_resolucao`.
 
 ## 5. Limitações
 

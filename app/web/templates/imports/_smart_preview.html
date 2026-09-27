@@ -44,8 +44,27 @@
         {% if smart.needs_resolution %}
         <div class="alert alert-info small">
             <strong><i class="bi bi-person-x me-1"></i>Responsáveis não encontrados:</strong>
-            resolva linha a linha abaixo (atribuir a um colaborador, importar sem
-            custódia ou pular). Nenhuma atribuição automática será feita.
+            resolva linha a linha abaixo. Nenhuma atribuição automática será feita.
+            <hr class="my-2">
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>Importar sem custódia (aviso)</strong> — cadastra o equipamento
+                    <strong>sem responsável</strong>: entra no patrimônio com a movimentação de
+                    entrada normal e fica disponível para alocação depois, pelo
+                    Fluxo &amp; Movimentação. Use quando o bem é real e deve ser tombado agora.
+                </div>
+                <div class="col-md-4">
+                    <strong>Pular linha</strong> — <strong>nada é gravado</strong>: o equipamento
+                    não é cadastrado nem entra no Fluxo. Use quando a linha estiver errada ou
+                    você preferir corrigir o CSV e reenviar (a reanálise relê o banco — nada é
+                    duplicado).
+                </div>
+                <div class="col-md-4">
+                    <strong>Atribuir a…</strong> — grava o equipamento <strong>com a custódia</strong>
+                    do colaborador escolhido no cadastro (nome + matrícula), gerando a alocação
+                    no Fluxo. Nenhuma pessoa é atribuída por semelhança de nome.
+                </div>
+            </div>
         </div>
         {% endif %}
 
