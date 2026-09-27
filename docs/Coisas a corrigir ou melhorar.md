@@ -202,11 +202,11 @@ PS C:\WINDOWS\system32>
         ↓
 8. 📊 Dashboard operacional
         ↓
-9. 🩺 Saúde das integrações/sistema
+9. 🩺 Saúde das integrações/sistema ---> ok
 
 
 
-13. Importação inteligente
+13. Importação inteligente ---> OK
 
 Como você já trabalha com importação CSV, uma evolução útil seria:
 
