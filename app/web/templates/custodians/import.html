@@ -95,7 +95,7 @@
                                 {% if r.status == 'IMPORTADO' %}<span class="badge bg-success">IMPORTADO</span>
                                 {% elif r.status == 'DUPLICADO' %}<span class="badge bg-secondary">DUPLICADO</span>
                                 {% elif r.status == 'ERRO' %}<span class="badge bg-danger">ERRO</span>
-                                {% else %}<span class="badge bg-light text-dark border">{{ r.status }}</span>{% endif %}
+                                {% else %}<span class="badge badge-soft-gray">{{ r.status }}</span>{% endif %}
                             </td>
                             <td><span class="tag-badge">{{ r.identify }}</span></td>
                             <td class="small">{{ r.motivo or '—' }}</td>

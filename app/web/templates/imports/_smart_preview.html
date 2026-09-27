@@ -92,18 +92,11 @@
             <div class="btn-group btn-group-sm mb-3 flex-wrap" role="group" aria-label="Filtrar por situação">
                 {% for key, label in [('todos','Todos'), ('VALIDO','Válidos'), ('AVISO','Avisos'), ('ERRO','Erros'), ('DUPLICADO','Duplicados'), ('NAO_ENCONTRADO','Não encontrados'), ('IGNORADO','Ignorados')] %}
                 <button type="submit" name="filtro" value="{{ key }}"
-                        class="btn {% if filtro == key %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-                    {{ label }}{% if counts_by_status.get(key) %} <span class="badge bg-light text-dark ms-1">{{ counts_by_status[key] }}</span>{% endif %}
+                        class="btn {% if filtro == key %}btn-primary{% else %}btn-ghost{% endif %}">
+                    {{ label }}{% if counts_by_status.get(key) %} <span class="badge badge-soft-gray ms-1">{{ counts_by_status[key] }}</span>{% endif %}
                 </button>
                 {% endfor %}
             </div>
-
-            {% if smart.needs_resolution %}
-            <div class="alert alert-info small py-2 px-3">
-                <i class="bi bi-person-x me-1"></i><strong>Responsáveis não encontrados:</strong>
-                resolva cada linha abaixo — nenhuma atribuição automática será feita.
-            </div>
-            {% endif %}
 
             <!-- Tabela por linha -->
             <div class="table-responsive" style="max-height:500px; overflow-y:auto;">
@@ -135,7 +128,7 @@
                                 {% elif r.status == 'NAO_ENCONTRADO' %}
                                 <span class="badge bg-info text-dark">NÃO ENCONTRADO</span>
                                 {% else %}
-                                <span class="badge bg-light text-dark border">IGNORADO</span>
+                                <span class="badge badge-soft-gray">IGNORADO</span>
                                 {% endif %}
                             </td>
                             <td class="small">
