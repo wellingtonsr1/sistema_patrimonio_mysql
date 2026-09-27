@@ -8,6 +8,7 @@
 |---|---|
 | Baseline (pós-047, T001) | **775 passed** |
 | Após a feature (T018) | **815 passed** (775 + 40 novos), 0 falhas |
+| Correção do fluxo real de UI (pós-homologação) | **817 passed** (775 + 42 novos), 0 falhas |
 
 - Suíte executada: `.venv/bin/python -m pytest tests/ -q` → `815 passed, 3 warnings` (~85 s).
 - **R9/SC-007**: todos os testes existentes dos importadores passam **sem alteração de regras**
@@ -80,6 +81,16 @@ extensão não-CSV, consistência tabela↔parser.
    opcionais é **AVISO informacional** (F3), não VALIDO — alinhado ao Teste B do pedido.
 4. **Resoluções** coletadas como campo único `resolutions` (JSON `{row_num: ação}`) no confirm;
    linhas NAO_ENCONTRADO sem resolução são **removidas** do lote (nenhuma escolha silenciosa).
+5. **Correção pós-homologação (bug do fluxo real de UI)**: o formulário do passo de mapeamento
+   envia um select por coluna (`mapping_<coluna>`), e a preview real envia as resoluções como
+   selects por linha (`resolution_<row_num>`) — a primeira versão da rota esperava apenas os
+   campos JSON agregados, produzindo "Dados do mapeamento ausentes" no uso real (os testes
+   originais postavam o JSON diretamente e não exercitavam o formulário). Correção server-side:
+   a rota monta o mapeamento a partir dos campos dinâmicos do formulário (lendo o formulário
+   já parseado pelo FastAPI em `request._form` — nenhuma leitura duplicada do stream, sem JS
+   novo). Dois testes de regressão do fluxo real foram adicionados (submit exatamente como o
+   navegador envia): `test_fluxo_real_do_formulario_mapeamento` e
+   `test_fluxo_real_resolucao_por_linha_no_confirm`.
 
 ## 5. Limitações
 

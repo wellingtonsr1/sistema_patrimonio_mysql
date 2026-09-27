@@ -39,13 +39,16 @@ from app.services.import_intelligence import (
 )
 
 
-def _confirm_payload_rows(csv_data: str, resolutions: Optional[str], db: Session):
+def _confirm_payload_rows(csv_data: str, resolutions: Optional[str], db: Session,
+                          dynamic_form: Optional[dict] = None):
     """Feature 048: aceita dois formatos no campo csv_data do confirm —
     (a) lista de dicts canônicos (fluxo antigo/compatibilidade R9, sem alteração)
     (b) payload classificado da preview ({row_num, status, resolved_values,...}),
         do qual apenas os registros permitidos seguem para o execute_* via
         apply_resolutions (ERRO/IGNORADO nunca — FR-014; NAO_ENCONTRADO
         conforme as decisões coletadas na preview — R4).
+    As resoluções chegam como selects por linha (resolution_<row_num>, formato
+    da preview real) ou como JSON único no campo `resolutions` (automações).
     Retorna (lote_para_execute, counts_ou_None, erro_ou_None)."""
     import json as _json
     import html as _html_mod
@@ -66,6 +69,12 @@ def _confirm_payload_rows(csv_data: str, resolutions: Optional[str], db: Session
                     resolutions_map = parsed
             except (ValueError, _json.JSONDecodeError):
                 resolutions_map = {}
+        for key, value in (dynamic_form or {}).items():
+            if isinstance(key, str) and key.startswith("resolution_"):
+                try:
+                    resolutions_map[int(key.rsplit("_", 1)[1])] = value
+                except (ValueError, IndexError):
+                    continue
         lote = apply_resolutions(payload, resolutions_map, db)
         counts = classify_summary_counts(payload)
         return lote, counts, None
@@ -602,6 +611,17 @@ def _render_mapping_step(request: Request, template_name: str, kind: str,
     )
 
 
+def _dynamic_form(request: Request):
+    """Feature 048: formulários com campos gerados dinamicamente (um select por
+    coluna do CSV: mapping_<coluna>; uma decisão por linha NAO_ENCONTRADO:
+    resolution_<row_num>) contêm chaves que a assinatura da rota não declara.
+    O FastAPI já parseou e cacheou o formulário em request._form quando há
+    campos Form(...) declarados — aqui apenas o lemos (parsed by FastAPI;
+    nenhuma leitura duplicada do stream). Fallback seguro quando ausente."""
+    form = getattr(request, "_form", None)
+    return form if form is not None else {}
+
+
 @web_router.post("/assets/import", response_class=HTMLResponse, dependencies=[Depends(require_permission("patrimonio.criar"))])
 def process_import_assets(
     request: Request,
@@ -618,7 +638,8 @@ def process_import_assets(
     (pré-visualização — nada gravado, SC-001)."""
     if step == "analyze":
         # Fase 2: mapeamento confirmado → classificação por registro
-        if not csv_content or not mapping:
+        # mapping individual por coluna (mapping_<coluna>) ou JSON único
+        if not csv_content:
             return templates.TemplateResponse(
                 request=request,
                 name="assets/import.html",
@@ -633,6 +654,7 @@ def process_import_assets(
             kind="assets",
             content=csv_content,
             mapping_raw=mapping,
+            dynamic_form=_dynamic_form(request),
             filename=filename or "",
             skip_duplicates=skip_duplicates,
             active_tab="assets",
@@ -682,7 +704,7 @@ def confirm_import_assets(
 ):
     """Confirma e executa a importação (Feature 048: payload classificado ou
     lista canônica legada — mesma URL, mesmo execute_import)"""
-    rows, class_counts, parse_err = _confirm_payload_rows(csv_data, resolutions, db)
+    rows, class_counts, parse_err = _confirm_payload_rows(csv_data, resolutions, db, _dynamic_form(request))
     if parse_err is not None:
         return templates.TemplateResponse(
             request=request,
@@ -1221,7 +1243,7 @@ def process_import_custodians(
     com step=analyze, reexecuta a análise server-side e classifica os registros
     (pré-visualização — nada gravado, SC-001)."""
     if step == "analyze":
-        if not csv_content or not mapping:
+        if not csv_content:
             return templates.TemplateResponse(
                 request=request,
                 name="custodians/import.html",
@@ -1236,6 +1258,7 @@ def process_import_custodians(
             kind="custodians",
             content=csv_content,
             mapping_raw=mapping,
+            dynamic_form=_dynamic_form(request),
             filename=filename or "",
             skip_duplicates=skip_duplicates,
             active_tab="custodians",
@@ -1270,7 +1293,7 @@ def confirm_import_custodians(
     db: Session = Depends(get_db)
 ):
     """Confirma e executa a importação de colaboradores (Feature 048)"""
-    rows, class_counts, parse_err = _confirm_payload_rows(csv_data, resolutions, db)
+    rows, class_counts, parse_err = _confirm_payload_rows(csv_data, resolutions, db, _dynamic_form(request))
     if parse_err is not None:
         return templates.TemplateResponse(
             request=request,
@@ -1394,7 +1417,7 @@ def process_import_locations(
     com step=analyze, reexecuta a análise server-side e classifica os registros
     (pré-visualização — nada gravado, SC-001)."""
     if step == "analyze":
-        if not csv_content or not mapping:
+        if not csv_content:
             return templates.TemplateResponse(
                 request=request,
                 name="locations/import.html",
@@ -1409,6 +1432,7 @@ def process_import_locations(
             kind="locations",
             content=csv_content,
             mapping_raw=mapping,
+            dynamic_form=_dynamic_form(request),
             filename=filename or "",
             skip_duplicates=skip_duplicates,
             active_tab="locations",
@@ -1458,27 +1482,41 @@ def _apply_mapping_to_rows(content: str, mapping: dict, kind: str) -> list:
 
 
 def _render_smart_preview(request: Request, template_name: str, kind: str,
-                          content: str, mapping_raw: str, filename: str,
+                          content: str, mapping_raw: Optional[str], filename: str,
                           skip_duplicates: bool, active_tab: str,
-                          form_action: str, back_url: str, db: Session):
+                          form_action: str, back_url: str, db: Session,
+                          dynamic_form: Optional[dict] = None):
     """Feature 048 (US2): classificação por registro + pré-visualização
     classificada. Reexecuta a análise server-side (nunca confia só no cliente).
-    Somente leitura — o banco permanece inalterado (SC-001)."""
+    Somente leitura — o banco permanece inalterado (SC-001).
+
+    Aceita o mapeamento de duas formas (a UI real usa a primeira):
+      (a) campos dinâmicos mapping_<coluna> do formulário do passo de mapeamento;
+      (b) campo único `mapping` com JSON {coluna: campo} (automações/testes).
+    """
     import json as _json
 
-    try:
-        mapping = _json.loads(mapping_raw)
-        if not isinstance(mapping, dict):
-            raise ValueError("mapping inválido")
-    except (ValueError, _json.JSONDecodeError):
-        mapping = None
-    if mapping is None:
+    mapping: Optional[dict] = None
+    if mapping_raw:
+        try:
+            parsed = _json.loads(mapping_raw)
+            if isinstance(parsed, dict):
+                mapping = parsed
+        except (ValueError, _json.JSONDecodeError):
+            mapping = None
+    if mapping is None and dynamic_form:
+        mapping = {
+            key[len("mapping_"):]: value
+            for key, value in dynamic_form.items()
+            if isinstance(key, str) and key.startswith("mapping_")
+        }
+    if not mapping:
         return templates.TemplateResponse(
             request=request,
             name=template_name,
             context={
                 "active_tab": active_tab,
-                "error": "Mapeamento inválido. Envie o arquivo novamente.",
+                "error": "Dados do mapeamento ausentes. Envie o arquivo novamente.",
             }
         )
 
@@ -1542,7 +1580,7 @@ def confirm_import_locations(
     db: Session = Depends(get_db)
 ):
     """Confirma e executa a importação de locais (Feature 048)"""
-    rows, class_counts, parse_err = _confirm_payload_rows(csv_data, resolutions, db)
+    rows, class_counts, parse_err = _confirm_payload_rows(csv_data, resolutions, db, _dynamic_form(request))
     if parse_err is not None:
         return templates.TemplateResponse(
             request=request,

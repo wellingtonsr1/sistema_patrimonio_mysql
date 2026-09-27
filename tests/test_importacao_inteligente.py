@@ -893,6 +893,84 @@ def test_us3_relatorio_final_por_linha(client):
     assert "Linha" in confirm.text
 
 
+def test_fluxo_real_do_formulario_mapeamento(client):
+    """Regressão do fluxo REAL da UI: o passo de mapeamento envia um select por
+    coluna (mapping_<coluna>) — sem campo JSON `mapping`. O servidor deve montar
+    o mapeamento a partir dos campos dinâmicos (bug de campo ausente corrigido)."""
+    content = "tombamento,equipamento,categoria\nTMB-FORM1,Notebook,notebook\n"
+    upload = _upload_csv(client, "/assets/import", content)
+    assert "Mapeamento de Colunas" in upload.text
+
+    # O que o navegador envia ao avançar (nenhum campo `mapping`):
+    step_analyze = client.post(
+        "/assets/import",
+        data={
+            "step": "analyze",
+            "csv_content": content,
+            "filename": "arquivo.csv",
+            "skip_duplicates": "true",
+            "mapping_tombamento": "tombamento",
+            "mapping_equipamento": "equipamento",
+            "mapping_categoria": "categoria",
+        },
+    )
+    assert step_analyze.status_code == 200
+    assert "Pré-visualização Classificada" in step_analyze.text
+    assert "TMB-FORM1" in step_analyze.text
+
+
+def test_fluxo_real_resolucao_por_linha_no_confirm(client):
+    """Regressão do confirm real: resoluções chegam como selects por linha
+    (resolution_<row_num>), não como JSON único. sem_custodia grava sem
+    custodiante; skip remove a linha."""
+    content = (
+        "tombamento,equipamento,categoria,responsavel\n"
+        "TMB-RES1,Notebook 1,notebook,Ninguém Assim\n"
+        "TMB-RES2,Notebook 2,notebook,Ninguém Assim\n"
+    )
+    upload = _upload_csv(client, "/assets/import", content)
+    assert "Mapeamento de Colunas" in upload.text
+
+    step_analyze = client.post(
+        "/assets/import",
+        data={
+            "step": "analyze",
+            "csv_content": content,
+            "filename": "arquivo.csv",
+            "skip_duplicates": "true",
+            "mapping_tombamento": "tombamento",
+            "mapping_equipamento": "equipamento",
+            "mapping_categoria": "categoria",
+            "mapping_responsavel": "custodiante",
+        },
+    )
+    assert "Pré-visualização Classificada" in step_analyze.text
+    payload = _extract_preview_payload(step_analyze)
+    neno = [r for r in payload if r["status"] == "NAO_ENCONTRADO"]
+    assert len(neno) == 2
+
+    confirm = client.post(
+        "/assets/import/confirm",
+        data={
+            "csv_data": step_analyze.text.split('name="csv_data" style="display:none;">')[1].split("</textarea>")[0],
+            "skip_duplicates": "true",
+            f"resolution_{neno[0]['row_num']}": "sem_custodia",
+            f"resolution_{neno[1]['row_num']}": "skip",
+        },
+    )
+    assert confirm.status_code == 200
+    assert "Importação Concluída" in confirm.text
+
+    from app.models.asset import Asset as _A
+    db = db_from_client(client)
+    try:
+        assert db.query(_A).filter(_A.tag == "TMB-RES1").first() is not None  # sem_custodia gravou
+        assert db.query(_A).filter(_A.tag == "TMB-RES1").first().custodian_id is None
+        assert db.query(_A).filter(_A.tag == "TMB-RES2").first() is None      # skip removeu
+    finally:
+        db.close()
+
+
 def test_importacao_bloqueada_sem_permissao(db_session, unauth_client):
     """Teste P (FR-023): usuário sem permissão bloqueado nas fases de
     import/confirm das 3 rotas (permissões vigentes inalteradas)."""
