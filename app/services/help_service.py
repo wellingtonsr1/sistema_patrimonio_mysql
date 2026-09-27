@@ -339,6 +339,27 @@ ARTICLES: List[Dict] = [
                 ],
             },
             {
+                "heading": "Para que serve o passo Mapeamento de Colunas",
+                "body": (
+                    "É o passo que torna visível e corrigível o que o sistema entendeu do seu arquivo, "
+                    "antes de qualquer leitura de dados. Cada coluna do CSV aparece ao lado do campo do "
+                    "sistema que ela vai alimentar, com uma amostra do primeiro registro.\n\n"
+                    "Reconhecimento automático: dezenas de variações de cabeçalho já são aceitas "
+                    "(tombamento, TOMBAMENTO, Nº Tombamento, patrimonio, cod_patrimonio…), incluindo "
+                    "caixa alta/baixa e acentuação. No CSV típico do órgão, Tombamento, Responsavel, "
+                    "Descrição, Número de série e locations são reconhecidos sozinhos.\n\n"
+                    "Coluna desconhecida (ex.: uma coluna cor): aparece como “não utilizada” — nada é "
+                    "descartado em silêncio e nenhum campo novo é criado no banco. Se ela corresponde a "
+                    "um dado que interessa, aponte manualmente no seletor.\n\n"
+                    "Coluna ambígua (ex.: descricao, que pode alimentar campos diferentes conforme a "
+                    "tabela): o sistema NÃO escolhe sozinho — marca como ambígua, destaca em amarelo e "
+                    "exige que você confirme o campo.\n\n"
+                    "Validação mínima para avançar: só se segue para a análise dos registros com os "
+                    "campos obrigatórios da entidade mapeados (equipamentos: tombamento, equipamento e "
+                    "categoria). Aceito como sugerido, o resultado é idêntico ao fluxo de sempre."
+                ),
+            },
+            {
                 "heading": "Resolvendo responsáveis não encontrados: as três opções",
                 "body": (
                     "Quando o responsável citado no CSV não existe no cadastro de colaboradores, a linha "
