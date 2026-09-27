@@ -7,6 +7,7 @@ consulta ≠ teste (0 chamadas caras no GET), isolamento por card e RBAC.
 
 Fakes/monkeypatch apenas — nenhum serviço externo real (F10/032).
 """
+import re
 from datetime import timedelta
 from pathlib import Path
 
@@ -177,14 +178,186 @@ def test_scheduler_ativo_e_desabilitado(db_session, monkeypatch):
 
 
 def test_scheduler_com_ultimo_resultado_erro(db_session, monkeypatch):
+    """Último AUTOMATICO = FAILURE → COM_ERRO.
+
+    Correção: "Último resultado" é derivado do BackupRecord PERSISTENTE (o
+    `_last_result` do agendador é em memória e some no restart; o formato real
+    é {"ok": ...}, nunca a chave "result" antes lida aqui).
+    """
     monkeypatch.setattr(backup_scheduler, "scheduler_status",
                         lambda: {"enabled": True, "schedule": "weekly",
                                  "time_local": "03:00", "weekday": 6,
                                  "running": False, "next_run_local": None,
-                                 "last_result": {"result": "FAILURE",
-                                                 "description": "erro simulado"},
-                                 "last_finished_at": None})
-    assert ics._scheduler_status_fn(db_session)["status"] == ics.STATUS_COM_ERRO
+                                 "last_result": None, "last_finished_at": None})
+    _mk_backup_record(db_session, status="FAILURE", backup_type="AUTOMATICO")
+    r = ics._scheduler_status_fn(db_session)
+    assert r["status"] == ics.STATUS_COM_ERRO
+    assert ("Último resultado", "Falha") in r["detail"]["summary"]
+
+
+def test_scheduler_ultimo_resultado_sucesso_do_banco(db_session, monkeypatch):
+    """Último AUTOMATICO = SUCCESS → ATIVA "Sucesso" (fonte no banco, não em
+    memória — sobrevive a restart)."""
+    monkeypatch.setattr(backup_scheduler, "scheduler_status",
+                        lambda: {"enabled": True, "schedule": "daily",
+                                 "time_local": "02:00", "weekday": None,
+                                 "running": False, "next_run_local": None,
+                                 "last_result": None, "last_finished_at": None})
+    _mk_backup_record(db_session, status="SUCCESS", backup_type="AUTOMATICO")
+    r = ics._scheduler_status_fn(db_session)
+    assert r["status"] == ics.STATUS_ATIVA
+    assert ("Último resultado", "Sucesso") in r["detail"]["summary"]
+
+
+def test_scheduler_sem_backup_automatico_mostra_traco(db_session, monkeypatch):
+    """Agendador ativo sem nenhum registro AUTOMATICO → "—" (ausência não é
+    falha — precedente da 032), status ATIVA."""
+    monkeypatch.setattr(backup_scheduler, "scheduler_status",
+                        lambda: {"enabled": True, "schedule": "daily",
+                                 "time_local": "02:00", "weekday": None,
+                                 "running": False, "next_run_local": None,
+                                 "last_result": None, "last_finished_at": None})
+    r = ics._scheduler_status_fn(db_session)
+    assert r["status"] == ics.STATUS_ATIVA
+    assert ("Último resultado", "—") in r["detail"]["summary"]
+
+
+def test_scheduler_ignora_backups_manuais_no_resultado(db_session, monkeypatch):
+    """Backup MANUAL recente NÃO conta como "Último resultado" do agendador —
+    apenas o último AUTOMATICO."""
+    monkeypatch.setattr(backup_scheduler, "scheduler_status",
+                        lambda: {"enabled": True, "schedule": "daily",
+                                 "time_local": "02:00", "weekday": None,
+                                 "running": False, "next_run_local": None,
+                                 "last_result": None, "last_finished_at": None})
+    _mk_backup_record(db_session, status="SUCCESS", backup_type="MANUAL")
+    r = ics._scheduler_status_fn(db_session)
+    assert r["status"] == ics.STATUS_ATIVA
+    assert ("Último resultado", "—") in r["detail"]["summary"]
+
+
+# ---------------------------------------------------------------------------
+# Cenário I — linhas da dl do card (Última execução/Último sucesso/Falhas 24h)
+# também derivadas de backup_records (AUTOMATICO) — não ficam mais em "—"
+# ---------------------------------------------------------------------------
+
+def test_scheduler_card_dl_populada_do_banco(db_session, monkeypatch):
+    """Execução de 02:00 existe → 'Última execução'/'Último sucesso' mostram os
+    timestamps do último AUTOMATICO (antes ficavam '—' porque o agendador não
+    grava em integration_executions)."""
+    monkeypatch.setattr(backup_scheduler, "scheduler_status",
+                        lambda: {"enabled": True, "schedule": "daily",
+                                 "time_local": "02:00", "weekday": None,
+                                 "running": False, "next_run_local": None,
+                                 "last_result": None, "last_finished_at": None})
+    _mk_backup_record(db_session, status="FAILURE", age_min=30 * 60,
+                      backup_type="AUTOMATICO")   # 30h — fora da janela 24h
+    _mk_backup_record(db_session, status="SUCCESS", age_min=120,
+                      backup_type="AUTOMATICO")   # 2h — execução de hoje
+    cards = {c["key"]: c for c in ics.get_panel(db_session)}
+    card = cards["scheduler"]
+    assert card["last_execution_at"] is not None
+    assert card["last_success_at"] is not None
+    assert card["failures_24h"] == 0
+    assert card["pending"] == 0
+
+
+def test_scheduler_card_falha_na_janela_24h(db_session, monkeypatch):
+    """AUTOMATICO FAILURE nas últimas 24h → failures_24h = 1 e sem 'último
+    sucesso' enquanto nenhum SUCCESS existir."""
+    monkeypatch.setattr(backup_scheduler, "scheduler_status",
+                        lambda: {"enabled": True, "schedule": "daily",
+                                 "time_local": "02:00", "weekday": None,
+                                 "running": False, "next_run_local": None,
+                                 "last_result": None, "last_finished_at": None})
+    _mk_backup_record(db_session, status="FAILURE", age_min=60,
+                      backup_type="AUTOMATICO")
+    cards = {c["key"]: c for c in ics.get_panel(db_session)}
+    card = cards["scheduler"]
+    assert card["failures_24h"] == 1
+    assert card["last_execution_at"] is not None
+    assert card["last_success_at"] is None
+    assert card["status"] == ics.STATUS_COM_ERRO
+
+
+# ---------------------------------------------------------------------------
+# Cenário — linhas da dl populadas também para backup_local e backup_externo
+# (fonte: backup_records / backup_external_records persistentes)
+# ---------------------------------------------------------------------------
+
+def test_backup_local_card_dl_populada_do_banco(db_session, monkeypatch):
+    """Card Backup Local: Última execução/Último sucesso/Falhas 24h derivadas
+    de backup_records (TODOS os tipos — é o histórico local completo)."""
+    monkeypatch.setattr(backup_scheduler, "scheduler_status",
+                        lambda: {"enabled": False, "schedule": None})
+    _mk_backup_record(db_session, status="FAILURE", age_min=45,
+                      backup_type="MANUAL")
+    _mk_backup_record(db_session, status="SUCCESS", age_min=20,
+                      backup_type="AUTOMATICO")
+    card = {c["key"]: c for c in ics.get_panel(db_session)}["backup_local"]
+    assert card["last_execution_at"] is not None
+    assert card["last_success_at"] is not None
+    assert card["failures_24h"] == 1
+    # Regra do clarify 047: regime manual → sem alerta por atualidade,
+    # mas espelha a última falha registrada → COM_ERRO.
+    assert card["status"] == ics.STATUS_COM_ERRO
+
+
+def test_backup_externo_card_dl_populada_do_banco(db_session):
+    """Card Backup Externo: linhas da dl derivadas de backup_external_records
+    (045 — resultado final por filename; copied_at como timestamp)."""
+    _mk_external(db_session, enabled=True, status="FAILURE", age_min=50)
+    _mk_external(db_session, enabled=True, status="SUCCESS", age_min=10)
+    card = {c["key"]: c for c in ics.get_panel(db_session)}["backup_externo"]
+    assert card["last_execution_at"] is not None
+    assert card["last_success_at"] is not None
+    assert card["failures_24h"] == 1
+    assert card["status"] == ics.STATUS_ATIVA  # última cópia = SUCCESS
+
+
+def test_backup_externo_card_dl_sem_copia(db_session):
+    """Habilitado sem nenhuma cópia → dl vazia (—) e status INATIVA
+    (precedente 032: ausência não é falha)."""
+    _mk_external(db_session, enabled=True, status=None)
+    card = {c["key"]: c for c in ics.get_panel(db_session)}["backup_externo"]
+    assert card["last_execution_at"] is None
+    assert card["last_success_at"] is None
+    assert card["failures_24h"] == 0
+
+
+def test_scheduler_proximo_backup_formatado_ddmm_hhmm(db_session, monkeypatch):
+    """'Próximo backup' exibe dd/mm HH:MM quando next_run_local é datetime
+    (America/Recife — já convertido por scheduler_status; sem reconverter)."""
+    from app.utils.time_utils import utc_to_recife
+
+    monkeypatch.setattr(backup_scheduler, "scheduler_status",
+                        lambda: {"enabled": True, "schedule": "daily",
+                                 "time_local": "02:00", "weekday": None,
+                                 "running": False,
+                                 "next_run_local": utc_to_recife(
+                                     now_utc() + timedelta(days=1)),
+                                 "last_result": None, "last_finished_at": None})
+    r = ics._scheduler_status_fn(db_session)
+    proximo = dict(r["detail"]["summary"])["Próximo backup"]
+    assert re.fullmatch(r"\d{2}/\d{2} \d{2}:\d{2}", proximo), proximo
+
+
+def test_scheduler_card_dl_ignora_manuais(db_session, monkeypatch):
+    """Backups MANUAL/PRE_RESTAURACAO não aparecem na dl do agendador."""
+    monkeypatch.setattr(backup_scheduler, "scheduler_status",
+                        lambda: {"enabled": True, "schedule": "daily",
+                                 "time_local": "02:00", "weekday": None,
+                                 "running": False, "next_run_local": None,
+                                 "last_result": None, "last_finished_at": None})
+    _mk_backup_record(db_session, status="SUCCESS", age_min=30,
+                      backup_type="MANUAL")
+    _mk_backup_record(db_session, status="FAILURE", age_min=15,
+                      backup_type="PRE_RESTAURACAO")
+    cards = {c["key"]: c for c in ics.get_panel(db_session)}
+    card = cards["scheduler"]
+    assert card["last_execution_at"] is None
+    assert card["last_success_at"] is None
+    assert card["failures_24h"] == 0
 
 
 # ---------------------------------------------------------------------------

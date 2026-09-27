@@ -64,9 +64,9 @@
 
                 <dl class="row small mb-2">
                     <dt class="col-7 fw-normal text-muted">Última execução:</dt>
-                    <dd class="col-5 mb-1">{{ card.last_execution_at|localtime if card.last_execution_at else '—' }}</dd>
+                    <dd class="col-5 mb-1">{{ (card.last_execution_at|localtime).strftime('%d/%m/%Y %H:%M') if card.last_execution_at else '—' }}</dd>
                     <dt class="col-7 fw-normal text-muted">Último sucesso:</dt>
-                    <dd class="col-5 mb-1">{{ card.last_success_at|localtime if card.last_success_at else '—' }}</dd>
+                    <dd class="col-5 mb-1">{{ (card.last_success_at|localtime).strftime('%d/%m/%Y %H:%M') if card.last_success_at else '—' }}</dd>
                     <dt class="col-7 fw-normal text-muted">Falhas recentes (24h):</dt>
                     <dd class="col-5 mb-1">{{ card.failures_24h }}</dd>
                     <dt class="col-7 fw-normal text-muted">Operações pendentes:</dt>

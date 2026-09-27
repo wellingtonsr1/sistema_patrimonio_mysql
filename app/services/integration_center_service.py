@@ -20,6 +20,7 @@ Diretrizes:
 import logging
 import re
 from datetime import timedelta
+from types import SimpleNamespace
 from typing import Callable, Dict, List, Optional
 
 from sqlalchemy import func
@@ -410,20 +411,44 @@ def _backup_externo_status_fn(db: Session) -> dict:
 @_safe
 def _scheduler_status_fn(db: Session) -> dict:
     """Agendador (FR-012): leitura direta de scheduler_status() existente —
-    nenhum thread novo; desabilitado ≠ falha (edge case da spec)."""
+    nenhum thread novo; desabilitado ≠ falha (edge case da spec).
+
+    "Último resultado" vem do ÚLTIMO BackupRecord do tipo AUTOMATICO (fonte
+    PERSISTENTE): o `_last_result` do agendador é em memória e some no restart,
+    além de nunca ter tido a chave "result" lida aqui (formato real: {"ok": ...}).
+    """
     from app.services.backup_scheduler import scheduler_status
+    from app.services.backup_service import BACKUP_TYPE_AUTOMATICO
 
     st = scheduler_status()
     if not st.get("enabled"):
         return {"status": STATUS_DESABILITADA,
                 "detail": {"summary": [("Backup automático", "Desabilitado")]}}
-    last = st.get("last_result") or {}
+    last_auto = (
+        db.query(BackupRecord)
+        .filter(BackupRecord.backup_type == BACKUP_TYPE_AUTOMATICO)
+        .order_by(BackupRecord.timestamp.desc(), BackupRecord.id.desc())
+        .first()
+    )
+    if last_auto is None:
+        resultado = "—"
+    else:
+        resultado = "Sucesso" if last_auto.status == "SUCCESS" else "Falha"
+
+    # next_run_local já vem em America/Recife (scheduler_status) — só formata;
+    # mesmo padrão dd/mm HH:MM dos demais cards (_backup_local/_backup_externo).
+    next_run = st.get("next_run_local")
+    if hasattr(next_run, "strftime"):
+        proximo = next_run.strftime("%d/%m %H:%M")
+    else:
+        proximo = str(next_run) if next_run else "—"
+
     summary = [
         ("Agendamento", f"{st.get('schedule') or '—'} {st.get('time_local') or ''}".strip()),
-        ("Próximo backup", str(st.get("next_run_local") or "—")),
-        ("Último resultado", str(last.get("result") or "—")),
+        ("Próximo backup", proximo),
+        ("Último resultado", resultado),
     ]
-    if str(last.get("result", "")).upper() == "FAILURE":
+    if resultado == "Falha":
         return {"status": STATUS_COM_ERRO, "detail": {"summary": summary}}
     return {"status": STATUS_ATIVA, "detail": {"summary": summary}}
 
@@ -585,12 +610,76 @@ def _window_start(hours: int = FAILURE_WINDOW_HOURS):
     return now_utc() - timedelta(hours=hours)
 
 
+def _backup_counters(db: Session, key: str) -> dict:
+    """Contadores dos cards de backup a partir das tabelas PERSISTENTES de
+    backup — não de `integration_executions` (nenhum fluxo de backup grava
+    lá). Sem este override, "Última execução/Último sucesso/Falhas (24h)"
+    ficariam em "—" mesmo com backups/cópias existentes. Mesma FORMA de
+    retorno de `_execution_counters` (objetos com `.created_at`/`.detail` —
+    painel e detalhe consomem sem saber a diferença).
+
+    - scheduler     → backup_records (tipo AUTOMATICO) — execução local;
+    - backup_local  → backup_records (TODOS os tipos) — histórico completo;
+    - backup_externo→ backup_external_records (045) — resultado final da cópia.
+    """
+    if key == "scheduler":
+        model, ts_col = BackupRecord, BackupRecord.timestamp
+        # Filtro por tipo vale para TODAS as agregações (incl. failures_24h)
+        conditions = [BackupRecord.backup_type == "AUTOMATICO"]
+    elif key == "backup_local":
+        model, ts_col = BackupRecord, BackupRecord.timestamp
+        conditions = []  # todos os tipos (histórico local completo)
+    else:  # backup_externo → 045: um registro FINAL por filename
+        model, ts_col = BackupExternalRecord, BackupExternalRecord.copied_at
+        conditions = []
+
+    base = db.query(model).filter(*conditions)
+    last_exec = (
+        base.order_by(ts_col.desc(), model.id.desc()).first()
+    )
+    last_success = (
+        base.filter(model.status == "SUCCESS")
+        .order_by(ts_col.desc(), model.id.desc())
+        .first()
+    )
+    failures_24h = (
+        base.filter(model.status == "FAILURE", ts_col >= _window_start())
+        .count()
+    )
+    return {
+        "total": base.count(),
+        "failures": base.filter(model.status == "FAILURE").count(),
+        "failures_24h": failures_24h,
+        "last_execution": (
+            SimpleNamespace(
+                created_at=getattr(last_exec, ts_col.key),
+                # "Último erro" do detalhe: descrição já sanitizada (Princípio VI)
+                detail=last_exec.error_description
+                if last_exec.status == "FAILURE"
+                else None,
+            )
+            if last_exec
+            else None
+        ),
+        "last_success": (
+            SimpleNamespace(created_at=getattr(last_success, ts_col.key), detail=None)
+            if last_success
+            else None
+        ),
+    }
+
+
 def _execution_counters(db: Session, key: str) -> dict:
     """Contadores por integração a partir do histórico unificado.
 
     - falhas_24h: janela fixa de 24h explícita no card (P-4);
     - pendentes: PENDING nas tabelas de integração (fonte de verdade do estado).
+    - scheduler/backup_local/backup_externo: fonte própria = tabelas de backup
+      persistentes — ver `_backup_counters` (nenhum fluxo de backup grava no
+      histórico 032).
     """
+    if key in ("scheduler", "backup_local", "backup_externo"):
+        return _backup_counters(db, key)
     window = _window_start()
     total = (
         db.query(func.count(IntegrationExecution.id))

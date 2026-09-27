@@ -32,9 +32,9 @@
                     <dt class="col-6 fw-normal text-muted">Finalidade:</dt>
                     <dd class="col-6">{{ detail.purpose }}</dd>
                     <dt class="col-6 fw-normal text-muted">Última execução:</dt>
-                    <dd class="col-6">{{ detail.last_execution.created_at|localtime if detail.last_execution else '—' }}</dd>
+                    <dd class="col-6">{{ (detail.last_execution.created_at|localtime).strftime('%d/%m/%Y %H:%M') if detail.last_execution else '—' }}</dd>
                     <dt class="col-6 fw-normal text-muted">Último sucesso:</dt>
-                    <dd class="col-6">{{ detail.last_success.created_at|localtime if detail.last_success else '—' }}</dd>
+                    <dd class="col-6">{{ (detail.last_success.created_at|localtime).strftime('%d/%m/%Y %H:%M') if detail.last_success else '—' }}</dd>
                     <dt class="col-6 fw-normal text-muted">Operações realizadas:</dt>
                     <dd class="col-6">{{ detail.total }}</dd>
                     <dt class="col-6 fw-normal text-muted">Operações com erro:</dt>
