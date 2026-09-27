@@ -94,7 +94,7 @@
 
             <!-- Filtros: botões submit com name=filtro (server-side, sem JS) -->
             <div class="btn-group btn-group-sm mb-3 flex-wrap" role="group" aria-label="Filtrar por situação">
-                {% for key, label in [('todos','Todos'), ('VALIDO','Válidos'), ('AVISO','Avisos'), ('ERRO','Erros'), ('DUPLICADO','Duplicados'), ('NAO_ENCONTRADO','Não encontrados'), ('IGNORADO','Ignorados')] %}
+                {% for key, label in [('todos','Todos'), ('VALIDO','Válidos'), ('AVISO','Avisos'), ('DUPLICADO','Duplicados'), ('ERRO','Erros'), ('NAO_ENCONTRADO','Não encontrados'), ('IGNORADO','Ignorados')] %}
                 <button type="submit" name="filtro" value="{{ key }}"
                         class="btn {% if filtro == key %}btn-primary{% else %}btn-ghost{% endif %}">
                     {{ label }}{% if counts_by_status.get(key) %} <span class="badge badge-soft-gray ms-1">{{ counts_by_status[key] }}</span>{% endif %}
