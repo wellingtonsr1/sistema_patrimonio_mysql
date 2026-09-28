@@ -685,7 +685,11 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
 - **Arquivos:** `custodian_service.py`, `location_service.py`, `custodian_import_service.py`,
   `app/api/custodians_api.py`, `app/api/locations_api.py`, templates `custodians/`, `locations/`.
 - **Permissões:** `colaboradores.*`, `locais.*`.
-- **Importação CSV de locais:** `location_import_service.py` (`parse_locations_csv`, `preview_locations_import`, `execute_locations_import`), telas `/locations/import` + `/locations/import/confirm` (preview → confirm), permissão `locais.criar`.
+- **Importação CSV de locais (feature 050):** `location_import_service.py` (`parse_locations_csv`,
+  `preview_locations_import`, `execute_locations_import`), telas `/locations/import` +
+  `/locations/import/confirm` (mapeamento → prévia classificada → confirm), permissão `locais.criar`.
+  Cabeçalho oficial `Localização;Unidade Administrativa;Departamento` (aliases legados
+  `Nome;Filial;Departamento` e variações continuam aceitos por compatibilidade).
 - **Edição de colaborador:** telas `GET/POST /custodians/{id}/edit` (`colaboradores.editar`) e API `PUT /api/v1/custodians/{id}`.
 - **Pesquisa na listagem (feature 006):** `GET /custodians?search=` filtra server-side via
   `CustodianService.get_all(search=...)` (`or_` + `ilike` sobre matrícula, nome, cargo,
@@ -712,9 +716,10 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
 - **Exportação de locais (feature 008):** `GET /api/v1/reports/locations/csv` (`locais.csv`),
   gerado por `ReportService.generate_locations_csv` (padrão de `generate_custodians_csv`);
   exporta sempre **todos** os locais (não recebe filtro/pesquisa), apenas dados cadastrais
-  (`nome;filial;departamento;predio;andar;sala;gestor`), sem colunas de interface ("Ações" e
-  contagem de "Bens"). Botão "Exportar CSV" no cabeçalho da tela de Locais, gated por
-  `relatorios.exportar`. Operação read-only, sem auditoria (padrão dos demais CSVs).
+  (`Localização;Unidade Administrativa;Departamento;Prédio;Andar;Sala;Gestor` — feature 050:
+  cabeçalhos oficiais, reimportáveis pelo importador de locais), sem colunas de interface
+  ("Ações" e contagem de "Bens"). Botão "Exportar CSV" no cabeçalho da tela de Locais, gated
+  por `relatorios.exportar`. Operação read-only, sem auditoria (padrão dos demais CSVs).
 
 ### 12.6 Administração
 
