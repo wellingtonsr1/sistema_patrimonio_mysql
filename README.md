@@ -432,8 +432,8 @@ Active: active (running)
 Em um servidor **Debian/Ubuntu (ou derivada com `apt` + systemd)**, o instalador automatizado prepara tudo — Python ≥ 3.10, Git, MariaDB, banco/usuário, clone, venv, dependências, `.env`, serviço `systemd` e verificação via `/health` — de forma **idempotente** (pode ser executado novamente; banco existente **nunca** é apagado):
 
 ```bash
-git clone https://github.com/wellingtonsr1/sistema_patrimonio_mysql.git
-cd sistema_patrimonio_mysql
+git clone https://github.com/wellingtonsr1/SisPatrimonioPro.git
+cd SisPatrimonioPro
 sudo bash install.sh                 # modo interativo (pergunta com defaults)
 ```
 
@@ -494,9 +494,9 @@ CREATE DATABASE sispatrimoniopro
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
-CREATE USER 'patrimonio'@'%' IDENTIFIED BY 'SENHA_FORTE';
+CREATE USER 'sispat'@'%' IDENTIFIED BY 'SENHA_FORTE';
 
-GRANT ALL PRIVILEGES ON sispatrimonio.* TO 'sispat'@'%';
+GRANT ALL PRIVILEGES ON sispatrimoniopro.* TO 'sispat'@'%';
 
 FLUSH PRIVILEGES;
 ```
