@@ -283,7 +283,7 @@
     </div>
     <div class="card-body">
         <p class="mb-3">O arquivo CSV deve conter um <strong>cabeçalho</strong> (primeira linha) com os nomes das colunas.
-        As colunas <code>nome</code>, <code>filial</code> e <code>departamento</code> são <strong>obrigatórias</strong>.</p>
+        As colunas <code>Localização</code>, <code>Unidade Administrativa</code> e <code>Departamento</code> são <strong>obrigatórias</strong>.</p>
 
         <div class="table-responsive">
             <table class="table table-sm table-bordered font-monospace" style="font-size:.82rem;">
@@ -297,49 +297,49 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><code>nome</code></td>
+                        <td><code>Localização</code></td>
                         <td><span class="badge bg-danger">Sim</span></td>
                         <td>Sala de TI</td>
-                        <td>Nome / identificação do local (único)</td>
+                        <td>Localização</td>
                     </tr>
                     <tr>
-                        <td><code>filial</code></td>
+                        <td><code>Unidade Administrativa</code></td>
                         <td><span class="badge bg-danger">Sim</span></td>
                         <td>Matriz SP</td>
-                        <td>Filial ou unidade da organização</td>
+                        <td>Unidade Administrativa</td>
                     </tr>
                     <tr>
-                        <td><code>departamento</code></td>
+                        <td><code>Departamento</code></td>
                         <td><span class="badge bg-danger">Sim</span></td>
                         <td>Tecnologia da Informação</td>
                         <td>Departamento / setor</td>
                     </tr>
                     <tr>
-                        <td><code>predio</code></td>
+                        <td><code>Prédio</code></td>
                         <td><span class="badge bg-secondary">Não</span></td>
                         <td>Edifício Central</td>
                         <td>Prédio / edificio</td>
                     </tr>
                     <tr>
-                        <td><code>andar</code></td>
+                        <td><code>Andar</code></td>
                         <td><span class="badge bg-secondary">Não</span></td>
                         <td>5º Andar</td>
                         <td>Andar / piso</td>
                     </tr>
                     <tr>
-                        <td><code>sala</code></td>
+                        <td><code>Sala</code></td>
                         <td><span class="badge bg-secondary">Não</span></td>
                         <td>Sala 502</td>
                         <td>Sala / cômodo</td>
                     </tr>
                     <tr>
-                        <td><code>gestor</code></td>
+                        <td><code>Gestor</code></td>
                         <td><span class="badge bg-secondary">Não</span></td>
                         <td>Carlos Silva</td>
                         <td>Responsável pelo local</td>
                     </tr>
                     <tr>
-                        <td><code>descricao</code></td>
+                        <td><code>Descrição</code></td>
                         <td><span class="badge bg-secondary">Não</span></td>
                         <td>Área técnica central</td>
                         <td>Observações livres</td>
@@ -350,7 +350,7 @@
 
         <div class="mt-3">
             <h6 class="fw-semibold">Exemplo de CSV (ponto e vírgula):</h6>
-            <pre class="bg-light p-3 rounded border small mb-0">nome;filial;departamento;predio;andar;sala;gestor
+            <pre class="bg-light p-3 rounded border small mb-0">Localização;Unidade Administrativa;Departamento;Prédio;Andar;Sala;Gestor
 Sala de TI;Matriz SP;Tecnologia da Informação;Edifício Central;5º Andar;Sala 502;Carlos Silva
 Laboratório;Matriz SP;Tecnologia da Informação;Edifício Central;3º Andar;Lab 301;Mariana Souza
 Diretoria;Matriz SP;Administrativo;Prédio Rei;2º Andar;DIR 201;João Costa
