@@ -457,14 +457,15 @@ class ReportService:
         output = io.StringIO()
         writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
 
+        # Feature 050: cabeçalhos oficiais (round-trip com o importador de locais)
         writer.writerow([
-            "nome",
-            "filial",
-            "departamento",
-            "predio",
-            "andar",
-            "sala",
-            "gestor",
+            "Localização",
+            "Unidade Administrativa",
+            "Departamento",
+            "Prédio",
+            "Andar",
+            "Sala",
+            "Gestor",
         ])
 
         for loc in locations:

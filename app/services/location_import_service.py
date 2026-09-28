@@ -42,12 +42,16 @@ COLUMN_ALIASES = {
     "localização": "name",
     "descricao_local": "name",
     "descricao": "name",
+    # Feature 050: nomenclatura oficial (formulário/CSV atuais)
+    "nome_da_localizacao": "name",
     # filial
     "filial": "branch",
     "branch": "branch",
     "unidade": "branch",
     "empresa": "branch",
     "sede": "branch",
+    # Feature 050: nomenclatura oficial (formulário/CSV atuais)
+    "unidade_administrativa": "branch",
     # departamento
     "departamento": "department",
     "department": "department",
@@ -114,10 +118,11 @@ def _normalize_column_name(raw: str) -> str:
 def _validate_row(row: Dict[str, str], row_num: int) -> List[str]:
     """Valida uma linha do CSV e retorna lista de erros (vazia = OK)."""
     errors = []
+    # Feature 050: nomenclatura oficial nas mensagens (formulário/CSV atuais)
     if not row.get("name", "").strip():
-        errors.append(f"Linha {row_num}: nome é obrigatório")
+        errors.append(f"Linha {row_num}: Localização é obrigatória")
     if not row.get("branch", "").strip():
-        errors.append(f"Linha {row_num}: filial é obrigatória")
+        errors.append(f"Linha {row_num}: Unidade Administrativa é obrigatória")
     if not row.get("department", "").strip():
         errors.append(f"Linha {row_num}: departamento é obrigatório")
     return errors

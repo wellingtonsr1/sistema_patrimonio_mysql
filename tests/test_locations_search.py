@@ -216,9 +216,9 @@ def test_base_route_renders_current_table_structure(client, db_session):
 
     assert resp.status_code == 200
     body = resp.text
-    for header in ("Nome / Identificação", "Filial", "Departamento",
+    for header in ("Localização", "Unidade Administrativa", "Departamento",
                    "Prédio / Andar / Sala", "Gestor", "Bens", "Ações"):
-        assert header in body
+        assert header in body  # Feature 050: headers oficiais da listagem
     assert locs["controle"].name in body
     assert locs["gabinete"].name in body
     assert locs["patrimonio_sede"].name in body

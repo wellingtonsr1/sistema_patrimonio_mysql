@@ -30,7 +30,8 @@ from app.services.report_service import ReportService
 PASSWORD = "senha@1234"
 
 EXPORT_URL = "/api/v1/reports/locations/csv"
-LOCATION_CSV_HEADER = "nome;filial;departamento;predio;andar;sala;gestor"
+# Feature 050: cabeçalhos oficiais do export (round-trip com o importador)
+LOCATION_CSV_HEADER = "Localização;Unidade Administrativa;Departamento;Prédio;Andar;Sala;Gestor"
 
 
 # ============================================================================
@@ -154,7 +155,7 @@ def test_locations_screen_intact_after_export(client, db_session):
     after = client.get("/locations")
     assert after.status_code == 200
     assert "Local Pós-Export" in after.text
-    assert "Nome / Identificação" in after.text
+    assert "Localização" in after.text  # Feature 050: header oficial da listagem
     assert 'name="search"' in after.text
 
 
@@ -314,7 +315,7 @@ def test_screen_without_export_permission_search_and_table_intact(db_session, un
     assert "Almoxarifado Central" in body
     assert "Sala de Reuniões" not in body
     assert 'name="search"' in body
-    for header in ("Nome / Identificação", "Filial", "Departamento",
+    for header in ("Localização", "Unidade Administrativa", "Departamento",
                    "Prédio / Andar / Sala", "Gestor", "Bens", "Ações"):
         assert header in body
     assert "Exportar CSV" not in body

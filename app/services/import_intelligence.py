@@ -102,8 +102,9 @@ FIELD_LABELS = {
         "is_active": "Ativo",
     },
     "locations": {
-        "name": "Nome do local",
-        "branch": "Filial",
+        # Feature 050: nomenclatura oficial (formulário/CSV atuais)
+        "name": "Localização",
+        "branch": "Unidade Administrativa",
         "department": "Departamento",
         "building": "Prédio",
         "floor": "Andar",
