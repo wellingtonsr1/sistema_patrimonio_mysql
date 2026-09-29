@@ -20,6 +20,7 @@ from app.models.enums import (
     InventarioStatus,
 )
 from app.models.inventario import Inventario
+from app.models.location import Location
 from app.services.asset_service import AssetService
 from app.services.inventario_service import InventarioService
 from app.services.location_service import LocationService

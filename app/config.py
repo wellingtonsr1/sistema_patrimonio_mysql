@@ -101,8 +101,23 @@ APP_PORT = int(os.getenv("APP_PORT", "8000"))
 # Worker não registra em origens por IP (navigator.serviceWorker undefined).
 # Gerador: `python scripts/gera_cert_dev.py` (CA local + SAN do IP da LAN).
 # NOTA: DEVEM ficar APÓS load_dotenv() — as variáveis vivem no .env do servidor.
-APP_SSL_CERTFILE = os.getenv("APP_SSL_CERTFILE") or None
-APP_SSL_KEYFILE = os.getenv("APP_SSL_KEYFILE") or None
+# Normalização multiplataforma (achado real: .env copiado do Windows para o
+# Linux com separador `\` — uvicorn falha com FileNotFoundError genérico em
+# create_ssl_context/load_cert_chain). Converte `\` em `/` e resolve caminho
+# relativo contra a raiz do projeto (BASE_DIR), tornando o .env portável
+# (mesmo arquivo funciona no Windows e no Linux).
+def _normaliza_caminho_cert(valor: str | None) -> str | None:
+    if not valor:
+        return None
+    caminho = Path(valor.replace("\\", "/"))
+    if not caminho.is_absolute():
+        caminho = BASE_DIR / caminho
+    return str(caminho)
+
+_APP_SSL_CERTFILE_RAW = os.getenv("APP_SSL_CERTFILE") or None
+_APP_SSL_KEYFILE_RAW = os.getenv("APP_SSL_KEYFILE") or None
+APP_SSL_CERTFILE = _normaliza_caminho_cert(_APP_SSL_CERTFILE_RAW)
+APP_SSL_KEYFILE = _normaliza_caminho_cert(_APP_SSL_KEYFILE_RAW)
 
 # Organização padrão para emissão de termos
 COMPANY_NAME = "© Instituto de Previdência do Municipio de João Pessoa."

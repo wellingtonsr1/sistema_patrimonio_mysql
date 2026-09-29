@@ -26,6 +26,19 @@ if __name__ == "__main__":
 
     ssl_args = {}
     if APP_SSL_CERTFILE and APP_SSL_KEYFILE:
+        # Falha rápida e clara se o certificado/chave não existirem (ex.: .env
+        # copiado de outra máquina com caminho inexistente) — sem isso o uvicorn
+        # estoura um FileNotFoundError cru dentro de create_ssl_context.
+        from pathlib import Path
+
+        faltando = [p for p in (APP_SSL_CERTFILE, APP_SSL_KEYFILE) if not Path(p).is_file()]
+        if faltando:
+            raise SystemExit(
+                "[ERRO] APP_SSL_CERTFILE/APP_SSL_KEYFILE definidos, mas arquivo(s) "
+                f"não encontrado(s): {', '.join(faltando)}. Gere-os com "
+                "`python scripts/gera_cert_dev.py` ou remova as variáveis do .env "
+                "para subir em HTTP puro."
+            )
         ssl_args = {"ssl_certfile": APP_SSL_CERTFILE, "ssl_keyfile": APP_SSL_KEYFILE}
     esquema = "https" if ssl_args else "http"
     

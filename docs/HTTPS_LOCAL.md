@@ -35,13 +35,20 @@ SAN inclui o IP, `localhost`, o hostname e `sispatrimoniopro.local`. Use
 
 ### 2. Configure o .env e reinicie
 
+Use **barras `/`** — o app normaliza caminhos relativos contra a raiz do
+projeto, então o MESMO .env funciona no Windows e no Linux (um .env copiado
+do Windows com `data\ssl\server.crt` fazia o uvicorn falhar com
+`FileNotFoundError` cru no Linux — não use `\`).
+
 ```bat
-APP_SSL_CERTFILE=data\ssl\server.crt
-APP_SSL_KEYFILE=data\ssl\server.key
+APP_SSL_CERTFILE=data/ssl/server.crt
+APP_SSL_KEYFILE=data/ssl/server.key
 ```
 
 O log passará a mostrar `https://0.0.0.0:8000`. Sem essas variáveis, o app
-sobe HTTP idêntico ao atual (nada muda).
+sobe HTTP idêntico ao atual (nada muda). Se os arquivos apontados não
+existirem, o `run.py` falha rápido com mensagem explícita (gere-os com
+`python scripts/gera_cert_dev.py` ou remova as variáveis para HTTP puro).
 
 ### 3. Confie na CA nos aparelhos (uma vez por aparelho)
 
@@ -51,6 +58,45 @@ sobe HTTP idêntico ao atual (nada muda).
 - No Windows da própria máquina, a CA pode ser confiada por usuário:
   `certutil -user -addstore Root data\ssl\ca.crt`
   (remover: `certutil -user -delstore Root "SisPatrimonio Pro - CA local (dev)"`).
+
+#### No PC Linux: Chrome e Firefox NÃO usam a confiança do sistema
+
+Mesmo com o cert válido (SAN casa com o IP), o navegador mostra "conexão não
+segura"/https riscado enquanto a CA local não for confiada **no navegador**:
+Chrome/Chromium usa o banco NSS do usuário (`~/.pki/nssdb`) e o Firefox tem
+`cert9.db` por perfil — nenhum lê a trust store do SO por padrão. Com o
+`libnss3-tools` instalado (`sudo apt install libnss3-tools`):
+
+```bash
+NOME="SisPatrimonio Pro - CA local (dev)"
+# Chrome/Chromium:
+certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n "$NOME" -i data/ssl/ca.crt
+# Todos os perfis do Firefox (com o FECHADO — o banco fica travado em uso):
+for perfil in $HOME/.mozilla/firefox/*/; do
+  [ -f "$perfil/cert9.db" ] && certutil -d "sql:$perfil" -A -t "C,," -n "$NOME" -i data/ssl/ca.crt
+done
+```
+
+Confere com `certutil -d sql:$HOME/.pki/nssdb -L` (deve listar a CA com flags
+`C,,`). Depois reinicie o navegador e acesse `https://<IP>:8000` — cadeado
+válido, sem exceção manual. Se o navegador for snap/flatpak, o banco muda de
+lugar (ex.: `~/snap/chromium/common/.pki/nssdb`).
+
+> **Google Chrome FLATPAK** (ID `com.google.Chrome`): o banco NSS é
+> `~/.var/app/com.google.Chrome/.pki/nssdb` — o caminho nativo `~/.pki/nssdb`
+> é IGNORADO pelo sandbox. Sintoma de CA faltando aqui: "sua conexão não é
+> privada" no PC e, mesmo passando pelo aviso, "não é possível instalar o
+> app" (o Chrome recusa instalar PWA em página com erro de certificado).
+> Correção:
+>
+> ```bash
+> NSSDIR=$HOME/.var/app/com.google.Chrome/.pki/nssdb
+> mkdir -p "$NSSDIR"
+> certutil -d "sql:$NSSDIR" -N --empty-password   # só se o banco não existir
+> certutil -d "sql:$NSSDIR" -A -t "C,," -n "SisPatrimonio Pro - CA local (dev)" -i data/ssl/ca.crt
+> ```
+>
+> Fechar o Chrome POR COMPLETO e reabrir (o banco só é lido no start).
 
 ### 4. Acesse e valide
 
