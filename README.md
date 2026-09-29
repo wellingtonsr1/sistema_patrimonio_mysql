@@ -1020,17 +1020,29 @@ O conteúdo é mantido em `app/services/help_service.py`.
 
 ## 🧪 Testes Automatizados
 
-Execute:
+Execute (runner oficial — usa sempre o Python do venv):
 
-```bash
-pytest -q
+```bat
+test.bat -q
 ```
 
-ou:
+ou, com verbosidade:
 
-```bash
-pytest -v
+```bat
+test.bat -v
 ```
+
+Argumentos são repassados ao pytest (ex.: `test.bat tests\test_inventario.py -q`).
+O runner equivale a `.venv\Scripts\python.exe -m pytest %*`. Use o `test.bat`
+(ou o Python do venv) sempre: com o interpretador do sistema, o subprocesso de
+anti-regressão do backup não encontra o `dotenv` e a suíte rende um failure
+ambiental.
+
+### Hermeticidade da suíte (feature 054)
+
+A suíte é **hermética**: o banco de dados do `.env` (MariaDB de produção/desenvolvimento) **não é tocado** — nem ao subir o app de teste (o bootstrap do lifespan é neutralizado no conftest) nem durante os testes. Todo dado vem de fixtures sobre o SQLite em memória. Com o MySQL/XAMPP **parado**, a suíte roda igual (882 passed com as 2 falhas conhecidas de `test_backup_externo.py`); em CI não há dependência de infraestrutura.
+
+> **Feature 045 (destino externo de backup):** 2 testes de `tests/test_backup_externo.py` falham por dependência de infraestrutura externa — falhas pré-existentes e documentadas, fora do escopo das features seguintes (régua de regressão).
 
 A suíte cobre, entre outros:
 
