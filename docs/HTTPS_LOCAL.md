@@ -191,3 +191,68 @@ funcionando para o "Ler QR".
   ou certificado da **CA do domínio** (AD CS/Samba) em redes corporativas com os aparelhos
   gerenciados. Autoassinado caseiro não é recomendado (confiança manual por aparelho e
   recursos bloqueados).
+
+---
+
+## Múltiplos servidores (Windows + Linux): CAs separadas — importação dupla
+
+**Decisão** (2026-09-29): cada servidor mantém a PRÓPRIA CA local (a do
+Windows não assina o Linux e vice-versa). Vantagens: nenhuma chave privada
+circular entre máquinas; regenerar/derrubar um servidor não afeta a confiança
+do outro; operação local simples. **Custo**: cada aparelho que usa os DOIS
+servidores precisa importar as DUAS CAs (uma vez cada).
+
+### Identifique a CA de cada servidor (o CN é igual nas duas!)
+
+Ambas as CAs se chamam `CN = SisPatrimonio Pro - CA local (dev)` — o que
+distingue é a impressão digital. No servidor, obtenha com:
+
+```bash
+openssl x509 -in data/ssl/ca.crt -noout -fingerprint -sha256
+```
+
+Ao distribuir os arquivos, renomeie para não confundir:
+`ca-servidor-windows.crt` / `ca-servidor-linux-<ip>.crt`
+(ex.: `ca-servidor-linux-192-168-0-9.crt`).
+
+### Passo a passo por aparelho
+
+**Celular Android (para cada servidor que usar):**
+1. Copie o `ca.crt` DAQUELE servidor para o aparelho (e-mail/USB)
+2. Configurações → Segurança → Mais configurações → Criptografia e credenciais →
+   **Instalar um certificado → Autoridade CA** → escolha o arquivo
+3. No Chrome: ⋮ → Informações do site → **Limpar e redefinir** (apaga o estado
+   antigo do site com erro de cert), feche e reabra o Chrome
+4. `https://<ip-daquele-servidor>:8000` → cadeado válido → login → ⋮ → Instalar app
+
+**iPhone/iPad:** abrir o arquivo → instalar perfil → ativar confiança total
+(Ajustes → Geral → Sobre → Configurações de confiança). Repita por servidor.
+
+**PC Windows:** `certutil -user -addstore Root <ca-daquele-servidor>.crt`
+(remover: `certutil -user -delstore Root "SisPatrimonio Pro - CA local (dev)"`).
+
+**PC Linux (nativo E flatpak — ver seção acima para detalhes):** use um
+APELIDO distinto por servidor no NSS (o apelido é a chave do registro — usar
+o mesmo nome substituiria/colidiria):
+
+```bash
+# Chrome nativo + Firefox (perfis com cert9.db, navegador FECHADO):
+NOME_LINUX="SisPatrimonio CA (Linux 192.168.0.9)"
+NOME_WIN="SisPatrimonio CA (Windows <ip>)"
+certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n "$NOME_LINUX" -i ca-servidor-linux-<ip>.crt
+certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n "$NOME_WIN"   -i ca-servidor-windows.crt
+# Chrome FLATPAK: repetir com -d sql:$HOME/.var/app/com.google.Chrome/.pki/nssdb
+```
+
+### Regras de convivência
+
+- **Trocou o IP de um servidor?** Regenere SÓ o cert dele
+  (`python scripts/gera_cert_dev.py --force`) — a CA dele não muda e os
+  aparelhos não precisam reimportar nada.
+- **Regenerou a CA de um servidor?** Os aparelhos precisam reimportar a
+  NOVA CA daquele servidor (a do outro continua valendo).
+- **Backup**: guarde `ca.key` de cada servidor em local seguro — perdeu,
+  regenera tudo e reimporta nos aparelhos.
+- Se um dia a operação crescer para 3+ servidores ou exigir rotação, a
+  unificação (uma CA única assinando todos) passa a valer a pena: reemitir
+  os certs com `--reuse-ca` sobre a CA de um dos servidores.
