@@ -235,3 +235,39 @@ Por exemplo:
     2 com tombamento inválido
 
 E permitir corrigir antes de gravar.
+
+
+Entendido — a CA foi importada com sucesso (sem aviso de certificado), mas o Chrome ainda não instala. Isso isola a causa: é o critério de instalabilidade naquela tela/página, não o certificado. Vou reproduzir exatamente o que o Chrome do celular faz e ver o que falta. Primeiro, checar onde o manifest está sendo servido e se o SW controla a página de onde você tenta instalar:
+
+ACHADO CRÍTICO — na tela do LOGIN (e é where o celular está):
+
+Causa raiz encontrada. A página de login é um template separado (login.html, não estende base.html) e não tem o <link rel="manifest"> — por isso o Chrome diz "não é possível instalar o app": a tela onde você está (login, ou se o Chrome restaurou a aba, ela mesma) não declara o manifest. Além disso, o SW só registra em telas de inventário.
+
+Correção (via spec-kit, 057 — cirúrgica):
+
+RED: 2/2 (login sem manifest, base condicional). Verde — aplico as 2 correções:
+
+Verde: 7/7 (057 + guardas da 053) — e o curl confirma que o servidor em execução já serve o manifest no login (Jinja2 recarrega templates). Régua completa + prova no navegador:
+
+Um failure novo: test_defaults_sem_env_sao_none da 056 — e a causa é clara: agora o .env real tem APP_SSL_* (ativação permanente), então o reload do config carrega os valores. Meu teste não considerou esse estado. Verifico e corrijo o teste (isolamento total do ambiente):
+
+Confirmado: o load_dotenv() no reload lê o .env real (que agora tem as vars — estado correto do servidor). O teste precisa isolar também do arquivo .env, não só das variáveis de processo. Correção do teste:
+
+895 passed / 0 failed (893 + 2 novos da 057; o da 056 corrigido com isolamento duplo). Prova final no navegador — login agora com manifest + SW:
+
+No changes to existing files. As tasks já foram criadas com [x] (escritas pós-execução) — nada a mudar. Feature 057 completa: causa raiz corrigida e provada.
+
+O que era o "importer mas não insta"
+A tela de login não declarava o manifest (login.html é template separado, sem o <link rel="manifest">), e o SW só registrava em telas de inventário. Partindo do login — onde naturalmente se tenta instalar — o Chrome não via os pré-requisitos e respondia "não é possível instalar o app". A CA estava OK (como você confirmou ao importar); faltava isto.
+
+Correção (057, já ativa no servidor em execução)
+login.html: agora declara <link rel="manifest" href="/static/manifest.webmanifest">;
+base.html: SW registrado em todas as páginas (incondicional) — sem cache novo (network-only fora da allowlist, FR-036 preservado);
+Guardas: 2 testes estruturais novos; suíte completa 895 passed / 0 failed;
+Prova em navegador: na tela de login agora há manifestLink + SW activated + página controlada → o Chrome habilita "Instalar app".
+No seu celular agora
+Feche e reabra o site (https://10.39.0.16:8000) — o Chrome precisa recarregar a página para ver o manifest novo;
+Se ainda não aparecer, limpe os dados do site (Chrome ⋮ → Configurações → Privacidade → Limpar dados) — estado antigo pré-correção pode persistir;
+⋮ → "Instalar app" (ou "Adicionar à tela inicial") — a partir do login ou de qualquer tela;
+Abra o app instalado → Inventários → "Preparar coleta offline" → "Ler QR".
+Mudanças não commitadas (057: templates + 2 testes + docs + artefatos). Quer que eu commite e faça o deploy para o PRO?
