@@ -19,14 +19,22 @@ RAIZ = Path(__file__).resolve().parent.parent
 
 
 def test_defaults_sem_env_sao_none(monkeypatch):
-    """FR-001/FR-006: sem envs, os defaults são None — HTTP puro (comportamento
-    atual preservado; suíte intocada)."""
+    """FR-001/FR-006: sem envs NEM .env, os defaults são None — HTTP puro
+    (comportamento atual preservado; suíte intocada).
+
+    Isolamento duplo: variáveis de processo (delenv) E o arquivo .env
+    (load_dotenv no-op durante o reload) — o servidor real pode ter as
+    APP_SSL_* no .env (ativação permanente da 056), o que é legítimo.
+    """
     import importlib
 
     import app.config as config
 
     monkeypatch.delenv("APP_SSL_CERTFILE", raising=False)
     monkeypatch.delenv("APP_SSL_KEYFILE", raising=False)
+    import dotenv
+
+    monkeypatch.setattr(dotenv, "load_dotenv", lambda *a, **k: None)
     importlib.reload(config)
     try:
         assert config.APP_SSL_CERTFILE is None

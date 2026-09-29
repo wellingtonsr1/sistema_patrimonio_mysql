@@ -335,8 +335,9 @@
         });
     </script>
     {% block scripts %}{% endblock %}
-    {% if active_tab == 'inventarios' %}
-    <!-- Feature 033: registro do SW apenas nas páginas de inventário (FR-035/FR-046) -->
+    <!-- Feature 033/057: registro do SW em TODAS as páginas (incondicional).
+         Escopo "/" + manifest permitem instalar o PWA de qualquer tela; o SW é
+         network-only fora da allowlist (FR-036) — nada novo é cacheado. -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
@@ -344,6 +345,5 @@
             });
         }
     </script>
-    {% endif %}
 </body>
 </html>

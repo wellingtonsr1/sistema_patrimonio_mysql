@@ -16,6 +16,10 @@
     </script>
     <title>Entrar | SisPatrimônio Pro</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', path='img/favicon.ico') }}">
+    <!-- PWA: manifest declarado também no login (feature 057) — o Chrome exige
+         manifest + SW na página para oferecer "Instalar app"; sem isso ele
+         responde "não é possível instalar o app". -->
+    <link rel="manifest" href="/static/manifest.webmanifest">
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
