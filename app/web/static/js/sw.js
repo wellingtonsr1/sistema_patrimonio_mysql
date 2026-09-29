@@ -10,7 +10,7 @@
  */
 "use strict";
 
-var CACHE_VERSION = "inventario-offline-v31"; // v31: contador de conflitos sincroniza com reconciliações do servidor (C-8) · v30: fallback offline do atalho · v29: tombamento no fallback manual · v28: Ler QR vira FAB · v27: .dark-toggle padrão · v26: sticky do header · v25: layout 035 · ↔ DB_VERSION=1 do IndexedDB (D3/D4)
+var CACHE_VERSION = "inventario-offline-v32"; // v32: corrige respondWith duplo na navegação offline (053 — InvalidStateError por spec Fetch) e força limpeza dos caches v31 possivelmente corrompidos · v31: contador de conflitos sincroniza com reconciliações do servidor (C-8) · v30: fallback offline do atalho · v29: tombamento no fallback manual · v28: Ler QR vira FAB · v27: .dark-toggle padrão · v26: sticky do header · v25: layout 035 · ↔ DB_VERSION=1 do IndexedDB (D3/D4)
 var OFFLINE_NAV_RE = /^\/inventarios\/\d+\/offline$/;
 
 // Allowlist explícita (FR-035) — nada além disso entra em cache
@@ -83,6 +83,10 @@ self.addEventListener("fetch", function (event) {
           return cached || fetchPromise;
         })
       );
+      // Feature 053 (FR-001): respondWith é ÚNICO por evento (spec Fetch —
+      // segunda chamada lança InvalidStateError). A navegação da rota offline
+      // termina aqui; as demais navegações têm o ramo próprio abaixo.
+      return;
     }
     // Demais navegações: rede; se falhar (sem rede ao abrir o atalho do PWA,
     // ex.: start_url /inventarios), serve o fallback offline-start em vez da
