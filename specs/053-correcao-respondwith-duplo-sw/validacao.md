@@ -46,13 +46,38 @@ Suíte completa com o Python do **venv** (o oficial do projeto): **882 passed / 
 
 Os 2 failures são exatamente os pré-existentes de `test_backup_externo.py` (feature 045, baseline externo documentado — FR-021 da 050 proíbe tocar backup). **Nenhum teste que passava passou a falhar.**
 
-## V6 — Pendência operacional e decisões registradas ⏳
+## V6 — Prova de campo executada (2026-09-29, pós-deploy) ✅ + decisões
 
-- **Prova de campo (R2 da análise)**: confirmar no dispositivo do usuário (servidor `10.39.0.16:8000` de pé) que a página de conferência renderiza integralmente — janela normal **e** aba anônima — após o SW v32 assumir. Pendente porque o servidor estava offline durante a implementação. A correção entregue é estrutural e comprovada por código/teste; a reprodução do bug exige o ambiente do usuário.
+### Prova de campo (R2 da análise) — SERVIDOR DE PÉ (`10.39.0.16:8000` = `localhost:8000`)
+
+**Setup**: usuário temporário `fieldtest_tmp` (admin, id=4) criado via `create_user` para a prova e **desativado** ao final (login rastreável na auditoria; nenhum dado de negócio tocado).
+
+| # | Cenário | Resultado |
+|---|---|---|
+| F1 | **Janela normal**, origin `10.39.0.16:8000` → login → `/inventarios/1/conferir/1` | **PASS** — página completa (título, card do bem IPMJP1456, resultado anterior, formulário com 4 opções + select de locais); `document.body.innerText` sem a palavra "null" |
+| F2 | Mesma página com console/monitoramento | **PASS** — console **vazio** (zero erros de JS); todas as requisições 200 |
+| F3 | **Origin `localhost:8000`** (secure context, onde o SW da 033 registra): visita a `/inventarios/1` → SW registrado e **ativado** (`inventario-offline-v32`, 14 entradas precacheadas) → navegação a `/inventarios/1/conferir/1` **com o SW interceptando** | **PASS** — página íntegra (1.929 chars, `contemNull=false`), navegação concluída sem `InvalidStateError` — o caminho exato do respondWith duplo exercitado com a correção em produção |
+| F4 | **Aba anônima** (contexto isolado, sem SW/cache prévios): login → acesso direto a `/inventarios/1/conferir/1` | **PASS** — página idêntica (1.929 chars, zero "null", console vazio) |
+
+**Screenshots**: ambas as janelas (normal com SW v32 ativo e anônima) renderizam a ficha de conferência completa — header "Conferência de Inventário", badge INV-2026-0001, card do bem com status, resultado anterior ("Conferido por admin em 24/09/2026 11:40") e o formulário de resultado com as 4 opções.
+
+### Achado técnico da prova (importante — explica a "invisibilidade" do bug no IP)
+
+Em `http://10.39.0.16:8000` (IP puro, sem HTTPS), `navigator.serviceWorker` é **undefined** — origin de IP não é *secure context*, então o SW **não registra aí** (o `if ('serviceWorker' in navigator)` do base.html pula silenciosamente). Consequências:
+
+1. No acesso por IP, o bug "null" NUNCA foi causado por SW — a causa compatível com os sintomas no IP é cache HTTP corrompido do navegador (o v31 era servido e guardado também em acessos por localhost/PWA instalado) ou proxy local.
+2. O PWA/coleta offline (033) **só funciona de fato via `localhost` ou HTTPS** — na instalação atual (acesso por IP sem TLS), os dispositivos não têm SW; isso alinha com o M6/R3 da análise (HTTPS local é pré-requisito para o PWA na rede).
+3. A correção da 053 vale integralmente para os acessos por localhost/HTTPS (prova F3); para acessos por IP, o fim do bug depende da limpeza do cache HTTP (novo deploy força revalidação dos estáticos com `?v=`; páginas HTML não são cacheadas pelo SW).
+
+**Conclusão da prova**: 4/4 PASS — a página de conferência renderiza integralmente nas 4 condições; nenhuma ocorrência de "null". Correção 053 validada em campo no cenário onde o SW atua (F3).
+
+### Decisões registradas
+
 - **D1**: contagem de chamadas usa a âncora `respondWith(` (com parêntese) para não confundir com a palavra em comentários.
 - **D2**: grep de v31 confinado a `app/` — docs/specs citam a versão antiga como changelog legítimo.
-- **D3 (observação para o M1 da análise)**: com o Python do sistema (fora do venv), a suíte ganha um 3º failure ambiental (`test_backup_config.py::test_anti_regressao_*` — `dotenv` vive no user site-packages e o subprocesso do teste não o encontra) e o tempo varia; executar sempre via `.venv/Scripts/python.exe`.
+- **D3 (observação para o M1 da análise)**: com o Python do sistema (fora do venv), a suíte ganha um 3º failure ambiental (`test_backup_config.py::test_anti_regressao_*` — `dotenv` vive no user site-packages e o subprocesso do teste não o encontra) e o tempo varia; executar sempre via `.venv/Scripts/python.exe`. *(Observação: resolvido na 054 — runner `test.bat` fixa o venv.)*
+- **D4 (desta prova)**: usuário temporário criado/desativado — não removido para preservar a trilha de auditoria da prova (login/logout rastreáveis); reativável se necessário.
 
 ## Resultado
 
-**V1–V5: PASS** · V6 parcialmente pendente (prova de campo operacional) — 5/5 SCs verificáveis em ambiente satisfeitos.
+**V1–V5: PASS** · **V6: PASS (prova de campo 4/4)** — 5/5 SCs satisfeitos e pendência operacional encerrada.

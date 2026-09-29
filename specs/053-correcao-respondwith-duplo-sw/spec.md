@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-29
 
-**Status**: Draft
+**Status**: Implemented (2026-09-29 — validacao.md V1–V6 PASS, incluindo prova de campo 4/4 com servidor de pé)
 
 **Input**: Corrigir o bug estrutural do handler `fetch` do Service Worker da feature 033 (`app/web/static/js/sw.js`): na navegação da rota offline (`/inventarios/{id}/offline`) o código chama `event.respondWith(...)` duas vezes no mesmo evento — o primeiro (cache-first da rota offline) e o segundo (navegações gerais) —, comportamento que lança `InvalidStateError` (spec Fetch: respondWith só pode ser chamado uma vez) e cujo resultado varia por navegador/estado de cache. Em conjunto, avançar a `CACHE_VERSION` para v32 para que a ativação do SW atualizado remova os caches `inventario-offline-v31` dos dispositivos, que podem conter entradas corrompidas. Fonte: análise profunda de 2026-09-29 (`docs/ANALISE_PROFUNDA_SISTEMA_2026-09-29.md`, §2.1/§2.3-R1) — hipótese primária do bug reincidente "página `null`" desde a 033.
 
