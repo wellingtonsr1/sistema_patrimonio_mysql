@@ -8,7 +8,11 @@ Mecanismo (US1), operação pela tela (US2) e resiliência/preservações (US3):
 - Suíte existente permanece 100% verde (regressão §37).
 """
 
+import os
 import re
+import stat
+import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -32,6 +36,47 @@ SECRET_PATTERNS = ("senha", "password", "token", "secret", "credential")
 def _fake_dump(path):
     with open(path, "wb") as f:
         f.write(FAKE_DUMP_CONTENT)
+
+
+def _bloquear_escrita(dest_path):
+    """055 — simulação CROSS-PLATFORM de "sem permissão de escrita" no destino.
+
+    A premissa original dos testes (os.chmod r-x no DIRETÓRIO) só vale em
+    POSIX: no Windows o atributo READONLY de diretório NÃO impede criar
+    arquivos dentro (provado empiricamente em 2026-09-29 — os 2 failures
+    pré-existentes da suíte vinham daí). Simulação honesta:
+    - POSIX: chmod r-x no diretório (comportamento original preservado);
+    - Windows: ACL real via `icacls /deny *S-1-1-0:(WD)` (SID bem-conhecido
+      Everyone — sem dependência de locale do Windows). Criar qualquer
+      arquivo no destino levanta PermissionError — a MESMA exceção que a
+      cópia (external_backup_service, etapa 6) mapeia para
+      REASON_SEM_PERMISSAO. Nenhum código de produção é tocado.
+
+    Retorna callable de liberação para o `finally` do teste.
+    """
+    d = Path(dest_path)
+    if os.name == "nt":
+        subprocess.run(
+            ["icacls", str(d), "/deny", "*S-1-1-0:(WD)"],
+            check=True,
+            capture_output=True,
+        )
+
+        def _liberar_windows():
+            subprocess.run(
+                ["icacls", str(d), "/remove:d", "*S-1-1-0"],
+                check=False,
+                capture_output=True,
+            )
+
+        return _liberar_windows
+
+    os.chmod(d, stat.S_IRUSR | stat.S_IXUSR)  # r-x: leitura sem escrita
+
+    def _liberar_posix():
+        os.chmod(d, 0o755)
+
+    return _liberar_posix
 
 
 @pytest.fixture(autouse=True)
@@ -382,7 +427,7 @@ def test_destino_sem_permissao(db_session, dest):
     import stat
 
     _enable_external(db_session, dest)
-    os.chmod(dest, stat.S_IRUSR | stat.S_IXUSR)  # r-x: leitura sem escrita
+    _liberar = _bloquear_escrita(dest)  # 055: cross-platform (chmod não impede mkdir no Windows)
     try:
         result = BackupService.generate_backup(db_session, None, None,
                                                dump_executor=_fake_dump)
@@ -395,7 +440,7 @@ def test_destino_sem_permissao(db_session, dest):
         from app.config import BACKUP_DIR
         assert (BACKUP_DIR / result["filename"]).is_file()
     finally:
-        os.chmod(dest, 0o755)  # restaura para o cleanup do tmp_path
+        _liberar()  # restaura permissões para o cleanup do tmp_path
 
 
 # ============================================================================
@@ -690,13 +735,13 @@ def test_zero_segredos_em_logs(db_session, dest, monkeypatch, caplog):
     dest2 = dest.parent / "destino-sem-permissao"
     dest2.mkdir()
     _enable_external(db_session, dest2)
-    os.chmod(dest2, stat.S_IRUSR | stat.S_IXUSR)
+    _liberar2 = _bloquear_escrita(dest2)  # 055: cross-platform
     try:
         result2 = BackupService.generate_backup(db_session, None, None,
                                                 dump_executor=_fake_dump)
         assert result2["external"]["external_status"] == "FAILURE"
     finally:
-        os.chmod(dest2, 0o755)
+        _liberar2()
     shutil.rmtree(dest2)
 
     # G — hash divergente (novo destino vazio)
