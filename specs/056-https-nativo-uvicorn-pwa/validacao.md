@@ -62,6 +62,10 @@ Após `certutil -user -addstore Root data/ssl/ca.crt`:
   2. Acessar `https://10.39.0.16:8000` → cadeado válido.
   3. Login → Inventários → "Preparar coleta offline" → instalar PWA ("Adicionar à tela inicial") → "Ler QR" com câmera.
 
+## V8 — Documentação de produção (follow-up da revisão) ✅
+
+`docs/DEPLOY_PRODUCAO.md` ganhou a **§5.1 HTTPS nativo**: passos no servidor de produção (gerar CA+cert com `--ip <IP-DO-SERVIDOR>`, apontar `.env`, reiniciar serviço, confiar na `ca.crt` nos aparelhos), com as regras de segurança (`data/ssl/` por máquina — chave NUNCA copiada/versionada; alternativa via CA corporativa AD CS), nota de TLS-only na 8000 e renovação. Modelo do `.env` (Seção 4) atualizado com as duas variáveis comentadas.
+
 ## Resultado
 
-**V1–V7: PASS** — SC-001..005 satisfeitos; HTTPS permanente ativo na porta 8000 e PWA com SW ativado (prova real de navegador); pendência restante é apenas o passo físico por aparelho (checklist V7).
+**V1–V8: PASS** — SC-001..005 satisfeitos; HTTPS permanente ativo na porta 8000 e PWA com SW ativado (prova real de navegador); documentação de produção completa; pendência restante é apenas o passo físico por aparelho (checklist V7).

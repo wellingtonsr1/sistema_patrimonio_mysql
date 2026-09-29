@@ -95,6 +95,9 @@ SECRET_KEY=<gere uma chave única para este servidor>
 TZ=America/Recife
 # Opcional — caminho do mysqldump se não estiver no PATH (Windows):
 # MYSQLDUMP_PATH=C:\Program Files\MariaDB 11.x\bin\mysqldump.exe
+# Opcional — HTTPS nativo (PWA/coleta offline via IP — feature 056, ver §5.1):
+# APP_SSL_CERTFILE=data/ssl/server.crt
+# APP_SSL_KEYFILE=data/ssl/server.key
 ```
 
 > `SECRET_KEY`: gere com `python -c "import secrets; print(secrets.token_hex(32))"`.
@@ -120,6 +123,57 @@ Depois configure o serviço para iniciar com o servidor:
 ⚠️ Garanta **uma única instância** rodando (o incidente histórico de "processo fantasma" veio de dois servidores simultâneos com códigos diferentes).
 
 Backup no Windows: funciona com `mysqldump` no PATH ou `MYSQLDUMP_PATH` configurado (feature 018).
+
+### 5.1 HTTPS nativo (opcional, recomendado — PWA/coleta offline via IP — feature 056)
+
+O Service Worker do PWA (feature 033) só existe em *secure context*: via IP puro
+(`http://10.39.x.x:8000`) o app funciona, mas **sem** PWA/câmera/coleta offline.
+O `run.py` sobe em HTTPS quando `APP_SSL_CERTFILE` e `APP_SSL_KEYFILE` estiverem
+no `.env`. Sem elas, HTTP puro — nada muda (opt-in).
+
+Passos no **servidor de produção** (uma vez):
+
+1. **Gerar a CA local e o certificado** (com o SAN do IP do servidor):
+
+   ```bash
+   # Linux (openssl disponível no instalador 027):
+   .venv/bin/python scripts/gera_cert_dev.py --ip <IP-DO-SERVIDOR>
+   # Windows:
+   .venv\Scripts\python.exe scripts\gera_cert_dev.py --ip <IP-DO-SERVIDOR>
+   ```
+
+   Gera em `data/ssl/`: `ca.crt` (a instalar nos aparelhos), `server.crt`,
+   `server.key` (**segredo do servidor — NUNCA versionar/copiar entre máquinas**;
+   `data/ssl/` é gitignore — cada servidor gera o seu par). Alternativa segura:
+   copiar apenas o `ca.crt` **existente** da dev e gerar a chave do servidor lá
+   (o certificado é por máquina). Ou usar a CA corporativa (AD CS), gerando o
+   cert no domínio — nesse caso pule o gerador e aponte as env vars para os
+   arquivos emitidos.
+
+2. **Apontar o `.env`** (modelo da Seção 4):
+
+   ```ini
+   APP_SSL_CERTFILE=data/ssl/server.crt
+   APP_SSL_KEYFILE=data/ssl/server.key
+   ```
+
+3. **Reiniciar o serviço** (`systemctl restart sispatrimoniopro` / NSSM):
+   o log passa a mostrar `Uvicorn running on https://0.0.0.0:8000`.
+
+4. **Confiar na CA nos aparelhos** (uma vez por celular/tablet): importar
+   `ca.crt` como autoridade (Android: Configurações → Segurança → Instalar
+   certificado → CA; iPhone: perfil + confiança total). Depois:
+   `https://<IP>:8000` com cadeado válido → PWA instala e a câmera funciona.
+
+Notas:
+
+- **Firewall**: liberar a porta 8000 TCP (já exigida antes; nada novo).
+- **HTTP→HTTPS**: com as envs ativas a porta 8000 vira TLS-only (HTTP simples é
+  recusado). Para manter HTTP e HTTPS simultâneos, use um proxy (roteiro Caddy
+  em `HTTPS_LOCAL.md`).
+- **Renovação**: a CA local vale ~10 anos e o certificado do servidor 825 dias
+  (`--force` regera). Para domínio público, prefira Caddy/Nginx + Let's Encrypt
+  (`HTTPS_LOCAL.md` / `docker-compose.yml`).
 
 ---
 
