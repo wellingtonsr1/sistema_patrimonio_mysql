@@ -1,0 +1,982 @@
+[
+  {
+    "path": "/",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "view_dashboard"
+  },
+  {
+    "path": "/admin",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_index"
+  },
+  {
+    "path": "/admin/ad",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_ad_page"
+  },
+  {
+    "path": "/admin/ad/mappings",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_ad_add_mapping"
+  },
+  {
+    "path": "/admin/ad/mappings/{mapping_id}/delete",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_ad_delete_mapping"
+  },
+  {
+    "path": "/admin/ad/settings",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_ad_save_settings"
+  },
+  {
+    "path": "/admin/ad/test",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_ad_test_connection"
+  },
+  {
+    "path": "/admin/audit",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_audit_log"
+  },
+  {
+    "path": "/admin/backups",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_backups"
+  },
+  {
+    "path": "/admin/backups/configuracoes",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_backup_config_form"
+  },
+  {
+    "path": "/admin/backups/configuracoes",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_backup_config_save"
+  },
+  {
+    "path": "/admin/backups/externo/testar",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_backup_externo_testar"
+  },
+  {
+    "path": "/admin/backups/gerar",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_backup_gerar"
+  },
+  {
+    "path": "/admin/backups/restaurar/status",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_backup_restore_status"
+  },
+  {
+    "path": "/admin/backups/{filename}/download",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_backup_download"
+  },
+  {
+    "path": "/admin/backups/{filename}/restaurar",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_backup_restore_form"
+  },
+  {
+    "path": "/admin/backups/{filename}/restaurar",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_backup_restore_exec"
+  },
+  {
+    "path": "/admin/integracao-1doc",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_onedoc_lista"
+  },
+  {
+    "path": "/admin/integracao-1doc/{integration_id}/reprocessar",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_onedoc_reprocessar"
+  },
+  {
+    "path": "/admin/integracoes",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_integracoes_painel"
+  },
+  {
+    "path": "/admin/integracoes/movimentacao/{movement_id}",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_integracoes_movimentacao"
+  },
+  {
+    "path": "/admin/integracoes/{key}",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_integracoes_detalhe"
+  },
+  {
+    "path": "/admin/integracoes/{key}/historico",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_integracoes_historico"
+  },
+  {
+    "path": "/admin/integracoes/{key}/testar",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_integracoes_testar"
+  },
+  {
+    "path": "/admin/notificacoes",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_notificacoes_form"
+  },
+  {
+    "path": "/admin/notificacoes",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_notificacoes_save"
+  },
+  {
+    "path": "/admin/roles",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_list_roles"
+  },
+  {
+    "path": "/admin/roles/new",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_form_new_role"
+  },
+  {
+    "path": "/admin/roles/new",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_create_role"
+  },
+  {
+    "path": "/admin/roles/{role_id}/delete",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_delete_role"
+  },
+  {
+    "path": "/admin/roles/{role_id}/edit",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_edit_role"
+  },
+  {
+    "path": "/admin/roles/{role_id}/edit",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_update_role"
+  },
+  {
+    "path": "/admin/users",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_list_users"
+  },
+  {
+    "path": "/admin/users/new",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_form_new_user"
+  },
+  {
+    "path": "/admin/users/new",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_create_user"
+  },
+  {
+    "path": "/admin/users/{user_id}/edit",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "admin_edit_user"
+  },
+  {
+    "path": "/admin/users/{user_id}/edit",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_update_user"
+  },
+  {
+    "path": "/admin/users/{user_id}/reset-password",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_reset_password"
+  },
+  {
+    "path": "/admin/users/{user_id}/toggle-active",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "admin_toggle_user_active"
+  },
+  {
+    "path": "/ajuda",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "ajuda_index"
+  },
+  {
+    "path": "/ajuda/{article_id}",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "ajuda_article"
+  },
+  {
+    "path": "/assets",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "list_assets"
+  },
+  {
+    "path": "/assets",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "list_assets"
+  },
+  {
+    "path": "/assets",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "create_asset"
+  },
+  {
+    "path": "/assets/import",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "form_import_assets"
+  },
+  {
+    "path": "/assets/import",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "process_import_assets"
+  },
+  {
+    "path": "/assets/import/confirm",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "confirm_import_assets"
+  },
+  {
+    "path": "/assets/import/csv",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "import_csv_api"
+  },
+  {
+    "path": "/assets/labels",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "assets_labels"
+  },
+  {
+    "path": "/assets/new",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "form_new_asset"
+  },
+  {
+    "path": "/assets/new",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "create_asset_form"
+  },
+  {
+    "path": "/assets/tag/{tag}",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "get_asset_by_tag"
+  },
+  {
+    "path": "/assets/{asset_id}",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "get_asset"
+  },
+  {
+    "path": "/assets/{asset_id}",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "view_asset_detail"
+  },
+  {
+    "path": "/assets/{asset_id}",
+    "methods": [
+      "PUT"
+    ],
+    "endpoint": "update_asset"
+  },
+  {
+    "path": "/assets/{asset_id}/depreciation",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "get_asset_depreciation"
+  },
+  {
+    "path": "/assets/{asset_id}/timeline",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "get_asset_timeline"
+  },
+  {
+    "path": "/auth/login",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "api_login"
+  },
+  {
+    "path": "/auth/logout",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "api_logout"
+  },
+  {
+    "path": "/auth/me",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "api_me"
+  },
+  {
+    "path": "/custodians",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "list_custodians"
+  },
+  {
+    "path": "/custodians",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "list_custodians_view"
+  },
+  {
+    "path": "/custodians",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "create_custodian"
+  },
+  {
+    "path": "/custodians/import",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "form_import_custodians"
+  },
+  {
+    "path": "/custodians/import",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "process_import_custodians"
+  },
+  {
+    "path": "/custodians/import/confirm",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "confirm_import_custodians"
+  },
+  {
+    "path": "/custodians/import/csv",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "import_custodians_csv"
+  },
+  {
+    "path": "/custodians/new",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "form_new_custodian"
+  },
+  {
+    "path": "/custodians/new",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "create_custodian_form"
+  },
+  {
+    "path": "/custodians/{custodian_id}",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "get_custodian"
+  },
+  {
+    "path": "/custodians/{custodian_id}",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "view_custodian_detail"
+  },
+  {
+    "path": "/custodians/{custodian_id}",
+    "methods": [
+      "PUT"
+    ],
+    "endpoint": "update_custodian"
+  },
+  {
+    "path": "/custodians/{custodian_id}/assets",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "get_custodian_assets"
+  },
+  {
+    "path": "/custodians/{custodian_id}/edit",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "form_edit_custodian"
+  },
+  {
+    "path": "/custodians/{custodian_id}/edit",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "update_custodian_form"
+  },
+  {
+    "path": "/docs",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "swagger_ui_html"
+  },
+  {
+    "path": "/docs/oauth2-redirect",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "swagger_ui_redirect"
+  },
+  {
+    "path": "/health",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "health_check"
+  },
+  {
+    "path": "/inventarios",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "list_inventarios"
+  },
+  {
+    "path": "/inventarios/new",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "form_new_inventario"
+  },
+  {
+    "path": "/inventarios/new",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "create_inventario_form"
+  },
+  {
+    "path": "/inventarios/{inventario_id}",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "view_inventario"
+  },
+  {
+    "path": "/inventarios/{inventario_id}/buscar",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "buscar_bem_inventario"
+  },
+  {
+    "path": "/inventarios/{inventario_id}/conferir/{asset_id}",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "conferir_asset_page"
+  },
+  {
+    "path": "/inventarios/{inventario_id}/conferir/{item_id}",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "confer_item"
+  },
+  {
+    "path": "/inventarios/{inventario_id}/encerrar",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "close_inventario"
+  },
+  {
+    "path": "/inventarios/{inventario_id}/iniciar",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "iniciar_inventario"
+  },
+  {
+    "path": "/inventarios/{inventario_id}/nao-previsto",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "register_unlisted_asset"
+  },
+  {
+    "path": "/inventarios/{inventario_id}/offline",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "view_inventario_offline"
+  },
+  {
+    "path": "/inventarios/{inventario_id}/offline/coletas/{coleta_id}/reconciliar",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "reconciliar_coleta_offline"
+  },
+  {
+    "path": "/inventarios/{inventory_id}/offline/coletas",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "list_offline_coletas"
+  },
+  {
+    "path": "/inventarios/{inventory_id}/offline/coletas/{coleta_id}/reconcile",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "reconcile_offline_coleta"
+  },
+  {
+    "path": "/inventarios/{inventory_id}/offline/package",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "generate_offline_package"
+  },
+  {
+    "path": "/inventarios/{inventory_id}/offline/ping",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "offline_ping"
+  },
+  {
+    "path": "/inventarios/{inventory_id}/offline/sync",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "sync_offline"
+  },
+  {
+    "path": "/locations",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "list_locations"
+  },
+  {
+    "path": "/locations",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "list_locations_view"
+  },
+  {
+    "path": "/locations",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "create_location"
+  },
+  {
+    "path": "/locations/import",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "form_import_locations"
+  },
+  {
+    "path": "/locations/import",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "process_import_locations"
+  },
+  {
+    "path": "/locations/import/confirm",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "confirm_import_locations"
+  },
+  {
+    "path": "/locations/new",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "form_new_location"
+  },
+  {
+    "path": "/locations/new",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "create_location_form"
+  },
+  {
+    "path": "/locations/{location_id}",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "get_location"
+  },
+  {
+    "path": "/locations/{location_id}",
+    "methods": [
+      "PUT"
+    ],
+    "endpoint": "update_location"
+  },
+  {
+    "path": "/login",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "login_page"
+  },
+  {
+    "path": "/login",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "login_submit"
+  },
+  {
+    "path": "/logout",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "logout"
+  },
+  {
+    "path": "/maintenances",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "list_maintenances_view"
+  },
+  {
+    "path": "/maintenances/new",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "form_new_maintenance"
+  },
+  {
+    "path": "/maintenances/new",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "create_maintenance_form"
+  },
+  {
+    "path": "/maintenances/{maintenance_id}/complete",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "complete_maintenance_form"
+  },
+  {
+    "path": "/movements",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "list_movements"
+  },
+  {
+    "path": "/movements",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "list_movements_view"
+  },
+  {
+    "path": "/movements",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "record_movement"
+  },
+  {
+    "path": "/movements/new",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "form_new_movement"
+  },
+  {
+    "path": "/movements/new",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "create_movement_form"
+  },
+  {
+    "path": "/movements/{movement_id}",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "get_movement"
+  },
+  {
+    "path": "/movements/{movement_id}/term",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "get_movement_term"
+  },
+  {
+    "path": "/movements/{movement_id}/term",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "view_movement_term"
+  },
+  {
+    "path": "/openapi.json",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "openapi"
+  },
+  {
+    "path": "/profile/password",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "profile_change_password_page"
+  },
+  {
+    "path": "/profile/password",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "profile_change_password_submit"
+  },
+  {
+    "path": "/redoc",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "redoc_html"
+  },
+  {
+    "path": "/reports/custodians",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "view_custodians_report"
+  },
+  {
+    "path": "/reports/custodians/csv",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "export_custodians_csv"
+  },
+  {
+    "path": "/reports/dashboard-stats",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "get_dashboard_stats"
+  },
+  {
+    "path": "/reports/inventarios/{inventario_id}/csv",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "export_inventario_csv"
+  },
+  {
+    "path": "/reports/inventarios/{inventario_id}/excel",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "export_inventario_excel"
+  },
+  {
+    "path": "/reports/inventarios/{inventario_id}/pdf",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "export_inventario_pdf"
+  },
+  {
+    "path": "/reports/inventory",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "view_inventory_report"
+  },
+  {
+    "path": "/reports/inventory/csv",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "export_inventory_csv"
+  },
+  {
+    "path": "/reports/inventory/excel",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "export_inventory_excel"
+  },
+  {
+    "path": "/reports/inventory/pdf",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "export_inventory_pdf"
+  },
+  {
+    "path": "/reports/locations/csv",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "export_locations_csv"
+  },
+  {
+    "path": "/reports/movements",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "view_movements_report"
+  },
+  {
+    "path": "/reports/movements/csv",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "export_movements_csv"
+  },
+  {
+    "path": "/setup",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "first_access_page"
+  },
+  {
+    "path": "/setup",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "first_access_submit"
+  },
+  {
+    "path": "/sw.js",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "service_worker_js"
+  }
+]

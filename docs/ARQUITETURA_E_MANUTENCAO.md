@@ -37,7 +37,7 @@
 Browser / cliente HTTP
    ↓
 FastAPI (app/main.py)
-   ├── Rotas web (Jinja2)  app/web/routes.py, admin_routes.py, help_routes.py
+   ├── Rotas web (Jinja2)  app/web/routes.py (facade 051 → routers por domínio em app/web/routers/), admin_routes.py, help_routes.py
    └── API REST (/api/v1)  app/api/*
    ↓ (dependências de auth: app/api/deps.py)
 Services (regras de negócio)  app/services/*
@@ -98,7 +98,8 @@ sistema_patrimonio/
 │   ├── schemas/               # Schemas Pydantic v2 (Create/Update/Read por entidade; user.py para /auth/me)
 │   ├── services/              # Módulos de regra de negócio (ver §8 e INVENTARIO_TECNICO.md; 020: + backup_scheduler; 021: + backup_config_service; 030: + notification_service, email_provider, email_config_service, help_article_030; 031: + onedoc_service, onedoc_client, onedoc_message, help_article_031; 045: + external_backup_service)
 │   └── web/
-│       ├── routes.py          # Páginas de negócio + login/logout + configuração Jinja2Templates (context processor _inject_current_user, função can())
+│       ├── routes.py          # FACADE (051): agrega os routers de app/web/routers/ na ordem original e re-exporta `templates`, `web_router` e símbolos de compatibilidade; configuração Jinja2Templates vive em routers/templates_env.py (context processor _inject_current_user, função can())
+│       ├── routers/           # (051) Rotas web por domínio: auth (login/logout), dashboard, assets, movements, custodians, locations, maintenances, reports, setup (primeiro acesso), inventario (inclui /sw.js e offline 033) + shared (helpers 048 de importação) + templates_env (config Jinja2 única)
 │       ├── admin_routes.py    # /admin/users*, /admin/roles*, /admin/audit, /profile/password, /admin/ad*, /admin/backups* (045: + /admin/backups/externo/testar), /admin/notificacoes (030), /admin/integracao-1doc (031)
 │       ├── help_routes.py     # /ajuda e /ajuda/{article_id}
 │       ├── templates/         # Templates Jinja2 (base.html, dashboard, assets/ [inclui labels], movements/, custodians/, locations/ [inclui import], maintenances/, reports/, admin/ [inclui notificacoes.html — 030], ajuda/, profile/, setup, 403/404, login)
@@ -177,7 +178,8 @@ interfaces de entrada (web e API) compartilhando os mesmos serviços.
 ```text
 ┌─────────────────────────────┐   ┌──────────────────────────────┐
 │  Interface Web (Jinja2)     │   │  API REST (/api/v1, FastAPI) │
-│  app/web/routes.py          │   │  app/api/*_api.py            │
+│  app/web/routes.py (051:    │   │  app/api/*_api.py            │
+│  facade → routers/*)        │   │                              │
 │  app/web/admin_routes.py    │   │                              │
 │  app/web/help_routes.py     │   │                              │
 └──────────────┬──────────────┘   └───────────────┬──────────────┘
@@ -349,8 +351,8 @@ resolve_authentication(db, username, password)   ← usado pelas rotas de login
 | Entrada | Arquivo | Comportamento |
 |---|---|---|
 | `POST /api/v1/auth/login` | `app/api/auth_api.py` | 200 + cookie; 401 (credencial/perfil AD/conta desabilitada), 423 (lockout), 503 (AD indisponível). Audita `LOGIN`/`LOGIN_FALHA`/`LOGIN_BLOQUEADO`; falhas específicas do AD são auditadas dentro de `ad_service` |
-| `POST /login` (web) | `app/web/routes.py::login_submit` | Redireciona 303 para `_safe_next_url(next)` (só caminhos internos — anti open redirect); erros AD exibem mensagem na tela |
-| `POST /api/v1/auth/logout` e `POST /logout` | `auth_api.py` / `routes.py` | Revogam a sessão no servidor |
+| `POST /login` (web) | `app/web/routers/auth.py::login_submit` (051) | Redireciona 303 para `_safe_next_url(next)` (só caminhos internos — anti open redirect); erros AD exibem mensagem na tela |
+| `POST /api/v1/auth/logout` e `POST /logout` | `auth_api.py` / `routers/auth.py` (051) | Revogam a sessão no servidor |
 | `GET /api/v1/auth/me` | `auth_api.py` | `UserWithPermissions` (usuário + lista de permissões efetivas) |
 
 ---

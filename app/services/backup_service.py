@@ -13,6 +13,33 @@ Regras (contracts/service-contract.md, research R1–R8):
   considera apenas arquivos com o padrão de nome.
 - Auditoria: todo resultado (sucesso/falha/download) registrado via
   write_audit, sem credenciais.
+
+============================================================================
+MAPA DE NAVEGAÇÃO (Feature 051 — Amendment A1)
+============================================================================
+Este arquivo permanece MÓDULO ÚNICO por decisão da 051 (spec §US2, Amendment
+A1): a suíte de testes usa este namespace como API de injeção — 42 pontos de
+monkeypatch/setattr cobrindo SessionLocal, DATABASE_URL, BACKUP_DIR,
+MYSQLDUMP_PATH, BACKUP_IMPORT_TIMEOUT, drain_engine, maintenance_mode,
+_RESTORE_IN_PROGRESS, _run_mysqldump, _run_mysql_import, write_audit,
+subprocess, shutil etc. Funções Python resolvem globais no módulo onde são
+definidas: um split físico faria os patches do facade deixarem de ser vistos
+pelo código movido. A decomposição em pacote (plan original) está registrada
+na spec como candidata futura, condicionada à migração dos testes.
+
+Seções (ordem do arquivo):
+  [1] DUMP        — _dump_env, _resolve_tool_executable, _resolve_import_executable,
+                    _run_mysqldump; constantes de nome/timeout/tipos
+  [2] RESTORE     — BackupError, restore_in_progress, restore_status, _restore_slot,
+                    _run_mysql_import, _import_with_deadline, _iter_dump_chunks,
+                    _maintenance_set (estado do ciclo 019)
+  [3] SERVICE     — class BackupService (generate_backup, list_backups,
+                    validate_restore_source, validate_post_restore, restore_backup)
+  [4] RECORDS     — _write_backup_record, _record_backup_success/failure,
+                    _sanitize_stderr, _worker_audit, _capture_backup_snapshot,
+                    _reconcile_backup_records, _execute_restore_cycle (worker 019/028)
+  [5] PATHS       — get_backup_path + vínculo estático na classe
+============================================================================
 """
 
 import gzip

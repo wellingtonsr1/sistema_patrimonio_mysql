@@ -321,12 +321,18 @@ def test_048_passo_mapeamento_ponta_a_ponta_com_oficial(admin_client, db_session
 
 def test_048_rotas_e_execute_intocados():
     """Rotas/URLs e execute_locations_import preservados (FR-020) — o mecanismo
-    de gravação é o existente; a 050 só estende aliases/rótulos/mensagens."""
+    de gravação é o existente; a 050 só estende aliases/rótulos/mensagens.
+
+    Feature 051: as rotas do domínio de locais vivem em
+    `app/web/routers/locations.py` (decomposição modular, movimentação
+    literal); o facade `app.web.routes` agrega os routers. A asserção da
+    origem das rotas acompanha a 051 (import apenas — NR-002/validacao.md)."""
     import inspect
     from app.web import routes
+    from app.web.routers import locations as locations_router
     from app.services import location_import_service as lis
 
-    src = inspect.getsource(routes)
+    src = inspect.getsource(routes) + inspect.getsource(locations_router)
     assert '@web_router.post("/locations/import"' in src
     assert '@web_router.post("/locations/import/confirm"' in src
     # execute continua expondo a assinatura atual (skip_duplicates)
