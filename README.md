@@ -1042,7 +1042,7 @@ ambiental.
 
 A suíte é **hermética**: o banco de dados do `.env` (MariaDB de produção/desenvolvimento) **não é tocado** — nem ao subir o app de teste (o bootstrap do lifespan é neutralizado no conftest) nem durante os testes. Todo dado vem de fixtures sobre o SQLite em memória. Com o MySQL/XAMPP **parado**, a suíte roda igual (882 passed com as 2 falhas conhecidas de `test_backup_externo.py`); em CI não há dependência de infraestrutura.
 
-> **Feature 045 (destino externo de backup):** 2 testes de `tests/test_backup_externo.py` falham por dependência de infraestrutura externa — falhas pré-existentes e documentadas, fora do escopo das features seguintes (régua de regressão).
+> **Nota (feature 055):** os 2 failures históricos de `tests/test_backup_externo.py` (045 — premissa POSIX de `chmod` em diretório, sem efeito no Windows) foram corrigidos com simulação cross-platform de permissão. A suíte completa termina com **0 failed**; a régua de regressão passa a ser "zero failures".
 
 A suíte cobre, entre outros:
 
