@@ -9,10 +9,60 @@
 | Cenário | Solução | Custo |
 |---|---|---|
 | Testar agora no **desktop** | `http://localhost:8000` (localhost já é contexto seguro) | Zero |
+| **Rede interna via IP — Windows nativo (este servidor)** | **TLS no próprio uvicorn** + CA local gerada pelo projeto (seção abaixo — feature 056) | ~5 min, uma vez |
 | Testar no **celular via cabo** (Android) | Port forwarding do Chrome (`chrome://inspect`) → `http://localhost:8000` no celular | Zero |
 | Teste temporário em **qualquer aparelho** | Túnel: `cloudflared tunnel --url http://localhost:8000` | Zero (URL pública temporária) |
-| Uso real na **rede interna** (celular/tablet via Wi‑Fi) | **Caddy com `tls internal`** na sua máquina (este roteiro) | ~15 min, uma vez |
+| Uso real na **rede interna** (Linux) | Caddy com `tls internal` (roteiro adiante) | ~15 min, uma vez |
 | **Produção** com domínio público | Caddy/Nginx + Let's Encrypt (automático) | Ver `docker-compose.yml` |
+
+---
+
+## Windows nativo: TLS no próprio uvicorn (feature 056 — recomendado neste servidor)
+
+Sem proxy novo: o `run.py` sobe HTTPS quando as variáveis `APP_SSL_CERTFILE` e
+`APP_SSL_KEYFILE` estiverem definidas no ambiente/.env (feature 056).
+
+### 1. Gere a CA local e o certificado (com o SAN do IP)
+
+```bat
+.venv\Scripts\python.exe scripts\gera_cert_dev.py
+```
+
+Detecta o IP da LAN automaticamente (ex.: `10.39.0.16`) e gera em `data\ssl\`:
+`ca.crt` (a importar nos aparelhos), `server.crt` e `server.key` (**não versionar**).
+SAN inclui o IP, `localhost`, o hostname e `sispatrimoniopro.local`. Use
+`--ip` para forçar outro IP e `--force` para regerar.
+
+### 2. Configure o .env e reinicie
+
+```bat
+APP_SSL_CERTFILE=data\ssl\server.crt
+APP_SSL_KEYFILE=data\ssl\server.key
+```
+
+O log passará a mostrar `https://0.0.0.0:8000`. Sem essas variáveis, o app
+sobe HTTP idêntico ao atual (nada muda).
+
+### 3. Confie na CA nos aparelhos (uma vez por aparelho)
+
+- Copie `data\ssl\ca.crt` (e‑mail/USB) e importe:
+  **Android**: Configurações → Segurança → Instalar certificado → CA ·
+  **iPhone**: perfil → confiança total.
+- No Windows da própria máquina, a CA pode ser confiada por usuário:
+  `certutil -user -addstore Root data\ssl\ca.crt`
+  (remover: `certutil -user -delstore Root "SisPatrimonio Pro - CA local (dev)"`).
+
+### 4. Acesse e valide
+
+`https://<IP>:8000` — cadeado válido (SAN casa com o IP), Service Worker
+registra, PWA instala e a câmera funciona no "Ler QR". Prova desta feature:
+`Invoke-WebRequest https://10.39.0.16:8443/health` (validação sem `-k`) → 200.
+
+> **Nota**: com TLS no uvicorn não há proxy — as URLs do QR saem `https://`
+> nativamente (`request.base_url`), sem ajuste de `proxy_headers`.
+> Para não expor HTTP na rede, rode só o HTTPS (ou bloqueie a 8000 no firewall).
+
+---
 
 ---
 
