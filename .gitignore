@@ -26,3 +26,6 @@ data/patrimonio.db
 # Runtime do SisPatrimônio (logs e repositório de backups)
 data/logs/
 data/backups/
+
+# HTTPS local (feature 056) — chave privada NUNCA versionada
+data/ssl/

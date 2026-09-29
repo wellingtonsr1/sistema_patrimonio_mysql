@@ -93,6 +93,17 @@ APP_VERSION = "1.2.0"
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
 APP_PORT = int(os.getenv("APP_PORT", "8000"))
 
+# HTTPS nativo (feature 056 — achado da prova de campo da 053): caminhos do
+# certificado e da chave do servidor para TLS terminado no próprio uvicorn.
+# Somente ambiente (padrão VI — precedente AD_BIND_PASSWORD/SMTP_PASSWORD);
+# nunca em banco. None = HTTP puro (comportamento atual, nada muda).
+# O PWA/coleta offline (033) exige secure context: sem HTTPS, o Service
+# Worker não registra em origens por IP (navigator.serviceWorker undefined).
+# Gerador: `python scripts/gera_cert_dev.py` (CA local + SAN do IP da LAN).
+# NOTA: DEVEM ficar APÓS load_dotenv() — as variáveis vivem no .env do servidor.
+APP_SSL_CERTFILE = os.getenv("APP_SSL_CERTFILE") or None
+APP_SSL_KEYFILE = os.getenv("APP_SSL_KEYFILE") or None
+
 # Organização padrão para emissão de termos
 COMPANY_NAME = "© Instituto de Previdência do Municipio de João Pessoa."
 COMPANY_CNPJ = "40.955.403/0001-09"
