@@ -42,6 +42,31 @@ else:
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
+# ============================================================================
+# Feature 054 (achado M1 da análise de 2026-09-29): HERMETICIDADE da suíte.
+#
+# O lifespan do TestClient (app/main.py) executava init_db() → engine do
+# banco REAL do .env e ensure_admin_user/ensure_default_roles via
+# SessionLocal real — com o MariaDB parado a suíte inteira quebrava (ERROR
+# at setup) e cada rodada escrevia no banco de produção como efeito
+# colateral. Aqui a fonte de dados do bootstrap aponta para o banco de
+# TESTE e o bootstrap vira no-op: o estado visível dos testes é idêntico
+# (dados vêm exclusivamente dos fixtures — como já era de fato).
+#
+# Cobertura dupla: `app.main.SessionLocal` é o nome que o lifespan usa;
+# `app.database.SessionLocal` cobre importadores tardios dentro de funções
+# (padrão existente: templates_env, health_check).
+# ============================================================================
+import app.main as _app_main  # noqa: E402
+import app.database as _app_database  # noqa: E402
+
+_app_main.SessionLocal = TestingSessionLocal
+_app_database.SessionLocal = TestingSessionLocal
+_app_main.init_db = lambda: None  # create_all é feito pelo fixture db_session
+_app_main.ensure_admin_user = lambda *a, **k: None
+_app_main.ensure_default_roles = lambda *a, **k: None
+
 TEST_USERNAME = "testuser"
 TEST_PASSWORD = "teste@1234"
 

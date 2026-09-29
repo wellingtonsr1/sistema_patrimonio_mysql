@@ -126,6 +126,12 @@ def _patch_worker_sessions(monkeypatch):
     O worker roda em thread própria e cria sessões via backup_service.SessionLocal —
     sem este patch ele conectaria no banco real do DATABASE_URL.
 
+    054 (M1 — hermeticidade): o dump de SEGURANÇA pré-restauração usa o
+    executor padrão `_run_mysqldump` (mysqldump + servidor do DATABASE_URL);
+    aqui ele é fakeado com o MESMO padrão do test_backup_manual (_fake_dump).
+    Escopo por-teste de propósito: test_backup_manual exercita o _run_mysqldump
+    REAL — um fake global no conftest quebraria esses testes.
+
     IMPORTANTE: o conftest é carregado pelo pytest como módulo 'conftest'
     (sem tests/__init__.py); importar 'tests.conftest' criaria um SEGUNDO
     módulo com SEGUNDO engine :memory: — a thread veria uma base vazia.
@@ -139,6 +145,11 @@ def _patch_worker_sessions(monkeypatch):
     TestingSessionLocal = mod.TestingSessionLocal
 
     monkeypatch.setattr(backup_service, "SessionLocal", TestingSessionLocal)
+
+    def _fake_security_dump(path):
+        path.write_bytes(b"-- fake security dump (054: hermetic suite)\n")
+
+    monkeypatch.setattr(backup_service, "_run_mysqldump", _fake_security_dump)
 
 
 def _cleanup_backups():
