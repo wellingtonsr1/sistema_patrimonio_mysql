@@ -25,6 +25,7 @@ from app.services.help_article_030 import ARTIGO_NOTIFICACOES  # feature 030
 from app.services.help_article_031 import ARTIGO_ONEDOC  # feature 031
 from app.services.help_article_032 import ARTIGO_CENTRAL_INTEGRACOES  # feature 032
 from app.services.help_article_045 import ARTIGO_BACKUP_EXTERNO  # feature 045
+from app.services.help_article_rede import ARTIGO_CENARIOS_REDE  # feature 060
 
 # ============================================================================
 # ARTIGOS
@@ -34,6 +35,7 @@ ARTICLES: List[Dict] = [
     # ------------------------------------------------------------------ #
     # PRIMEIROS PASSOS
     # ------------------------------------------------------------------ #
+    ARTIGO_CENARIOS_REDE,  # feature 060: internet × rede local × servidor
     {
         "id": "o-que-e-o-sistema",
         "title": "O que é o SisPatrimônio Pro",
@@ -1473,7 +1475,7 @@ CATEGORIES: List[Dict] = [
         "icon": "bi-rocket-takeoff",
         "description": "Entrar no sistema, navegar e entender a interface.",
         "audience": "user",
-        "article_ids": ["o-que-e-o-sistema", "entrar-e-sair", "conhecendo-a-interface"],
+        "article_ids": ["internet-rede-servidor", "o-que-e-o-sistema", "entrar-e-sair", "conhecendo-a-interface"],
     },
     {
         "key": "patrimonio",

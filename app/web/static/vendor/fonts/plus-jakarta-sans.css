@@ -1,0 +1,14 @@
+/* Plus Jakarta Sans — self-hosted (feature 059, M6)
+ *
+ * Fonte variável (wght 200-800) — um único arquivo cobre todos os pesos
+ * usados pelo sistema (400/500/600/700/800). Licença: SIL OFL 1.1.
+ * Fallback do stack (system-ui, sans-serif) cobre ausência do arquivo.
+ */
+
+@font-face {
+    font-family: "Plus Jakarta Sans";
+    font-style: normal;
+    font-weight: 200 800;
+    font-display: swap;
+    src: url("plus-jakarta-sans-var.woff2") format("woff2");
+}

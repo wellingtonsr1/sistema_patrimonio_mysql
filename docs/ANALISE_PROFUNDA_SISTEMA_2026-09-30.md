@@ -51,13 +51,14 @@ O PRO foi publicado por um commit com sufixo "(snapshot de produção de pop-os,
 | M3 / R1 | respondWith duplo no `sw.js` | ✅ **RESOLVIDO (053)** — v32 publicada |
 | M9 | `sispatrimoniopro.cert` legado no repo | ✅ **RESOLVIDO** — removido + `.gitignore` bloqueia material TLS solto |
 | M5 | `base.html:271` — atributo style quebrado no menu do usuário (`";;border-color:`) | ✅ **RESOLVIDO (2026-09-30, feature 058)** |
-| M6 | CDN externo no `base.html` (7 ocorrências jsdelivr/googlefonts) — sistema não funciona 100% sem internet | ❌ **ABERTO** — priorizável agora que o PWA offline é caso de uso real da instituição |
+| M6 | CDN externo no `base.html` (7 ocorrências jsdelivr/googlefonts) — sistema não funciona 100% sem internet | ✅ **RESOLVIDO (2026-09-30, feature 059)** — 100% vendored (Chart.js 4.4.1 fixado, QRCode, fonte local); SW v33; guard anti-CDN na suíte |
 | M8 | Falhas SMTP sem visibilidade | ❌ ABERTO (não reapareceu nos logs recentes — 0 ocorrências hoje; melhorar só se voltar) |
 | M7 | `admin_routes.py` com 1.440 linhas; `backup_service.py` com 1.408 | ❌ ABERTO (aceito conscientemente; split físico do backup segue recusado pelo Amendment A1 da 051) |
 | M10 | 3 documentos de melhorias paralelos | ❌ ABERTO — este relatório + `Melhorias_SisPatrimonio_Pro.md` + `Coisas a corrigir ou melhorar.md` |
 | M11 | `seed_demo.py` na raiz (sem interativo, mas em prod) | ❌ ABERTO (baixo: nada o executa sozinho) |
 | — | 10 arquivos ainda usam `datetime.utcnow()` (deprecation Python 3.12+, warning na suíte) | ❌ ABERTO — 3347 warnings na suíte; migração mecânica para `datetime.now(UTC)`, candidata a micro-feature |
 | — | Botão "Voltar" estoura viewport 375px (desde a 036) | ❌ ABERTO |
+| — | Documentação de cenários de rede (internet × LAN × servidor) ausente no produto | ✅ **RESOLVIDO (2026-09-30, feature 060)** — artigo na Central de Ajuda + dica do `localhost:8000` na página offline do PWA (SW v34) |
 | — | Ruído `ConnectionResetError` 10054 no `app.error.log` (M-N3) | ✅ **RESOLVIDO (2026-09-30, feature 058)** — filtro no logger `asyncio` |
 
 ### Pendências da lista do usuário (`Coisas a corrigir ou melhorar.md`)
@@ -70,7 +71,7 @@ Itens ainda sem "OK": **2** (ciclo de regularização de divergência — evolu�
 1. **P1 — `AUTH_COOKIE_SECURE=true` no `.env` de produção** (M-N2): 1 linha, fecha o ciclo da 056. Feito isso, fazer um deploy para o PRO só se o `.env` do servidor de produção for gerenciado pelo snapshot (não é — é manual; então é ação direta no servidor).
 2. **P1 — Spec 052 (Alembic)**: continua sendo **a correção mais urgente de infraestrutura** e a análise anterior permanece válida: necessária (drift real já ocorreu em produção: `backup_config` inexistente em 2026-09-23), e não prejudica o sistema (zero DDL no deploy de adoção, guard SQLite, tolerância à corrida). **Pré-requisitos agora satisfeitos**: M1 (suíte hermética) ✅ e régua 100% verde ✅. É o próximo passo natural com a melhor régua possível.
 3. **P2 — ~~M5 (style quebrado)~~ + ~~M-N3 (ruído 10054)~~**: ✅ RESOLVIDOS na feature 058 (2026-09-30).
-4. **P2 — M6 (vendoring dos CDNs)**: média complexidade (Bootstrap/Chart.js/QRCode já têm equivalentes em `static/vendor` parcialmente); alto valor para o cenário offline/PWA e para rede institucional restritiva.
+4. **P2 — ~~M6 (vendoring dos CDNs)~~**: ✅ RESOLVIDO na feature 059 (2026-09-30).
 5. **P3 — `utcnow()` → `now(UTC)`** (10 arquivos): migração mecânica, elimina 3.3k warnings e protege contra o Python 3.14+ (esta máquina já roda 3.14 — a remoção está agendada em versões futuras da stdlib).
 6. **P3 — fila de produto**: divergências (item 2 do usuário), exportações (item 4), spec 049 (pesquisa em movimentações, pronta p/ implementar).
 

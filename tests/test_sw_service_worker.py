@@ -14,6 +14,7 @@ guardar invariantes da feature 033 corrigidos pela 053:
 3. FR-003 (053): allowlist de precache e regra network-only de `/api/*`
    permanecem intactas (nenhuma mudança além do escopo).
 """
+import pytest
 from pathlib import Path
 
 SW_PATH = Path(__file__).resolve().parent.parent / "app" / "web" / "static" / "js" / "sw.js"
@@ -81,13 +82,19 @@ def test_respondwith_unico_na_navegacao_offline():
 
 def test_cache_version_minima_v32():
     """FR-002/SC-002: a versão do cache avançou para v32 (ou além) — caches
-    v31 dos dispositivos são removidos na ativação do SW atualizado."""
+    v31 dos dispositivos são removidos na ativação do SW atualizado.
+    v33 (059): vendoring M6 — allowlist nova propagada aos dispositivos.
+    v34 (060): dica do localhost na página offline propagada."""
     source = _sw_source()
-    assert 'var CACHE_VERSION = "inventario-offline-v32"' in source
+    for versao in ("inventario-offline-v32", "inventario-offline-v33", "inventario-offline-v34"):
+        if versao in source:
+            return
+    pytest.fail("CACHE_VERSION não é v32, v33 nem v34 (regressão de bump?)")
 
 
 def test_allowlist_precache_intacta():
-    """FR-003/SC-004: as 14 entradas da allowlist permanecem."""
+    """FR-003/SC-004: as 14 entradas originais + 4 vendors da 059 (chart, qrcode,
+    css e woff2 da fonte) = 18 entradas."""
     source = _sw_source()
     allowlist = [
         "/static/css/style.css?v=20260924",
@@ -110,7 +117,7 @@ def test_allowlist_precache_intacta():
     # Contagem confinada ao array PRECACHE_URLS (a URL offline-start.html
     # também aparece no fallback de navegação — fora do array).
     precache_block = source.split("var PRECACHE_URLS = [", 1)[1].split("];", 1)[0]
-    assert precache_block.count('"/static/') == 14
+    assert precache_block.count('"/static/') == 18
 
 
 def test_api_network_only_preservada():
