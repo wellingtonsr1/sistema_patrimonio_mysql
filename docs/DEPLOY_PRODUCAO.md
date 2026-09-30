@@ -67,6 +67,15 @@ Fixe a versão desejada (recomendado — o snapshot é sempre "a última publica
 git log -1                 # mostra 'commit dev <hash>' — a origem deste snapshot
 ```
 
+> **Importante (natureza do snapshot)**: este repositório recebe force-push a cada
+> publicação — o `deploy.bat` publica a árvore da dev como uma história nova, sem
+> ancestral comum com o snapshot anterior. Consequências: **nunca dê `git push`**
+> aqui (commits manuais são descartados pelo próximo deploy) e, em clones de
+> inspeção no Windows, atualize com `git fetch origin` + `git reset --hard
+> origin/main` (o `git pull` falha com *refusing to merge unrelated histories*).
+> No servidor Linux de produção, `git pull` funciona normalmente (Seção 6).
+> Detalhes: Seção 6.1.
+
 ---
 
 ## 3. Ambiente virtual e dependências
@@ -204,6 +213,22 @@ git fetch origin
 git checkout <hash-da-dev>     # ex.: 39d185f
 # reinicie o serviço
 ```
+
+### 6.1 Regras do repositório `SisPatrimonioPro` (onde se pode usar git)
+
+Cada publicação do `deploy.bat` é um **force-push de uma história independente**
+(a árvore da dev, filtrada pela whitelist, vira um snapshot com raiz nova). Dessa
+natureza decoram três regras práticas, aprendidas na operação:
+
+| Onde | Como atualizar | O que NUNCA fazer |
+|---|---|---|
+| **Servidor Linux (produção de verdade)** | `git pull` + `pip install -r requirements.txt` + restart do serviço (Seção 6) — o `git pull` funciona aí porque o checkout local segue exatamente o `origin/main` | `git push` (não há para onde: a saída é o `deploy.bat` da dev) |
+| **Clone de inspeção no Windows** (ex.: `D:\IA\SisPatrimonioPro`) | `git fetch origin` + `git reset --hard origin/main` — espelha o snapshot atual; arquivos locais não versionados não são tocados | `git pull` (falha com `refusing to merge unrelated histories` — as histórias NÃO têm ancestral comum) e `git push` (commits manuais são descartados pelo próximo force-push do deploy) |
+| **Dev** (`sistema_patrimonio_mysql`) | commits normais + `deploy.bat "mensagem"` | commitar direto no PRO |
+
+**Por quê**: um commit manual no PRO (ex.: limpeza de doc) ou um `git pull` num clone Windows parecem funcionar, mas no próximo deploy são sobrescritos (force-push) ou travam (histórias sem ancestral). Alteração de código/docs nasce SEMPRE na dev e chega ao PRO exclusivamente via `deploy.bat`.
+
+**Nota operacional (multi-máquina)**: se mais de uma máquina publica snapshots (ex.: postos distintos), todas precisam do MESMO `deploy.bat` (whitelist e filtros idênticos). Um deploy a partir de um script defasado re-publica a árvore sem diretórios novos da whitelist (ex.: `migrations/`, `scripts/`) e pode quebrar o boot da produção. Em caso de dúvida, publique sempre da máquina de referência.
 
 ---
 
