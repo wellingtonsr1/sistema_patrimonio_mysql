@@ -66,6 +66,20 @@ Após `certutil -user -addstore Root data/ssl/ca.crt`:
 
 `docs/DEPLOY_PRODUCAO.md` ganhou a **§5.1 HTTPS nativo**: passos no servidor de produção (gerar CA+cert com `--ip <IP-DO-SERVIDOR>`, apontar `.env`, reiniciar serviço, confiar na `ca.crt` nos aparelhos), com as regras de segurança (`data/ssl/` por máquina — chave NUNCA copiada/versionada; alternativa via CA corporativa AD CS), nota de TLS-only na 8000 e renovação. Modelo do `.env` (Seção 4) atualizado com as duas variáveis comentadas.
 
+## V9 — Cookie de sessão Secure ativado (follow-up da análise de 2026-09-30, achado M-N2) ✅
+
+**Data**: 2026-09-30 · **Mudança**: linha `AUTH_COOKIE_SECURE=true` no `.env` do servidor (commit `26ea8ec` já wireava o flag em `session_service.py:98`; faltava ativar no ambiente).
+
+Provas executadas (servidor real, porta 8000, TLS):
+
+1. **Header `Set-Cookie` do login real** (curl sobre HTTPS, usuário temporário `cookietest_2120`): `session=…; HttpOnly; Max-Age=28800; Path=/; SameSite=lax; **Secure**` — o flag é emitido pelo runtime (prova empírica de que o processo carregou a variável).
+2. **Login em navegador real (Chromium)**: `https://localhost:8000` → credenciais submetidas → redireção ao dashboard (`200`, `isSecureContext: true`); cookie `HttpOnly` invisível ao JS (comportamento correto) e devolvido nas requisições seguintes.
+3. **Persistência da sessão em rota autenticada**: navegação a `/inventarios/1` renderiza a página completa do inventário (INV-2026-0001, 45 bens, botão "Preparar coleta offline") — sessão válida em requisições subsequentes.
+4. **Rede**: todas as respostas 200; console limpo.
+5. **Usuário temporário desativado** ao final (rastro de auditoria preservado).
+
+Nota operacional (herdada do `.env.example`): se um dia o HTTPS for desativado (remover `APP_SSL_*`), remover também `AUTH_COOKIE_SECURE=true`, sob pena de o login parar (navegadores não enviam cookie Secure por HTTP).
+
 ## Resultado
 
-**V1–V8: PASS** — SC-001..005 satisfeitos; HTTPS permanente ativo na porta 8000 e PWA com SW ativado (prova real de navegador); documentação de produção completa; pendência restante é apenas o passo físico por aparelho (checklist V7).
+**V1–V9: PASS** — SC-001..005 satisfeitos; HTTPS permanente ativo na porta 8000, PWA com SW ativado (prova real de navegador), cookie de sessão com flag Secure em produção; documentação de produção completa; pendência restante é apenas o passo físico por aparelho (checklist V7).

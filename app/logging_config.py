@@ -35,6 +35,30 @@ class _SingleLevelFilter(logging.Filter):
         return record.levelno <= self.max_level
 
 
+class _AsyncioNoiseFilter(logging.Filter):
+    """Suprime ruído de desconexão benigna do logger `asyncio` (feature 058, M-N3).
+
+    No Windows (Proactor), cada cliente que derruba a conexão abruptamente
+    (celular dormindo, keep-alive cortado) gera um callback
+    `_call_connection_lost` que loga um traceback de ~15 linhas com
+    ConnectionResetError [WinError 10054] — poluindo o app.error.log e
+    podendo esconder erros reais.
+
+    Escopo (FR-003): APENAS registros emitidos pelo logger `asyncio` cuja
+    exceção seja ConnectionResetError/ConnectionAbortedError/BrokenPipeError
+    (desconexão iniciada pelo cliente). Erros de aplicação e outros erros do
+    event loop passam íntegros (FR-004).
+    """
+
+    _BENIGNAS = (ConnectionResetError, ConnectionAbortedError, BrokenPipeError)
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.name != "asyncio":
+            return True
+        exc = record.exc_info[1] if record.exc_info else None
+        return not isinstance(exc, self._BENIGNAS)
+
+
 def _build_formatter() -> logging.Formatter:
     """Formato consistente: data/hora | nível | logger | mensagem."""
     return logging.Formatter(
@@ -87,4 +111,9 @@ def configure_logging() -> None:
 
     if not getattr(root_logger, "_sispatrimonio_logging_configured", False):
         logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+        logger_asyncio = logging.getLogger("asyncio")
+        if not any(
+            isinstance(f, _AsyncioNoiseFilter) for f in logger_asyncio.filters
+        ):
+            logger_asyncio.addFilter(_AsyncioNoiseFilter())
         root_logger._sispatrimonio_logging_configured = True  # type: ignore[attr-defined]
