@@ -888,11 +888,25 @@ def test_019_webPostRestaurarResponde303Imediato(client, db_session, monkeypatch
     _patch_worker_sessions(monkeypatch)
 
     solta = threading.Event()
+    request_concluido = threading.Event()
 
     def _slow_import(path, *, is_gzip=False):
         solta.wait(timeout=10)
 
     monkeypatch.setattr(backup_service, "_run_mysql_import", _slow_import)
+
+    # Hermeticidade (StaticPool): worker e requests compartilham a MESMA
+    # conexão SQLite. Escrita do worker concorrente ao teardown do get_db do
+    # request → "cannot rollback - no transaction is active" sob carga.
+    # Portão: nenhuma auditoria do worker ocorre antes do 303 concluir
+    # (o `active` da 019 é marcado sincronamente — polling não depende dele).
+    _worker_audit_real = backup_service._worker_audit
+
+    def _audit_apos_request(*args, **kwargs):
+        request_concluido.wait(timeout=10)
+        return _worker_audit_real(*args, **kwargs)
+
+    monkeypatch.setattr(backup_service, "_worker_audit", _audit_apos_request)
 
     name = _make_backup_file("backup_20260918_090000_001904.sql.gz")
 
@@ -908,6 +922,7 @@ def test_019_webPostRestaurarResponde303Imediato(client, db_session, monkeypatch
     dados = status.json()
     assert dados["active"] is True
 
+    request_concluido.set()  # request encerrado — worker pode escrever
     solta.set()
     assert _wait_worker_finished()
 
@@ -937,16 +952,40 @@ def test_019_guardaExternaDeGeracaoDuranteRestore(client, db_session, monkeypatc
     _patch_worker_sessions(monkeypatch)
 
     solta = threading.Event()
+    request_concluido = threading.Event()
 
     def _slow_import(path, *, is_gzip=False):
         solta.wait(timeout=10)
 
     monkeypatch.setattr(backup_service, "_run_mysql_import", _slow_import)
 
+    # Mesmo portão do teste 303-imediato: escritas do worker (StaticPool =
+    # mesma conexão do request) só depois do 303 concluir.
+    _worker_audit_real = backup_service._worker_audit
+
+    def _audit_apos_request(*args, **kwargs):
+        request_concluido.wait(timeout=10)
+        return _worker_audit_real(*args, **kwargs)
+
+    monkeypatch.setattr(backup_service, "_worker_audit", _audit_apos_request)
+
     name = _make_backup_file("backup_20260918_090000_001905.sql.gz")
 
     resp = client.post(f"/admin/backups/{name}/restaurar", follow_redirects=False)
     assert resp.status_code == 303
+    request_concluido.set()  # request encerrado — worker pode escrever
+
+    # O worker audita ACTION_BACKUP_CREATED por conta própria (backup de
+    # segurança pré-restauração usa _allow_during_restore=True — design 017/020).
+    # Sem esta espera, o CREATED do pré-restauração podia cair ENTRE as leituras
+    # de `antes` e `depois` (dump de segurança fakeado = milissegundos) e o
+    # assert `depois == antes` flakeava sob carga da suíte completa.
+    # Fase "importando" = worker bloqueado no _slow_import: daí em diante ele
+    # não escreve mais auditoria até solta.set() — medição determinística.
+    assert _wait_for(
+        lambda: backup_service.restore_status()["phase"] == "importando"
+    ), "worker não chegou à fase de importação a tempo"
+
     try:
         from app.services.audit_service import ACTION_BACKUP_CREATED
 
