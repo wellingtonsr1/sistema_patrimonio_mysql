@@ -12,7 +12,7 @@
 | **Rede interna via IP — Windows nativo (este servidor)** | **TLS no próprio uvicorn** + CA local gerada pelo projeto (seção abaixo — feature 056) | ~5 min, uma vez |
 | Testar no **celular via cabo** (Android) | Port forwarding do Chrome (`chrome://inspect`) → `http://localhost:8000` no celular | Zero |
 | Teste temporário em **qualquer aparelho** | Túnel: `cloudflared tunnel --url http://localhost:8000` | Zero (URL pública temporária) |
-| Uso real na **rede interna** (Linux) | Caddy com `tls internal` (roteiro adiante) | ~15 min, uma vez |
+| Uso real na **rede interna** (Linux) | Caddy com `tls internal` (roteiro adiante) — **DESATIVADO neste servidor** (ver aviso antes do roteiro) | ~15 min, uma vez |
 | **Produção** com domínio público | Caddy/Nginx + Let's Encrypt (automático) | Ver `docker-compose.yml` |
 
 ---
@@ -135,7 +135,18 @@ registra, PWA instala e a câmera funciona no "Ler QR". Prova desta feature:
 
 ---
 
----
+> **⚠️ ESTE SERVIDOR (Pop!_OS, 192.168.0.9) — rota Caddy 8443 DESATIVADA em 2026-09-29.**
+> O roteiro abaixo permanece documentado como alternativa para OUTRAS máquinas
+> (Linux onde a 056 nativa não for usada). Neste servidor ele foi **desligado de
+> propósito**: com a 056 nativa ativa na 8000, o Caddy criava uma SEGUNDA entrada
+> HTTPS na 8443 com outra CA ("Caddy Local Authority", não confiada pelos
+> navegadores) — abrir `https://<ip>:8443` produzia o falso "sua conexão não é
+> privada" e confundia o diagnóstico do cadeado. O bloco `https://192.168.0.9:8443`
+> foi removido do `/etc/caddy/Caddyfile` e o Caddy recarregado — porta 8443
+> **liberada, confirmado em 2026-09-29** (backup do Caddyfile: `/etc/caddy/Caddyfile.factory.bak`).
+> NESTE servidor, use somente **`https://192.168.0.9:8000`
+> (uvicorn nativo, feature 056)**. Para reativar o Caddy aqui, recrie o bloco
+> e `sudo systemctl reload caddy` — mas escolha UMA das rotas, nunca as duas.
 
 ## Roteiro principal: Caddy + certificado interno na sua máquina Linux
 
