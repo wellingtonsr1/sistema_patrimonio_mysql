@@ -1,6 +1,10 @@
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
 sqlalchemy>=2.0.0
+
+# Migrações de schema (feature 052) — versionamento oficial a partir da 052;
+# deltas futuros em migrations/versions/, nunca mais blocos ALTER em database.py
+alembic>=1.13
 pydantic>=2.6.0
 jinja2>=3.1.3
 python-multipart>=0.0.9

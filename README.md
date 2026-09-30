@@ -149,6 +149,7 @@ O sistema separa deliberadamente **estado atual**, **histórico operacional**, *
 - **Movement:** registra a evolução operacional do bem.
 - **InventoryItem:** registra o resultado da conferência física em determinado inventário.
 - **AuditLog:** registra ações e eventos administrativos/sistêmicos.
+- **`alembic_version`:** marca a versão do schema do banco (migrações Alembic, feature 052).
 
 ---
 
@@ -1266,6 +1267,15 @@ docs/
 ```
 
 As especificações por feature (`specs/NNN-nome/`) registram requisitos, decisões de design e critérios de validação do fluxo de desenvolvimento.
+
+### ✅ Checklist para contribuidores (schema)
+
+- [ ] **Mudou algum model?** → criou revisão Alembic (`alembic revision -m "0XX-descricao"`) em `migrations/versions/`, com `upgrade()` **e** `downgrade()` implementados?
+- [ ] A revisão é idempotente quando possível e **sem DDL destrutivo** sem justificativa na mensagem?
+- [ ] Testou o boot contra banco de validação real (legado + instalação nova) antes do commit?
+- [ ] Nenhum `ALTER TABLE` manual foi adicionado ao `app/database.py` (deltas vivem só em `migrations/`)?
+
+Workflow completo: [docs/ARQUITETURA_E_MANUTENCAO.md](docs/ARQUITETURA_E_MANUTENCAO.md) — seção "Migração de esquema".
 
 ---
 

@@ -123,7 +123,7 @@ mkdir "%TMPDIR%"
 git archive %TARGET% | tar -x -C "%TMPDIR%"
 if errorlevel 1 call :fail2 "falha ao extrair a arvore." "%TMPDIR%"
 for /d %%D in ("%TMPDIR%\*") do (
-    if /i not "%%~nxD"=="app" if /i not "%%~nxD"=="data" if /i not "%%~nxD"=="docs" if /i not "%%~nxD"=="scripts" rmdir /s /q "%%D"
+    if /i not "%%~nxD"=="app" if /i not "%%~nxD"=="data" if /i not "%%~nxD"=="docs" if /i not "%%~nxD"=="scripts" if /i not "%%~nxD"=="migrations" rmdir /s /q "%%D"
 )
 for %%F in ("%TMPDIR%\*") do (
     if /i not "%%~nxF"==".gitignore" if /i not "%%~nxF"=="README.md" if /i not "%%~nxF"=="requirements.txt" if /i not "%%~nxF"=="run.py" if /i not "%%~nxF"=="seed_demo.py" if /i not "%%~nxF"=="sistema_patrimonio.png" if /i not "%%~nxF"=="SPEC-KIT-SISTEMA-ATUAL.md" del /q "%%F"
@@ -185,7 +185,7 @@ mkdir "%TMPDIR%"
 git archive HEAD | tar -x -C "%TMPDIR%"
 if errorlevel 1 call :fail2 "falha ao extrair a arvore do commit." "%TMPDIR%"
 for /d %%D in ("%TMPDIR%\*") do (
-    if /i not "%%~nxD"=="app" if /i not "%%~nxD"=="data" if /i not "%%~nxD"=="docs" if /i not "%%~nxD"=="scripts" rmdir /s /q "%%D"
+    if /i not "%%~nxD"=="app" if /i not "%%~nxD"=="data" if /i not "%%~nxD"=="docs" if /i not "%%~nxD"=="scripts" if /i not "%%~nxD"=="migrations" rmdir /s /q "%%D"
 )
 for %%F in ("%TMPDIR%\*") do (
     if /i not "%%~nxF"==".gitignore" if /i not "%%~nxF"=="README.md" if /i not "%%~nxF"=="requirements.txt" if /i not "%%~nxF"=="run.py" if /i not "%%~nxF"=="seed_demo.py" if /i not "%%~nxF"=="sistema_patrimonio.png" if /i not "%%~nxF"=="SPEC-KIT-SISTEMA-ATUAL.md" del /q "%%F"

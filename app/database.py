@@ -1,8 +1,14 @@
+import logging
+from pathlib import Path
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import QueuePool
+
 from app.config import DATABASE_URL
+
+logger = logging.getLogger(__name__)
 
 # MariaDB/MySQL: pool de conexões para múltiplos usuários simultâneos
 engine = create_engine(
@@ -60,64 +66,92 @@ def get_db():
         db.close()
 
 
-def _ensure_schema_migrations():
+def _ensure_alembic_state(migrations_dir: Path | None = None) -> None:
+    """Garante o estado Alembic do banco no boot (feature 052, plan D2).
+
+    Estratégia de baseline VAZIO (decisão Q1 da spec):
+    - **SQLite (suíte de testes, Princípio VIII)**: no-op TOTAL — o banco
+      em memória já está no estado-alvo via create_all; migrações de
+      MariaDB não são exercidas e a tabela alembic_version nem existe
+      (micro-remediação A1 do /speckit-analyze).
+    - **Banco sem alembic_version** (legado pré-052 OU instalação nova,
+      cujo create_all acabou de rodar): `stamp 0001` — zero DDL além da
+      própria tabela de versão (regra máxima da spec).
+    - **Banco já versionado**: `upgrade head` — aplica revisões pendentes
+      (idempotentes) e futuros deltas.
+    - **migrations/ ausente no disco** (ex.: instalação cujo snapshot não
+      incluía o diretório): warning com ação recomendada e boot segue —
+      o mecanismo de migração nunca pode ser requisito de boot enquanto
+      create_all continuar garantindo as tabelas novas.
+
+    Tolerância à corrida: retry único espelhando
+    `_create_all_tolerante_corrida` (crash-loop da 027); falha persistente
+    é logada com ação recomendada e RELANÇADA (FR-005 — nunca engolida).
     """
-    Migrações leves e idempotentes para tabelas já existentes.
+    diretorio = Path(migrations_dir) if migrations_dir else Path(__file__).resolve().parent.parent / "migrations"
+    logger = logging.getLogger(__name__)
 
-    `Base.metadata.create_all` cria apenas tabelas novas; para adicionar
-    colunas em tabelas existentes (ex: `users` com dados reais) usamos
-    `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` (MariaDB 10.5+).
-    Nenhum dado existente é alterado ou removido.
-    """
-    with engine.connect() as conn:
-        # Colunas de proteção contra força bruta em `users`
-        conn.execute(text(
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts "
-            "INTEGER DEFAULT 0 NOT NULL"
-        ))
-        conn.execute(text(
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until DATETIME"
-        ))
+    if "sqlite" in engine.dialect.name:  # suíte de testes: no-op total
+        return
 
-        # Integração Active Directory: colunas adicionais em `users`
-        conn.execute(text(
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS ad_object_guid VARCHAR(64)"
-        ))
-        conn.execute(text(
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS ad_dn VARCHAR(400)"
-        ))
-        conn.execute(text(
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS ad_last_sync DATETIME"
-        ))
+    if not (diretorio / "alembic.ini").is_file():
+        logger.warning(
+            "Alembic: diretório migrations/ não encontrado em %s — "
+            "migrações ignoradas neste boot. Se esta é uma instalação de "
+            "produção, atualize o deploy (migrations/ deve acompanhar o app). "
+            "Deltas futuros de schema EXIGEM este diretório.",
+            diretorio,
+        )
+        return
 
-        # Origem da atribuição de perfil em `user_roles` ('local' | 'ad')
-        conn.execute(text(
-            "ALTER TABLE user_roles ADD COLUMN IF NOT EXISTS assigned_by "
-            "VARCHAR(20) DEFAULT 'local' NOT NULL"
-        ))
+    from alembic import command
+    from alembic.config import Config
+    from sqlalchemy import inspect as sa_inspect
 
-        # Feature 033: metadados de evidência (FR-017) acrescentados ao model
-        # APÓS a primeira criação da tabela em bancos já existentes — o
-        # create_all não altera tabelas previamente criadas, então a coluna
-        # nova exige migração aditiva idempotente (MariaDB 10.5+, mesmo
-        # mecanismo das colunas acima; nulo, sem dado default).
-        conn.execute(text(
-            "ALTER TABLE inventario_offline_coletas ADD COLUMN IF NOT EXISTS "
-            "evidence_metadata JSON NULL"
-        ))
+    cfg = Config(str(diretorio / "alembic.ini"))
+    cfg.set_main_option("script_location", str(diretorio))
 
-        # Feature 033: índices compostos do data-model.md — mesmo caso da
-        # coluna acima (tabela criada em rodada anterior sem eles). Idempotente.
-        conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS ix_inv_off_coleta_inventory_status "
-            "ON inventario_offline_coletas (inventory_id, status)"
-        ))
-        conn.execute(text(
-            "CREATE INDEX IF NOT EXISTS ix_inv_off_coleta_inventory_asset "
-            "ON inventario_offline_coletas (inventory_id, asset_id)"
-        ))
+    try:
+        if not sa_inspect(engine).has_table("alembic_version"):
+            command.stamp(cfg, "0001")  # baseline no-op (zero DDL)
+        command.upgrade(cfg, "head")
+    except Exception as exc:  # noqa: BLE001 — relançada após retry (FR-005)
+        logger.warning(
+            "Alembic: falha no primeiro boot/convergência (%s: %s) — "
+            "retentando uma vez (tolerância à corrida, espírito 027)...",
+            type(exc).__name__,
+            exc,
+        )
+        try:
+            if not sa_inspect(engine).has_table("alembic_version"):
+                command.stamp(cfg, "0001")
+            command.upgrade(cfg, "head")
+        except Exception:
+            logger.error(
+                "Alembic: falha PERSISTENTE ao convergir o schema (%s). "
+                "Ação recomendada: verifique conexão/permissões do banco e "
+                "rode manualmente `alembic upgrade head` com a URL do .env "
+                "para ver o erro real; NÃO reverta código sem convergir.",
+                diretorio,
+            )
+            raise
 
-        conn.commit()
+
+def init_db():
+    """Inicializa as tabelas do banco de dados"""
+    from app import models  # noqa: F401
+    from app.models.enums import _register_all_enums  # noqa: F401
+    _register_all_enums()
+    # Feature 032: histórico unificado de execuções de integração (tabela NOVA,
+    # aditiva — nada de tabelas/colunas existentes é alterado; data-model.md).
+    from app.models.integration_execution import IntegrationExecution  # noqa: F401
+    # Feature 033: coleta offline de inventário (tabela NOVA, aditiva —
+    # idempotência/conflitos; nada de tabelas/colunas existentes é alterado).
+    from app.models.inventario_offline import InventarioOfflineColeta  # noqa: F401
+    _create_all_tolerante_corrida()
+    # Feature 052: versionamento oficial de schema (baseline stamp + upgrade;
+    # deltas futuros em migrations/versions/, nunca mais ALTER manual aqui).
+    _ensure_alembic_state()
 
 
 def _create_all_tolerante_corrida() -> None:
@@ -141,18 +175,3 @@ def _create_all_tolerante_corrida() -> None:
             Base.metadata.create_all(bind=engine)
             return
         raise
-
-
-def init_db():
-    """Inicializa as tabelas do banco de dados"""
-    from app import models  # noqa: F401
-    from app.models.enums import _register_all_enums  # noqa: F401
-    _register_all_enums()
-    # Feature 032: histórico unificado de execuções de integração (tabela NOVA,
-    # aditiva — nada de tabelas/colunas existentes é alterado; data-model.md).
-    from app.models.integration_execution import IntegrationExecution  # noqa: F401
-    # Feature 033: coleta offline de inventário (tabela NOVA, aditiva —
-    # idempotência/conflitos; nada de tabelas/colunas existentes é alterado).
-    from app.models.inventario_offline import InventarioOfflineColeta  # noqa: F401
-    _create_all_tolerante_corrida()
-    _ensure_schema_migrations()

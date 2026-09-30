@@ -82,7 +82,7 @@ sistema_patrimonio/
 ├── app/
 │   ├── main.py                # Aplicação FastAPI: lifespan (init_db, admin, seed RBAC), montagem de /static e dos roteadores, handler central de HTTPException (403/404 amigáveis)
 │   ├── config.py              # Único ponto de configuração: app, banco, autenticação (AUTH_*), AD (AD_*) via variáveis de ambiente
-│   ├── database.py            # engine/SessionLocal/Base; get_db(); init_db(); _ensure_schema_migrations() (migração leve idempotente)
+│   ├── database.py            # engine/SessionLocal/Base; get_db(); init_db(); _ensure_alembic_state() (feature 052)
 │   ├── cli.py                 # CLI: stats, list, show, move, create-user, reset-password
 │   ├── logging_config.py      # Logs técnicos: data/logs/app.log e app.error.log (rotação 5 MB × 5 backups; chamado por run.py)
 │   ├── api/                   # API REST /api/v1
@@ -140,7 +140,7 @@ python run.py
   ↓
 init_db()  (app/database.py)
   ├── Base.metadata.create_all() — cria tabelas novas (importa app.models para registrá-las)
-  └── _ensure_schema_migrations() — ALTER TABLE ADD COLUMN condicionais (idempotente, só SQLite)
+  └── _ensure_alembic_state() — stamp baseline (bancos legados/novos) + upgrade head (feature 052; no-op em SQLite)
   ↓
 configure_logging()  (app/logging_config.py — logs técnicos em data/logs/)
   ↓
@@ -158,15 +158,38 @@ App pronta: /static montado, roteadores incluídos, handler 403/404 registrado
 Servidor em http://APP_HOST:APP_PORT  ·  Swagger em /docs  ·  health em /health
 ```
 
-### Migração de esquema (`app/database.py::_ensure_schema_migrations`)
+### Migração de esquema (`migrations/` + Alembic — feature 052)
 
-Mecanismo **leve e idempotente** baseado em `PRAGMA table_info(...)` + `ALTER TABLE ... ADD COLUMN`:
+O versionamento de schema é feito com **Alembic** (`migrations/versions/`), adotado com
+baseline vazio (stamp): bancos existentes são apenas marcados, instalações novas continuam
+criando tabelas via `Base.metadata.create_all`.
 
-- `users`: `failed_login_attempts`, `locked_until`, `ad_object_guid`, `ad_dn`, `ad_last_sync`
-- `user_roles`: `assigned_by` (default `'local'`)
+**Boot (`init_db`)**: `_register_all_enums()` → `create_all` (tabelas novas) →
+`_ensure_alembic_state()`:
 
-`Base.metadata.create_all` cria as tabelas quando não existem. **Não há** sistema de migrations
-com versionamento (nenhum Alembic ou equivalente no código).
+- SQLite (suíte de testes): **no-op total** — nenhum DDL de migração;
+- banco sem `alembic_version` → `stamp 0001` (baseline no-op) → `upgrade head`;
+- banco já versionado → `upgrade head` (revisões pendentes; idempotentes);
+- `migrations/` ausente no disco → warning com ação recomendada e boot segue;
+- tolerância à corrida: retry único; falha persistente é logada com ação recomendada e relançada.
+
+**Workflow do desenvolvedor (mudou model? → crie revisão!)**:
+
+```bash
+# 1. Criar a revisão (padrão da casa: número da feature na mensagem)
+.venv/Scripts/python.exe -m alembic revision -m "0XX-descricao-curta"
+# 2. Escrever upgrade()/downgrade() À MÃO com op.* (autogenerate só como rascunho)
+# 3. Regras: sempre idempotente quando possível; DDL destrutivo proibido sem
+#    justificativa na mensagem; downgrade() obrigatório (no-op passivo documentado
+#    quando a reversão não for possível); testar em banco de validação antes do commit
+# 4. NUNCA mais adicionar blocos ALTER em app/database.py — deltas vão em migrations/
+```
+
+O mecanismo anterior (`_ensure_schema_migrations` com ALTERs manuais em Python) foi
+**removido**; seu conteúdo virou a revisão idempotente `0002`. Compatibilidade de restore
+(features 017/019): dump restaurado pré-Alembic converge no próximo boot (stamp+upgrade);
+dump pós-Alembic antigo converge via `upgrade head`. Override de tooling:
+`ALEMBIC_DATABASE_URL` (usado apenas por testes — produção sempre lê o `.env`).
 
 ---
 
@@ -222,7 +245,7 @@ Observações factuais sobre a arquitetura:
 | Backup/restauração | Utilitários nativos do SGBD via subprocesso; caminho do dump opcionalmente configurável por `MYSQLDUMP_PATH` em `app/config.py` (feature 018 — necessário no Windows/XAMPP quando o `mysqldump` não está no PATH do processo; fallback: busca no PATH do sistema). Falhas de dump/import registram diagnóstico técnico no log (etapa, exit code, stderr sanitizado — sem credenciais). **Feature 019**: o restore roda em worker thread com o pool de conexões drenado durante o import (elimina auto-deadlock de metadata lock do incidente de 2026-09-18 — ver `docs/AVISO_RESTORE_DEADLOCK.md`); deadline de relógio na importação via `BACKUP_IMPORT_TIMEOUT` (default 900 s) cobrindo o feed no stdin (o ponto onde o bloqueio real ocorreu); modo de manutenção em memória (`maintenance_mode` no `backup_service`) servido por middleware no `app/main.py` antes de qualquer acesso ao banco; rota `GET /admin/backups/restaurar/status` para polling. **Feature 020**: backup automático reutiliza o MESMO `generate_backup` (novo parâmetro `backup_type` — MANUAL/AUTOMATICO/PRE_RESTAURACAO gravado na tabela nova `backup_records`, criada por `create_all`); agendador em thread interna do processo (`app/services/backup_scheduler.py`, iniciado no lifespan do `app/main.py`, tick 30 s, sem dependências novas); horário em America/Recife com conversões via `app/utils/time_utils`; catch-up único pós-restart quando o ciclo corrente não tem sucesso; guardas de concorrência (automático simultâneo descartado; durante restore, adiado); retenção GFS determinística pós-ciclo (somente AUTOMATICO elegível; manuais e pré-restauração preservados; guarda do último backup válido; histórico preservado via `removed_at`); 5 eventos de auditoria novos (`BACKUP_AUTOMATICO_SUCESSO/FALHA`, `BACKUP_RETENCAO_EXECUTADA`, `BACKUP_REMOVIDO_RETENCAO`, `BACKUP_RETENCAO_FALHA`); indicadores no card "Backup Automático" de `/admin/backups`. **Feature 028**: (1) disparo do backup automático extrai `_evaluate_tick()` no `backup_scheduler` com o critério de execução devida do catch-up + marca em memória `_attempted_cycle_keys` (1 tentativa por ciclo; `_current_effective` snapshot renovado por tick); (2) worker do restore captura snapshot de `backup_records` ativos pré-import (`_capture_backup_snapshot`) e reconcilia pós-import (`_reconcile_backup_records` — UPDATE de divergência / INSERT de registro perdido, best-effort dentro do `finally` antes da liberação, sessão própria e curta), eliminando o "—" na coluna Tipo (registros substituídos pelo snapshot do dump); (3) middleware do `main.py` isenta somente GET/HEAD no caminho exato `/admin/backups` durante a manutenção e a rota serve modo degradado sem queries (listagem vazia com aviso; `restore_status`/`scheduler_status` mantidos). **Feature 045**: após cada backup local VÁLIDO (MANUAL/AUTOMATICO/PRE_RESTAURACAO), o gancho único em `generate_backup` (logo após `_record_backup_success`) copia ATOMICAMENTE o arquivo para a pasta de rede/NAS configurada (`backup_external_config` singleton, default DESABILITADO), valida por tamanho+SHA-256 idêntico ao local, publica via `os.replace` (tmp oculto `.filename.tmp` nunca permanece) e grava resultado FINAL único em `backup_external_records` (filename UNIQUE) + auditoria; retry 3×/2s com orçamento total 120 s (constantes `EXTERNAL_COPY_*`); falha externa NUNCA afeta o local nem propaga exceção; nenhum `mkdir` automático do destino; nenhuma retenção externa (destino nunca varrido); zero segredos (pasta montada, sem credenciais, sem `shell=True`) |
 | Acesso | SQLAlchemy 2 (`create_engine` + `sessionmaker`); pool QueuePool para concorrência |
 | Sessão por request | `app.database.get_db` (dependency FastAPI) |
-| Migrações | `Base.metadata.create_all` + `_ensure_schema_migrations()` (ALTER TABLE condicional; sem Alembic) |
+| Migrações | `Base.metadata.create_all` + Alembic (`migrations/`, feature 052 — baseline stamp; deltas versionados) |
 | Inicialização | Automática no start (`run.py` e lifespan de `main.py`) |
 | Dados padrão | Catálogo de permissões + 7 perfis padrão (`ensure_default_roles`); admin inicial via env (opcional) |
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-28
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: Substituir o mecanismo artesanal de migração (`_ensure_schema_migrations` em `app/database.py` — `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` em Python) por Alembic, adotando versionamento de schema com risco controlado para as instalações existentes. Regra máxima: **ZERO DDL no deploy de adoção** — nenhuma instalação existente pode ter seu schema alterado pelo simples upgrade do código.
 
