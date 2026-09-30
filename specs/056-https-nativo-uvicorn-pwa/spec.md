@@ -33,7 +33,7 @@
 
 - Não HSTS/redirect forçado de HTTP→HTTPS (decisão do operador; documentado).
 - Não alterar `app/main.py` (confiança de proxy permanece a atual — sem proxy no cenário nativo).
-- Não mexer no cert DER legado (`sispatrimoniopro.cert`) — registrada como dívida de segurança a tratar (§Riscos do plan).
+- Não mexer no cert DER legado (`sispatrimoniopro.cert`) — registrada como dívida de segurança a tratar (§Riscos do plan). **[RESOLVIDA em 2026-09-29: arquivo removido do repo; ver plan §Riscos]**
 
 ## 3. Critérios de sucesso
 

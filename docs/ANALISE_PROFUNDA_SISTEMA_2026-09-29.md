@@ -77,7 +77,7 @@ Um body de texto literal `null` no navegador **não é produzível pelo Jinja2**
 
 ### P3 — Baixa prioridade / higiene
 
-**M9. `sispatrimoniopro.cert` versionado no git** — arquivo de certificado na raiz, commitado. Verificar se é público (se for chave/par, remover do histórico). O `.gitignore` já protege `.env` e `data/logs/` corretamente (logs aparecem só como não-rastreados no status local).
+**M9. ✅ RESOLVIDO (2026-09-29): `sispatrimoniopro.cert` removido do repo** — cert público autoassinado confirmado (sem chave privada, CN `sispatrimoniopro.local`). Removido via `git rm`; `.gitignore` agora bloqueia `*.cert`/`*.crt`/`*.pem`/`*.key` soltos (o material TLS vive em `data/ssl/`, ignorado desde a 056). O `.gitignore` já protege `.env` e `data/logs/` corretamente (logs aparecem só como não-rastreados no status local).
 
 **M10. Documentação de melhorias fragmentada** — `docs/Melhorias_SisPatrimonio_Pro.md` (backlog M-001...), `docs/Coisas a corrigir ou melhorar.md` e agora este relatório. Sugerir consolidar num backlog único com status.
 
@@ -93,7 +93,7 @@ Um body de texto literal `null` no navegador **não é produzível pelo Jinja2**
 
 ### 4.2 Segurança
 - ✅ Sessões: cookie de sessão com TTL 8h, `AUTH_COOKIE_SECURE` configurável; lockout por conta (10 tentativas/15min); PBKDF2 600k iterações; permissões deny-by-default com auditoria de negação (`require_permission` escreve `ACTION_ACCESS_DENIED`).
-- ⚠️ `AUTH_COOKIE_SECURE` default `false` — em produção **sem HTTPS** (`http://10.39.0.16:8000`) o cookie trafega em claro. `HTTPS_LOCAL.md` existe; recomenda-se ativar TLS no deploy PRO (doc `sispatrimoniopro.cert` sugere que há material para isso).
+- ⚠️ `AUTH_COOKIE_SECURE` default `false` — em produção **sem HTTPS** (`http://10.39.0.16:8000`) o cookie trafega em claro. `HTTPS_LOCAL.md` existe; recomenda-se ativar TLS no deploy PRO (material disponível: `scripts/gera_cert_dev.py` gera CA + cert em `data/ssl/` — feature 056).
 - ⚠️ `app.mount("/static")` serve o diretório inteiro — OK, mas `static/vendor` duplica Bootstrap; sem risco real.
 - ✅ `smoke` do modo manutenção (019) e whitelist corretos; middleware de manutenção não toca banco (F1).
 

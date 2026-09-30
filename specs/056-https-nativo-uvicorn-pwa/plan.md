@@ -67,7 +67,7 @@ Prints passam a usar `{esquema}://{host}:{porta}` (mostra https quando ativo).
 | Risco | Mitigação |
 |---|---|
 | Chave privada vazada no git/PRO | `data/` já está no whitelist do PRO, mas `data/ssl/` vai no `.gitignore` (nunca versionada; `git archive` do deploy só leva commitados) |
-| Cert DER legado commitado (`sispatrimoniopro.cert`) | **Não é chave privada** (grep -c "PRIVATE KEY" = 0) — é cert público autoassinado vencendo 2029; registrar como dívida de higiene (remover do repo em feature futura), sem ação nesta spec |
+| Cert DER legado commitado (`sispatrimoniopro.cert`) | **Não é chave privada** (grep -c "PRIVATE KEY" = 0) — é cert público autoassinado vencendo 2029; dívida de higiene registrada — **RESOLVIDA em 2026-09-29**: arquivo removido do repo (`git rm`) e `.gitignore` passou a bloquear `*.cert`/`*.crt`/`*.pem`/`*.key` soltos |
 | Aparelho não confia na CA | Procedimento de import da `ca.crt` já documentado (Android/iPhone) — mantido e referenciado |
 | Porta 8443 bloqueada | Doc registra liberação no firewall do Windows |
 

@@ -29,3 +29,11 @@ data/backups/
 
 # HTTPS local (feature 056) — chave privada NUNCA versionada
 data/ssl/
+
+# Certificados/chaves soltos — material TLS vive em data/ssl/ (gerado por
+# scripts/gera_cert_dev.py) e NUNCA é versionado (feature 056: dívida de
+# higiene do legado sispatrimoniopro.cert resolvida — arquivo removido do repo)
+*.cert
+*.crt
+*.pem
+*.key

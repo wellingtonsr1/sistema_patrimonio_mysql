@@ -41,7 +41,7 @@ Após `certutil -user -addstore Root data/ssl/ca.crt`:
 
 - `git status` com certificados gerados: **nenhum arquivo de `data/ssl/` aparece** (gitignore efetivo; `git archive` do deploy nunca leva chaves).
 - Suíte completa: **893 passed / 0 failed** (63,5s) = 889 + 4 novos. Nada que passava passou a falhar.
-- Cert DER legado `sispatrimoniopro.cert`: verificado NÃO conter chave privada (grep = 0) — é cert público autoassinado (CN `sispatrimoniopro.local`, vence 2029). Dívida de higiene registrada no plan (remover do repo em feature futura); inútil para este objetivo (sem chave, sem SAN de IP).
+- Cert DER legado `sispatrimoniopro.cert`: verificado NÃO conter chave privada (grep = 0) — é cert público autoassinado (CN `sispatrimoniopro.local`, vence 2029). Dívida de higiene registrada no plan (remover do repo em feature futura); inútil para este objetivo (sem chave, sem SAN de IP). **RESOLVIDA (2026-09-29)**: removido do repo via `git rm`; `.gitignore` agora bloqueia `*.cert`/`*.crt`/`*.pem`/`*.key` soltos (material TLS só em `data/ssl/`, ignorado).
 
 ## V6 — Decisões
 

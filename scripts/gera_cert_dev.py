@@ -11,7 +11,8 @@ Python novas):
   data/ssl/server.key   — chave do servidor (local, NUNCA versionada)
 
 SAN gerado: IP:<ip-lan>, DNS:localhost, DNS:<hostname>,
-DNS:sispatrimoniopro.local (o CN legado do cert DER commitado).
+DNS:sispatrimoniopro.local (nome legado do sistema; o antigo cert DER
+commitado na raiz foi removido do repo em 2026-09-29).
 
 Uso:
     python scripts/gera_cert_dev.py              # detecta o IP da LAN
