@@ -2,7 +2,7 @@
 
 **Feature Branch**: `049-pesquisa-movimentacoes`  
 **Created**: 2026-09-27  
-**Status**: Draft  
+**Status**: Implemented (implementação: commit `65c0882`, 2026-09-27; regularização documental: 2026-09-30)
 
 **Input**: Adicionar um campo de pesquisa na página "Fluxo Global de Movimentações", integrado aos filtros existentes, permitindo localizar rapidamente movimentações existentes por tombamento, equipamento, colaborador, matrícula, local de origem/destino, tipo, operador ou termo, com correspondência parcial, sem diferenciar maiúsculas/minúsculas, respeitando paginação/limites e permissões RBAC, com alteração mínima e cirúrgica sem modificar regras de movimentação.
 
