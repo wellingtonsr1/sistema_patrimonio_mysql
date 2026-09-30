@@ -53,5 +53,10 @@ if __name__ == "__main__":
         host=APP_HOST,
         port=APP_PORT,
         reload=False,
+        # Shutdown gracioso com prazo (ex.: aba do navegador segura conexão
+        # keep-alive aberta e o Ctrl+C ficava esperando indefinidamente).
+        # Requests EM ANDAMENTO ganham até 5s para terminar; keep-alives
+        # ociosos são cortados na hora do Ctrl+C. 0 abaixo força imediato.
+        timeout_graceful_shutdown=5,
         **ssl_args,
     )
