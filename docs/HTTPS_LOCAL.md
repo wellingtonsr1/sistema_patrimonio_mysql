@@ -59,12 +59,33 @@ existirem, o `run.py` falha rápido com mensagem explícita (gere-os com
   `certutil -user -addstore Root data\ssl\ca.crt`
   (remover: `certutil -user -delstore Root "SisPatrimonio Pro - CA local (dev)"`).
 
-#### No PC Linux: Chrome e Firefox NÃO usam a confiança do sistema
+#### No PC Linux: ensine o SO e/ou o navegador a confiar na CA
 
 Mesmo com o cert válido (SAN casa com o IP), o navegador mostra "conexão não
-segura"/https riscado enquanto a CA local não for confiada **no navegador**:
-Chrome/Chromium usa o banco NSS do usuário (`~/.pki/nssdb`) e o Firefox tem
-`cert9.db` por perfil — nenhum lê a trust store do SO por padrão. Com o
+segura"/https riscado enquanto a CA local não for confiada no PC. Dois
+caminhos — comece pela **Opção A** (foi a que resolveu o "sua conexão não é
+privada" no Chrome flatpak do Pop!_OS, validado em campo em 2026-09-29);
+guarde a B para o caso do navegador continuar reclamando.
+
+**Opção A — trust store do sistema (recomendada, validada em campo):**
+
+```bash
+sudo cp data/ssl/ca.crt /usr/local/share/ca-certificates/sispatrimonio-local-ca.crt
+sudo update-ca-certificates
+```
+
+- O arquivo PRECISA terminar em `.crt` — o `update-ca-certificates` só
+  enxerga `*.crt` em `/usr/local/share/ca-certificates/`.
+- Vale para todo app que lê a store do sistema; no Pop!_OS/Ubuntu o Google
+  Chrome **flatpak** também a enxerga via p11-kit (runtime Freedesktop).
+- Depois, feche o navegador POR COMPLETO e reabra (erro de certificado fica
+  em cache — a reabertura completa é obrigatória).
+- Reverter: `sudo rm /usr/local/share/ca-certificates/sispatrimonio-local-ca.crt`
+  seguido de `sudo update-ca-certificates`.
+
+**Opção B — banco NSS por navegador**: Chrome/Chromium nativo usa o banco
+NSS do usuário (`~/.pki/nssdb`) e o Firefox tem `cert9.db` por perfil —
+campos que a store do sistema não cobre em todas as builds. Com o
 `libnss3-tools` instalado (`sudo apt install libnss3-tools`):
 
 ```bash
@@ -95,6 +116,10 @@ lugar (ex.: `~/snap/chromium/common/.pki/nssdb`).
 > certutil -d "sql:$NSSDIR" -N --empty-password   # só se o banco não existir
 > certutil -d "sql:$NSSDIR" -A -t "C,," -n "SisPatrimonio Pro - CA local (dev)" -i data/ssl/ca.crt
 > ```
+>
+> A **Opção A acima costuma cobrir o flatpak de uma vez** (p11-kit expõe a
+> store do sistema ao runtime Freedesktop — provado no Pop!_OS, 2026-09-29);
+> o caminho NSS abaixo é o plano B.
 >
 > Fechar o Chrome POR COMPLETO e reabrir (o banco só é lido no start).
 
