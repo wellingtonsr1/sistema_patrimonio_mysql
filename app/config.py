@@ -91,7 +91,7 @@ APP_NAME = "SisPatrimônio Pro"
 APP_DESCRIPTION = "Sistema Integrado de Gestão Patrimonial e Fluxo de Movimentação de Equipamentos"
 APP_VERSION = "1.2.0"
 APP_HOST = os.getenv("APP_HOST", "0.0.0.0")
-APP_PORT = int(os.getenv("APP_PORT", "8000"))
+APP_PORT = int(os.getenv("APP_PORT", "8001"))
 
 # HTTPS nativo (feature 056 — achado da prova de campo da 053): caminhos do
 # certificado e da chave do servidor para TLS terminado no próprio uvicorn.

@@ -27,7 +27,7 @@ _register_all_enums()
 
 config = context.config
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # Fonte única de verdade: a mesma URL do app (FR-001), com override
 # documentado apenas para tooling/testes
