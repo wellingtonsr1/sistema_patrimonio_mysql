@@ -115,3 +115,51 @@ Bloqueiam a **validação** (Fase 4), não a implementação: prova do 0002 em M
 | Guard de residuais bloqueando publicação legítima | padrão restrito a sufixos óbvios (`~`, `.un~`, `-old`); falso-positivo: renomear o arquivo |
 | Windows sem `git -c` (versão antiga) | suportado desde git 1.x; deploy.bat já exige git moderno (winget) |
 | scripts/ contendo algo indevido no futuro | teste de contrato (DE-3) + guard varrem a árvore antes do push |
+
+---
+
+## §Banco — lote US5 (T031)
+
+**Objetivo**: montagem da `DATABASE_URL` em um ÚNICO ponto versionado (percent-encoding programático, senha nunca em argv/log — FR-010) e paridade MariaDB×MySQL apenas por configuração (FR-009), corrigindo só o que a matriz T011 comprovou (§9).
+
+### Alterar
+
+| # | Arquivo | Mudança |
+|---|---|---|
+| B-1 | `sistema_patrimonio_mysql/install.sh` | `build_database_url()` deixa de ter o one-liner Python inline e passa a chamar `scripts/monta_database_url.py` (B-4) com `SP_DBSCHEME=mariadb+pymysql` + credenciais por VARIÁVEL DE AMBIENTE (senha nunca em argv — SR-001); URL capturada em variável, nunca impressa |
+| B-2 | `SisPatrimonioPro-install/install no linux/nativa/install.sh` | Sincronização do gêmeo (regra H-3 — diff vazio obrigatório) |
+| B-3 | `SisPatrimonioPro-install/install no windows/nativa/install.ps1` | `Build-DatabaseUrl` deixa de ter o one-liner inline e chama o mesmo helper (`$InstallDir\scripts\monta_database_url.py`) com `SP_DBSCHEME` do servidor real (detecção `Get-DbServerKind` do lote M-2a preservada); cleanup das envs `SP_*` mantido |
+
+### Criar
+
+| # | Arquivo | Conteúdo |
+|---|---|---|
+| B-4 | `sistema_patrimonio_mysql/scripts/monta_database_url.py` | **Fonte única** de montagem (publicada no PRO via whitelist `scripts/` — DE-1): lê `SP_DBSCHEME/SP_DBUSER/SP_DBPASS/SP_DBHOST/SP_DBPORT/SP_DBNAME` do ambiente, `urllib.parse.quote(..., safe='')` para usuário e senha (quote_plus trocaria espaço por `+` — SQLAlchemy não decodifica `+` como espaço: Access denied fatal), scheme restrito a `mariadb+pymysql`/`mysql+pymysql` (FR-009), imprime a URL na stdout; stdlib puro (sem dependências) |
+| B-5 | `sistema_patrimonio_mysql/tests/test_database_url.py` | Unitários do helper (padrão pytest da casa): senha com caracteres especiais (`@ : / ? # & = % + espaço`) percent-encodada; `safe=''` (espaço → `%20`, NUNCA `+`); round-trip via `sqlalchemy.make_url` (componentes idênticos após parse); scheme inválido rejeitado; senha vazia permitida; contrato estrutural: `install.sh` e `install.ps1` chamam o helper (não há one-liner duplicado). Teste condicional (skip por padrão, padrão `MIGRATIONS_TEST_URL`): com `PARIDADE_DB_TEST_URL` (`mariadb+pymysql://` ou `mysql+pymysql://`) conecta, `SELECT 1`, `SELECT VERSION()` coerente com o scheme (SC-006 — prova MariaDB no Linux; MySQL na VM Windows) |
+
+### Remover
+
+- Nada.
+
+### Não alterar
+
+- `app/` inteiro — a aplicação **consome** `DATABASE_URL` da env (`app/config.py` L30, sem montagem e sem fallback SQLite); nada a padronizar lá. `backup_service.py` (parse `unquote` — lado de consumo) intocado.
+- Variantes Docker — interpolação via compose com **allowlist de caracteres** documentada no próprio instalador (restrição deliberada da variante alternativa, fora do escopo nativo; o diagnóstico não a apontou como correção).
+- `uninstall.sh` (parse somente leitura), `.env.example` (exemplos válidos), whitelists de deploy (`scripts/` já publicado — DE-1).
+- `charset` na URL — nota da matriz (§9): não é incompatibilidade comprovada; banco é criado utf8mb4 e a conexão herda o default do banco. Fica registrado; não muda.
+
+### Matriz T011 × este lote (T033)
+
+| Célula | Status |
+|---|---|
+| ❌ `IF NOT EXISTS` no MySQL (0002) | **Já corrigido** no lote M-1 (caminho `information_schema`) — T033 apenas consolida |
+| ⚠️ scheme fixo `mariadb+pymysql` | **Já corrigido** no lote M-2a (`Get-DbServerKind`) |
+| ⚠️ Enum (nativo vs VARCHAR) e validação real MySQL | **Fase 4** (§13 — exige banco real; teste condicional B-5 dá o caminho por configuração) |
+
+### Riscos do lote
+
+| Risco | Mitigação |
+|---|---|
+| PRO sem o novo script quando o instalador atualizado rodar | publicar a dev (`deploy.sh`) antes de usar o instalador novo — mesma premissa dos lotes anteriores; falha do helper é clara (arquivo ausente → die com caminho) |
+| One-liner inline antigo ainda em algum ponto | teste de contrato (B-5) garante que os 2 instaladores chamam o helper; `grep` duplo no fechamento |
+| Senha vazando via argv/log | entrada exclusivamente por env (SP_*); URL capturada em variável; auto-check SR-001 dos instaladores permanece |
