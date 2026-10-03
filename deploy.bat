@@ -120,13 +120,15 @@ set step_n=0
 echo %C_INFO%[1/2]%C_RESET% Gerando o snapshot da dev %TARGET% (mesma whitelist)
 set "TMPDIR=%TEMP%\sispat_rb_%RANDOM%"
 mkdir "%TMPDIR%"
-git archive %TARGET% | tar -x -C "%TMPDIR%"
+REM Line endings deterministicos (feature 061/DE-2): snapshot identico publicado
+REM do Linux ou do Windows - sem conversao de EOL do cliente
+git -c core.autocrlf=false -c core.eol=lf archive %TARGET% | tar -x -C "%TMPDIR%"
 if errorlevel 1 call :fail2 "falha ao extrair a arvore." "%TMPDIR%"
 for /d %%D in ("%TMPDIR%\*") do (
     if /i not "%%~nxD"=="app" if /i not "%%~nxD"=="data" if /i not "%%~nxD"=="docs" if /i not "%%~nxD"=="scripts" if /i not "%%~nxD"=="migrations" rmdir /s /q "%%D"
 )
 for %%F in ("%TMPDIR%\*") do (
-    if /i not "%%~nxF"==".gitignore" if /i not "%%~nxF"=="README.md" if /i not "%%~nxF"=="requirements.txt" if /i not "%%~nxF"=="run.py" if /i not "%%~nxF"=="seed_demo.py" if /i not "%%~nxF"=="sistema_patrimonio.png" if /i not "%%~nxF"=="SPEC-KIT-SISTEMA-ATUAL.md" del /q "%%F"
+    if /i not "%%~nxF"==".gitignore" if /i not "%%~nxF"=="README.md" if /i not "%%~nxF"=="requirements.txt" if /i not "%%~nxF"=="run.py" if /i not "%%~nxF"=="seed_demo.py" if /i not "%%~nxF"=="sistema_patrimonio.png" del /q "%%F"
 )
 for /d %%D in ("%TMPDIR%\docs\*") do (
     set "N=%%~nxD"
@@ -161,6 +163,17 @@ REM ============================================================
 :publicar
 set MSG=%~1
 
+REM Guard D-2 (feature 061/DE-2): residuais (lixeira de editor/teste ad-hoc) NUNCA
+REM entram no commit/snapshot - aborta ANTES de qualquer mutacao, com a lista.
+set "RESIDUOS=%TEMP%\sispat_residuos.txt"
+git ls-files --cached --others --exclude-standard | findstr /r /c:"~$" /c:"\.un~$" /c:"-old$" >"%RESIDUOS%" 2>nul
+if not errorlevel 1 (
+    type "%RESIDUOS%"
+    call :err "residuais (*~/*.un~/*-old) rastreados na dev - remova-os (git rm) e reexecute."
+    exit /b 1
+)
+del "%RESIDUOS%" 2>nul
+
 set step_n=0
 echo %C_INFO%[1/3]%C_RESET% Commit na dev
 git status --porcelain | findstr /r /c:"." >nul 2>&1
@@ -182,13 +195,13 @@ for /f %%i in ('git rev-parse --short HEAD') do call :ok "dev atualizada no GitH
 echo %C_INFO%[3/3]%C_RESET% Publicando snapshot filtrado no SisPatrimonioPro
 set "TMPDIR=%TEMP%\sispat_deploy_%RANDOM%"
 mkdir "%TMPDIR%"
-git archive HEAD | tar -x -C "%TMPDIR%"
+git -c core.autocrlf=false -c core.eol=lf archive HEAD | tar -x -C "%TMPDIR%"
 if errorlevel 1 call :fail2 "falha ao extrair a arvore do commit." "%TMPDIR%"
 for /d %%D in ("%TMPDIR%\*") do (
     if /i not "%%~nxD"=="app" if /i not "%%~nxD"=="data" if /i not "%%~nxD"=="docs" if /i not "%%~nxD"=="scripts" if /i not "%%~nxD"=="migrations" rmdir /s /q "%%D"
 )
 for %%F in ("%TMPDIR%\*") do (
-    if /i not "%%~nxF"==".gitignore" if /i not "%%~nxF"=="README.md" if /i not "%%~nxF"=="requirements.txt" if /i not "%%~nxF"=="run.py" if /i not "%%~nxF"=="seed_demo.py" if /i not "%%~nxF"=="sistema_patrimonio.png" if /i not "%%~nxF"=="SPEC-KIT-SISTEMA-ATUAL.md" del /q "%%F"
+    if /i not "%%~nxF"==".gitignore" if /i not "%%~nxF"=="README.md" if /i not "%%~nxF"=="requirements.txt" if /i not "%%~nxF"=="run.py" if /i not "%%~nxF"=="seed_demo.py" if /i not "%%~nxF"=="sistema_patrimonio.png" del /q "%%F"
 )
 for /d %%D in ("%TMPDIR%\docs\*") do (
     set "N=%%~nxD"

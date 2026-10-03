@@ -113,12 +113,12 @@ do_rollback() {
     step "Gerando o snapshot da dev $target (mesma whitelist)"
     local TMPDIR
     TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/sispat_rb_XXXXXX")" || fail "sem diretório temporário."
-    git archive "$target" | tar -x -C "$TMPDIR" || fail "falha ao extrair a árvore." "$TMPDIR"
+    git -c core.autocrlf=false -c core.eol=lf archive "$target" | tar -x -C "$TMPDIR" || fail "falha ao extrair a árvore." "$TMPDIR"
     find "$TMPDIR" -mindepth 1 -maxdepth 1 \
         ! -name app ! -name data ! -name docs \
+        ! -name scripts ! -name migrations \
         ! -name .gitignore ! -name README.md ! -name requirements.txt \
         ! -name run.py ! -name seed_demo.py ! -name sistema_patrimonio.png \
-        ! -name SPEC-KIT-SISTEMA-ATUAL.md \
         -exec rm -rf {} +
     find "$TMPDIR/docs" -mindepth 1 -maxdepth 1 \
         \( -name "doc_provi"* -o ! -name "*.md" \) \
@@ -143,6 +143,14 @@ do_rollback() {
 do_publicar() {
     local MSG="$1"
     banner
+    # Guard D-2 (feature 061/DE-1): residuais (lixeira de editor/teste ad-hoc)
+    # NUNCA entram no commit/snapshot — aborta ANTES de qualquer mutação, com a lista.
+    local residuais
+    residuais="$(git ls-files --cached --others --exclude-standard | grep -E '(~$|\.un~$|-old$)' || true)"
+    if [ -n "$residuais" ]; then
+        printf '%s\n' "$residuais" | sed 's/^/  /' >&2
+        fail "residuais (*~/*.un~/*-old) presentes ou rastreados na dev — remova-os (git rm) e reexecute."
+    fi
     step "Commit na dev"
     if [ -n "$(git status --porcelain)" ]; then
         git add -A || fail "falha ao adicionar arquivos."
@@ -157,12 +165,14 @@ do_publicar() {
     step "Publicando snapshot filtrado no SisPatrimonioPro"
     local TMPDIR
     TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/sispat_deploy_XXXXXX")" || fail "sem diretório temporário."
-    git archive HEAD | tar -x -C "$TMPDIR" || fail "falha ao extrair a árvore do commit." "$TMPDIR"
+    # Line endings determinísticos (feature 061/DE-1): o snapshot é idêntico
+    # publicado do Linux ou do Windows — sem conversão de EOL do cliente
+    git -c core.autocrlf=false -c core.eol=lf archive HEAD | tar -x -C "$TMPDIR" || fail "falha ao extrair a árvore do commit." "$TMPDIR"
     find "$TMPDIR" -mindepth 1 -maxdepth 1 \
         ! -name app ! -name data ! -name docs \
+        ! -name scripts ! -name migrations \
         ! -name .gitignore ! -name README.md ! -name requirements.txt \
         ! -name run.py ! -name seed_demo.py ! -name sistema_patrimonio.png \
-        ! -name SPEC-KIT-SISTEMA-ATUAL.md \
         -exec rm -rf {} +
     find "$TMPDIR/docs" -mindepth 1 -maxdepth 1 \
         \( -name "doc_provi"* -o ! -name "*.md" \) \

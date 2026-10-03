@@ -204,3 +204,15 @@ Fundação verificada: `DATABASE_URL` obrigatória sem fallback SQLite (`app/con
 - **2026-10-02 — APROVADO** (responsável, via gate interativo).
 - Revisão 1: não aprovada — solicitação de aprofundamento do `install.ps1`/`uninstall.ps1`/Docker.
 - Revisão 2 (aprofundamento com CS-3b e CS-5): **aprovada**. Libera a Fase 2 (listas de arquivos dos lotes HTTPS, MySQL/XAMPP e atualização) e a implementação (US2/US3).
+
+## 15. Validação — lote US4/deploy (T029, parte local)
+
+**2026-10-02 — simulação local do snapshot** (mesmos comandos do `deploy.sh`: `git -c core.autocrlf=false -c core.eol=lf archive` + filtro whitelist + `.gitkeep` de `data/`; executada contra a árvore de trabalho pós-T027 via índice temporário + `commit-tree` sem criar ref — **nenhum push, produção intocada**):
+
+- [x] Raiz do snapshot = whitelist canônica exata: `app/`, `data/`, `docs/`, `scripts/`, `migrations/`, `.gitignore`, `README.md`, `requirements.txt`, `run.py`, `seed_demo.py`, `sistema_patrimonio.png`.
+- [x] `scripts/gera_cert_dev.py` e `migrations/{alembic.ini, env.py, script.py.mako, versions/}` presentes (D-1 corrigido — publicar do Linux não degrada mais o PRO).
+- [x] `SPEC-KIT-SISTEMA-ATUAL.md` ausente do snapshot; `.env`, residuais (`*~`/`*.un~`/`*-old`) e `data/ssl` ausentes (zero ocorrências).
+- [x] `data/backups/.gitkeep` e `data/logs/.gitkeep` criados; `docs/` apenas `*.md`, sem `doc_provi*`.
+- [x] **0 arquivos-texto com CRLF** no snapshot extraído (line endings determinísticos).
+- [x] **`./deploy.sh pre` (somente leitura) validado em runtime**: conectividade OK com os 2 remotes (dev GitHub `b50f55f` sincronizada; PRO atual `8592ba5`, gerado da dev `b50f55f`); lista de pendências confere exatamente com o lote US4 aprovado; guard D-2 não disparou (residuais já removidos).
+- [ ] **Pendência do operador (produção/Windows)**: (a) publicação real pelo `deploy.sh` (push para dev + snapshot no PRO — a publicação auto-commita a árvore pendente); (b) publicação equivalente pelo `deploy.bat` na máquina Windows e comparação dos snapshots; (c) `./deploy.sh rollback <hash-dev>` restaurando o PRO (com pull na produção de teste).
