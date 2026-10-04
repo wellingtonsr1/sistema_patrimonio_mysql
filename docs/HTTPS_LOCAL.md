@@ -33,6 +33,12 @@ Detecta o IP da LAN automaticamente (ex.: `10.39.0.16`) e gera em `data\ssl\`:
 SAN inclui o IP, `localhost`, o hostname e `sispatrimoniopro.local`. Use
 `--ip` para forçar outro IP e `--force` para regerar.
 
+> ⚠️ **`--force` regera CA + cert JUNTOS**: o script apaga `ca.key`/`ca.crt` e
+> cria uma CA NOVA. Todos os aparelhos que confiavam na CA antiga voltam a ver
+> "sua conexão não é privada" — é preciso reimportar a nova `ca.crt` em cada um.
+> (Não existe hoje como reemitir SÓ o cert do servidor mantendo a CA — uma
+> opção `--reuse-ca` seria o caminho, mas ainda não foi implementada.)
+
 ### 2. Configure o .env e reinicie
 
 Use **barras `/`** — o app normaliza caminhos relativos contra a raiz do
@@ -132,6 +138,51 @@ registra, PWA instala e a câmera funciona no "Ler QR". Prova desta feature:
 > **Nota**: com TLS no uvicorn não há proxy — as URLs do QR saem `https://`
 > nativamente (`request.base_url`), sem ajuste de `proxy_headers`.
 > Para não expor HTTP na rede, rode só o HTTPS (ou bloqueie a 8000 no firewall).
+
+---
+
+## Dev Linux (Pop!_OS/Ubuntu nativo): gere e rode SEM sudo
+
+O `run.py` sobe HTTPS lendo `data/ssl/server.crt|server.key` com o usuário que
+executa a app. Se o `scripts/gera_cert_dev.py` rodar com `sudo`, os arquivos
+nascem donos `root` (a chave nasce `0600`) e a app quebra no boot:
+
+```
+PermissionError: [Errno 13] Permission denied   (uvicorn → ctx.load_cert_chain)
+```
+
+**Regra (máquina de dev)**: `scripts/gera_cert_dev.py` e `run.py` rodam SEMPRE
+com o seu usuário. `sudo` apenas no passo de CONFIANÇA da CA — a cópia para
+`/usr/local/share/ca-certificates/` não altera os arquivos gerados:
+
+```bash
+# geração e execução (sem sudo):
+.venv/bin/python scripts/gera_cert_dev.py                # detecta o IP da LAN
+.venv/bin/python scripts/gera_cert_dev.py --ip 192.168.0.9 --force
+.venv/bin/python run.py                                  # HTTPS em 0.0.0.0:8000
+
+# único passo com sudo (confiança da CA — não toca em data/ssl/):
+sudo cp data/ssl/ca.crt /usr/local/share/ca-certificates/sispatrimonio-local-ca.crt
+sudo update-ca-certificates
+```
+
+### Reparo dos arquivos root-owned (uma vez por regeneração indevida com sudo)
+
+Sintoma: `ls -l data/ssl/` mostra `root root` e o boot falha com o
+`PermissionError` acima. Corrija a posse e as permissões:
+
+```bash
+sudo chown "$USER:" data/ssl/ca.* data/ssl/server.*
+chmod 600 data/ssl/ca.key data/ssl/server.key
+chmod 644 data/ssl/ca.crt data/ssl/server.crt
+```
+
+Dono/permissão ficam gravados no arquivo: o reparo vale até a próxima
+regeneração. Regenerando SEM sudo (regra acima), nunca mais precisa.
+
+> **Produção Linux (install.sh) não sofre disso**: o instalador gera os certs
+> sob o usuário do serviço (`sispatrimonio`) e a unit systemd roda com ele —
+> nada a fazer lá.
 
 ---
 
@@ -282,13 +333,16 @@ certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n "$NOME_WIN"   -i ca-servidor-win
 
 ### Regras de convivência
 
-- **Trocou o IP de um servidor?** Regenere SÓ o cert dele
-  (`python scripts/gera_cert_dev.py --force`) — a CA dele não muda e os
-  aparelhos não precisam reimportar nada.
+- **Trocou o IP de um servidor?** Regenere com o novo IP
+  (`python scripts/gera_cert_dev.py --ip <novo-ip> --force`) — ATENÇÃO: o
+  `--force` regera TAMBÉM a CA (aviso no passo 1 da seção Windows nativo),
+  então os aparelhos precisarão reimportar a nova `ca.crt` daquele servidor
+  (reemissão mantendo a CA — tipo `--reuse-ca` — ainda não existe no script).
 - **Regenerou a CA de um servidor?** Os aparelhos precisam reimportar a
   NOVA CA daquele servidor (a do outro continua valendo).
 - **Backup**: guarde `ca.key` de cada servidor em local seguro — perdeu,
   regenera tudo e reimporta nos aparelhos.
 - Se um dia a operação crescer para 3+ servidores ou exigir rotação, a
-  unificação (uma CA única assinando todos) passa a valer a pena: reemitir
-  os certs com `--reuse-ca` sobre a CA de um dos servidores.
+  unificação (uma CA única assinando todos) passa a valer a pena — exigiria
+  uma opção `--reuse-ca` no `gera_cert_dev.py`, que hoje NÃO existe (todo
+  `--force` cria CA nova).
