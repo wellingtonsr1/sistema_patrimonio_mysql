@@ -107,8 +107,12 @@
                     <label class="form-label">Localização / Setor Inicial</label>
                     <select name="location_id" class="form-select">
                         <option value="">-- Estoque Central / Almoxarifado --</option>
-                        {% for loc in locations %}
-                        <option value="{{ loc.id }}">{{ loc.name }} ({{ loc.branch }} - {{ loc.department }})</option>
+                        {% for branch, locs in locations | groupby('branch') %}
+                        <optgroup label="{{ branch }}">
+                            {% for loc in locs %}
+                            <option value="{{ loc.id }}">{{ loc.department }} ({{ branch }})</option>
+                            {% endfor %}
+                        </optgroup>
                         {% endfor %}
                     </select>
                     <div class="form-text">Deixe em branco para armazenar no estoque geral.</div>
