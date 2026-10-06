@@ -1,0 +1,175 @@
+<!-- ============================================================
+     PROTÓTIPO — Evolução de filtros (slice optgroup 4 selects)
+     Origem: specs/062-selecao-departamento-destino/
+
+     Fateiro: assets/list.html — select location_id (filtro de listagem)
+     Visão: mesma apresentação da Feature 062 (optgroup + Departamento (Unidade))
+
+     ATENÇÃO: este é um ARTEFAFO ESTÁTICO de candidatura. NENHUM
+     arquivo de app/ é modificado pela existência/saída deste documento.
+     O HTML abaixo é aquele que o template teria se o padrão da 062
+     fosse aplicado; ele serve para:
+       1) registrar o slice;
+       2) calibrar o mockup visual (optgroup + rótulo + value);
+       3) ser a base do próximo spec-kit (feature 063).
+     ============================================================ -->
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMOKE EVOLUCAO FILTROS — assets/list.html — location_id</title>
+    <!-- Fontes/CSS do app (restantes, fora desta slice) -->
+    <link rel="stylesheet" href="/static/vendor/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/vendor/css/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/vendor/fonts/plus-jakarta-sans-var.woff2">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        :root { --c-text:#3f3838; --c-text-muted:#8A8585; --c-border:#C8C2C0; --c-primary:#ec5555; --c-primary-hover:#8F1527; }
+        .page-header .d-flex { flex-wrap: wrap; }
+        .card.p-3.mb-4 { border: 1px solid var(--c-border); border-radius: 4px; }
+        .form-select { border: 1px solid var(--c-border); border-radius: 4px; }
+        .input-group-text { border: 1px solid var(--c-border); border-radius: 4px; }
+        .valores { font-size:.82rem; color:#247A4B; font-weight:600; }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h3 class="page-header-title">Equipamentos & Bens</h3>
+            <p class="page-header-subtitle">Acervo patrimonial registrado e controle de inventário físico.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/assets" class="btn btn-ghost"><i class="bi bi-arrow-left me-1"></i> Voltar</a>
+            <a href="/assets/new" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Novo Equipamento</a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card p-3 mb-4">
+        <form method="get" action="/assets" class="row g-2 align-items-center assets-filters">
+
+            <!-- Busca -->
+            <div class="col-12 col-lg-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0 ps-0"
+                           placeholder="Buscar por patrimônio, série, marca, modelo, colaborador, setor ou localização...">
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="col-6 col-md-3 col-lg-2">
+                <select name="status_filter" class="form-select">
+                    <option value="">Status: Todos</option>
+                    <option value="disponivel">Disponível</option>
+                    <option value="indisponivel">Indisponível</option>
+                </select>
+            </div>
+
+            <!-- Categoria -->
+            <div class="col-6 col-md-3 col-lg-2">
+                <select name="category_filter" class="form-select">
+                    <option value="">Categoria: Todas</option>
+                    <option value="computador">Computador</option>
+                    <option value="impressora">Impressora</option>
+                </select>
+            </div>
+
+            <!-- Marca -->
+            <div class="col-12 col-md-3 col-lg-2">
+                <input type="text" name="brand_filter" class="form-control" placeholder="Marca">
+            </div>
+
+            <!-- Modelo -->
+            <div class="col-12 col-md-3 col-lg-2">
+                <input type="text" name="model_filter" class="form-control" placeholder="Modelo">
+            </div>
+
+            <!-- ***** location_id — padrão da 062 ***** -->
+            <div class="col-12 col-md-3 col-lg-2">
+                <select name="location_id" class="form-select">
+                    <option value="">Local: Todos</option>
+                    {% for branch, locs in locations | groupby('branch') %}
+                    <optgroup label="{{ branch }}">
+                        {% for loc in locs %}
+                        <option value="{{ loc.id }}">{{ loc.department }} ({{ branch }})</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Colaborador -->
+            <div class="col-12 col-md-3 col-lg-2">
+                <select name="custodian_id" class="form-select">
+                    <option value="">Colaborador: Todos</option>
+                    <option value="1">Fulano Silva (2024101)</option>
+                    <option value="2">Cegona Santos (2023112)</option>
+                </select>
+            </div>
+
+            <!-- Setor -->
+            <div class="col-12 col-md-3 col-lg-2">
+                <select name="department_filter" class="form-select">
+                    <option value="">Setor: Todos</option>
+                    <option value="TI">TI</option>
+                    <option value="Administração">Administração</option>
+                </select>
+            </div>
+
+            <!-- Manutenção -->
+            <div class="col-12 col-md-3 col-lg-2">
+                <select name="maintenance_filter" class="form-select">
+                    <option value="">Manutenção: Todas</option>
+                    <option value="open">Em Manutenção</option>
+                    <option value="closed">Sem Manutenção Aberta</option>
+                </div>
+            </div>
+
+            <!-- De / Até -->
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted small">De:</span>
+                    <input type="date" name="purchase_date_from" class="form-control">
+                </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted small">Até:</span>
+                    <input type="date" name="purchase_date_to" class="form-control">
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="col-12 col-md-6 col-lg-4 d-flex gap-2 align-items-end">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+                <a href="/assets" class="btn btn-ghost" title="Limpar Filtros"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Notas da slice -->
+    <div class="card p-3 mt-3" style="border:1px dashed var(--c-border);border-radius:4px;">
+        <p class="small mb-1"><i class="bi bi-info-circle-fill text-primary"></i> Cabeçalho desta slice:</p>
+        <ul class="small list-unstyled mb-0">
+            <li><strong>Select alterado:</strong> <code>location_id</code> (filtro de listagem)</li>
+            <li><strong>Padrão:</strong> <code>groupby('branch')</code> + <code>optgroup</code> + <code>Departamento (Unidade)</code></li>
+            <li><strong>value mandatório:</strong> <code>{{ loc.id }}</code> (índice do local, não o nome)</li>
+            <li><strong>opção vazia:</strong> <code>value=""</code> primeira, fora de grupo</li>
+            <li><strong>Não alterado:</strong> os demais filtros (status/category/brand/model/department/maintenance/datas) seguem com <code>loc.name</code> puro; tabela de locais não se aplica (L64)</li>
+            <li><strong>Código real do router</strong> (assets.py, ~L391): <code>locations = LocationService.get_all(db)</code>; o filtro final usa <code>location_id=loc_id</code> no service — a mudança é puramente de exibição.</li>
+        </ul>
+    </div>
+
+    <div style="margin-top:2rem; font-size:.82rem; color:var(--c-text-muted);">
+        <i class="bi bi-file-earmark-text me-1"></i>
+        Status: <b>PARA CANDIDATURA</b> — ready to become feature ~063-filtros-por-departamento.
+        O HTML acima reproduz o estado alvo do template <b>somente como protótipo</b>; nenhum app/ foi tocado.
+    </div>
+</div>
+</body>
+</html>

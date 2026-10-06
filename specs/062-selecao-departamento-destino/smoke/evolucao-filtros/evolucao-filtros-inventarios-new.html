@@ -1,0 +1,123 @@
+<!-- ============================================================
+     PROTÓTIPO — Evolução de filtros (slice optgroup 4 selects)
+     Fateiro: inventarios/new.html — select location_id (escopo do inventário)
+
+     Visão: mesma apresentação da Feature 062 (optgroup + Departamento (Unidade)).
+     ATENÇÃO: artefato ESTÁTICO de candidatura. NENHUM arquivo de app/ é
+     modificado; o HTML abaixo serve para calibrar o mockup visual e ser
+     a base do próximo spec-kit (feature 063).
+
+     REGISTRO + DESCARTE:
+     - O filtro <code>location_id</code> segue o padrão (optgroup + Departamento (Unidade)).
+     - O select de <code>department</code> do inventário NÃO é candidato nesta slice:
+       ele filtra por valores de <b>texto livre</b><code>departments</code> (sem localização),
+       não por unidade administrativa. Aplica-se a evolução de departamentos,
+       não a optgroup por unidade.
+     ============================================================ -->
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMOKE EVOLUCAO FILTROS — inventarios/new.html — location_id</title>
+    <!-- Fontes/CSS do app (restantes, fora desta slice) -->
+    <link rel="stylesheet" href="/static/vendor/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/vendor/css/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/vendor/fonts/plus-jakarta-sans-var.woff2">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        :root { --c-text:#3f3838; --c-text-muted:#8A8585; --c-border:#C8C2C0; --c-primary:#ec5555; --c-primary-hover:#8F1527; }
+        .page-header .d-flex { flex-wrap: wrap; }
+        .card.p-4 { border: 1px solid var(--c-border); border-radius: 4px; }
+        .form-select { border: 1px solid var(--c-border); border-radius: 4px; }
+        .form-section { font-size:.78rem; font-weight:600; color:var(--c-text-muted); text-transform:uppercase; letter-spacing:.04em; }
+        .alert-info { border: 1px solid var(--c-border); border-radius: 4px; }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="page-header">
+                <div>
+                    <h3 class="page-header-title">Novo Inventário Patrimonial</h3>
+                    <p class="page-header-subtitle">Defina o escopo; a lista de bens esperados será gerada como registro comprobatório.</p>
+                </div>
+                <a href="/inventarios" class="btn btn-ghost"><i class="bi bi-arrow-left me-1"></i> Voltar</a>
+            </div>
+
+            <form method="post" action="/inventarios/new" class="card p-4">
+                <div class="form-section"><i class="bi bi-clipboard-check"></i> Identificação</div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Nome do inventário <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" required maxlength="150"
+                           placeholder="Ex.: Inventário Anual 2026 — Sede">
+                    <div class="form-text">O código (INV-AAAA-NNNN) é gerado automaticamente.</div>
+                </div>
+
+                <div class="form-section"><i class="bi bi-funnel"></i> Escopo da conferência</div>
+                <div class="row g-3 mb-4">
+
+                    <!-- ***** location_id — padrão da 062 ***** -->
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold">Local</label>
+                        <select name="location_id" class="form-select">
+                            <option value="">Todos os locais</option>
+                            {% for branch, locs in locations | groupby('branch') %}
+                            <optgroup label="{{ branch }}">
+                                {% for loc in locs %}
+                                <option value="{{ loc.id }}">{{ loc.department }} ({{ branch }})</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Limita a conferência aos bens do local selecionado.</div>
+                    </div>
+
+                    <!-- department (texto livre) — não é candidato à optgroup nesta slice -->
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold">Setor / Departamento</label>
+                        <select name="department" class="form-select">
+                            <option value="">Todos os setores</option>
+                            <option value="TI">TI</option>
+                            <option value="Administração">Administração</option>
+                            <option value="Fiscal">Fiscal</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Observações</label>
+                        <textarea name="notes" class="form-control" rows="2"
+                                  placeholder="Instruções da conferência, comissão responsável, etc. (opcional)"></textarea>
+                    </div>
+                </div>
+
+                <div class="alert alert-info small d-flex align-items-start gap-2">
+                    <i class="bi bi-info-circle mt-1"></i>
+                    <div>
+                        A lista de bens esperados é gerada agora como <strong>snapshot</strong> (tombamento, local e
+                        colaborador cadastrados neste momento). O inventário <strong>nunca altera o cadastro dos
+                        bens</strong>: divergências ficam registradas para tratamento pelos fluxos próprios
+                        (movimentação, edição de cadastro).
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="/inventarios" class="btn btn-ghost">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i> Criar e gerar lista
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div style="margin-top:2rem; font-size:.82rem; color:var(--c-text-muted);">
+        <i class="bi bi-file-earmark-text me-1"></i>
+        Status: <b>PARA CANDIDATURA</b> — scope do filtro <code>location_id</code> homologado com o padrão da 062;
+        o select de <code>department</code> descartado nesta slice (texto livre, sem unidade).
+    </div>
+</div>
+</body>
+</html>

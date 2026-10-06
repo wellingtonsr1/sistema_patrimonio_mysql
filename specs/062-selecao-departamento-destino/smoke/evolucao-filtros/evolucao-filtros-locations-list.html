@@ -1,0 +1,130 @@
+<!-- ============================================================
+     PROTÓTIPO — Evolução de filtros (slice optgroup 4 selects)
+     Fateiro: locations/list.html — L64 (não é select: tabela)
+
+     Visão: este mockup registra por que o padrão da Feature 062
+     (optgroup + Departamento (Unidade)) NÃO se aplica a este ponto:
+     a listagem de locais é uma TABELA, não um select de filtro.
+     Ainda assim, os valores de unidade/departamento já aparecem
+     nas linhas como badges — é o padrão de exibição de destinatários.
+     ATENÇÃO: artefato ESTÁTICO de análise/candidatura. NENHUM
+     arquivo de app/ é modificado pela existência/saída deste documento.
+     ============================================================ -->
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMOKE EVOLUCAO FILTROS — locations/list.html</title>
+    <!-- Fontes/CSS do app (restantes, fora desta slice) -->
+    <link rel="stylesheet" href="/static/vendor/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/vendor/css/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/vendor/fonts/plus-jakarta-sans-var.woff2">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        :root { --c-text:#3f3838; --c-text-muted:#8A8585; --c-border:#C8C2C0; --c-primary:#ec5555; --c-primary-hover:#8F1527; --c-red:#B42332; }
+        .page-header .d-flex { flex-wrap: wrap; }
+        .card.p-3.mb-4 { border: 1px solid var(--c-border); border-radius: 4px; }
+        .card { border: 1px solid var(--c-border); border-radius: 4px; }
+        .badge-soft-gray { background:#F0EFED; color:#686363; }
+        .badge-soft-primary { background:#E8F5ED; color:#247A4B; }
+        .truncate-2 { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .valores { font-size:.82rem; color:#247A4B; font-weight:600; }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h3 class="page-header-title">Locais & Departamentos</h3>
+            <p class="page-header-subtitle">Controle físico de unidades, prédios, salas e setores da organização.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/locations" class="btn btn-ghost"><i class="bi bi-arrow-left me-1"></i> Voltar</a>
+            <a href="/locations/new" class="btn btn-primary"><i class="bi bi-building-add me-1"></i> Cadastrar Novo Local</a>
+        </div>
+    </div>
+
+    <!-- Filtro de busca (não é select; apenas termo) -->
+    <div class="card p-3 mb-4">
+        <form method="get" action="/locations" class="row g-2 align-items-center">
+            <div class="col-12 col-lg-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0 ps-0"
+                           placeholder="Pesquisar por nome / identificação do local...">
+                </div>
+            </div>
+            <div class="col-auto d-flex gap-2 align-items-end">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i> Filtrar</button>
+                <a href="/locations" class="btn btn-ghost">Limpar</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabela de locais (não se aplica optgroup — é exibição de linhas) -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                <tr>
+                    <th>Localização</th>
+                    <th>Unidade Administrativa</th>
+                    <th>Departamento</th>
+                    <th>Prédio / Andar / Sala</th>
+                    <th>Gestor</th>
+                    <th class="text-center">Bens</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>
+                        <strong style="color:var(--c-text);"><i class="bi bi-geo-alt-fill me-1" style="color:var(--c-red);"></i>Sede - Divisão de Previdência</strong>
+                        <div class="text-muted truncate-2" style="font-size:.76rem;">Prédio principal — 3 andares</div>
+                    </td>
+                    <td><span class="badge badge-soft-gray">IPMJP - Sede</span></td>
+                    <td><span class="badge badge-soft-primary">Divisão de Previdência</span></td>
+                    <td class="small text-muted">Sede • 3º andar • Sala 301</td>
+                    <td class="small">Administrador Sede</td>
+                    <td class="text-center">
+                        <span class="badge rounded-pill" style="background:var(--c-primary);color:#fff;font-size:.85rem;padding:.3rem .7rem;">127</span>
+                    </td>
+                    <td class="text-end">
+                        <a href="/assets?location_id=1" class="btn btn-ghost btn-sm"><i class="bi bi-boxes me-1"></i> Ver Bens</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong style="color:var(--c-text);"><i class="bi bi-geo-alt-fill me-1" style="color:var(--c-red);"></i>Clube da Pessoa Idosa</strong>
+                        <div class="text-muted truncate-2" style="font-size:.76rem;">Praça Central, bloco administração</div>
+                    </td>
+                    <td><span class="badge badge-soft-gray">Clube</span></td>
+                    <td><span class="badge badge-soft-primary">Clube da Pessoa Idosa</span></td>
+                    <td class="small text-muted">Praça • bloco A • sala 1</td>
+                    <td class="small">Gestor Clube</td>
+                    <td class="text-center">
+                        <span class="badge rounded-pill" style="background:var(--c-primary);color:#fff;font-size:.85rem;padding:.3rem .7rem;">3</span>
+                    </td>
+                    <td class="text-end">
+                        <a href="/assets?location_id=3" class="btn btn-ghost btn-sm"><i class="bi bi-boxes me-1"></i> Ver Bens</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div style="margin-top:2rem; font-size:.82rem; color:var(--c-text-muted);">
+        <i class="bi bi-file-earmark-text me-1"></i>
+        Status: <b>NÃO APLICA</b> — este ponto é uma <b>tabela</b>, não um <code>select</code>.
+        Não é candidato à optgroup de filtro. Os badges <code>branch</code>/<code>department</code>
+        já mostram a hierarquia por linha (conforme código atual). Tratamento sugerido para a próxima
+        feature: manter a tabela, mas documentar que os dados de <code>department</code> são
+        candidatos a normalização/hygiene (Feature 062/063 não os corrigem por escopo).
+    </div>
+</div>
+</body>
+</html>

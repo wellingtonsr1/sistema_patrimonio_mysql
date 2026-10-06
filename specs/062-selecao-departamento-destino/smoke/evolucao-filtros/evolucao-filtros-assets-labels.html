@@ -1,0 +1,148 @@
+<!-- ============================================================
+     PROTÓTIPO — Evolução de filtros (slice optgroup 4 selects)
+     Fateiro: assets/labels.html — select location_id (filtro de etiquetas)
+
+     Visão: mesma apresentação da Feature 062 (optgroup + Departamento (Unidade)).
+     ATENÇÃO: artefato ESTÁTICO de candidatura. NENHUM arquivo de app/ é
+     modificado; o HTML abaixo serve para calibrar o mockup visual e ser
+     a base do próximo spec-kit (feature 063).
+     ============================================================ -->
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMOKE EVOLUCAO FILTROS — assets/labels.html — location_id</title>
+    <!-- Fontes/CSS do app (restantes, fora desta slice) -->
+    <link rel="stylesheet" href="/static/vendor/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/vendor/css/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/vendor/fonts/plus-jakarta-sans-var.woff2">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        :root { --c-text:#3f3838; --c-text-muted:#8A8585; --c-border:#C8C2C0; --c-primary:#ec5555; --c-primary-hover:#8F1527; }
+        .page-header .d-flex { flex-wrap: wrap; }
+        .card.p-3.mb-4.no-print { border: 1px solid var(--c-border); border-radius: 4px; }
+        .form-select { border: 1px solid var(--c-border); border-radius: 4px; }
+        .input-group-text { border: 1px solid var(--c-border); border-radius: 4px; }
+        .valores { font-size:.82rem; color:#247A4B; font-weight:600; }
+        .sel-list { max-height: 400px; overflow:auto; }
+    </style>
+</head>
+<body>
+<div class="container py-4">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h3 class="page-header-title"><i class="bi bi-upc-scan me-2"></i>Etiquetas de Patrimônio</h3>
+            <p class="page-header-subtitle">Selecione os equipamentos e imprima etiquetas com QR Code em lote.</p>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card p-3 mb-4 no-print">
+        <form method="get" action="/assets/labels" class="row g-2 align-items-center">
+            <input type="hidden" name="selected" value="">
+
+            <!-- Busca -->
+            <div class="col-12 col-lg-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0 ps-0"
+                           placeholder="Buscar por patrimônio, série, marca, modelo, colaborador, setor ou localização...">
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="col-6 col-md-3 col-lg-2">
+                <select name="status_filter" class="form-select">
+                    <option value="">Status: Todos</option>
+                    <option value="disponivel">Disponível</option>
+                    <option value="indisponivel">Indisponível</option>
+                </select>
+            </div>
+
+            <!-- Categoria -->
+            <div class="col-6 col-md-3 col-lg-2">
+                <select name="category_filter" class="form-select">
+                    <option value="">Categoria: Todas</option>
+                    <option value="computador">Computador</option>
+                    <option value="impressora">Impressora</option>
+                </select>
+            </div>
+
+            <!-- Marca / Modelo -->
+            <div class="col-12 col-md-3 col-lg-2">
+                <input type="text" name="brand_filter" class="form-control" placeholder="Marca">
+            </div>
+            <div class="col-12 col-md-3 col-lg-2">
+                <input type="text" name="model_filter" class="form-control" placeholder="Modelo">
+            </div>
+
+            <!-- ***** location_id — padrão da 062 ***** -->
+            <div class="col-12 col-md-3 col-lg-2">
+                <select name="location_id" class="form-select">
+                    <option value="">Local: Todos</option>
+                    {% for branch, locs in locations | groupby('branch') %}
+                    <optgroup label="{{ branch }}">
+                        {% for loc in locs %}
+                        <option value="{{ loc.id }}">{{ loc.department }} ({{ branch }})</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Colaborador -->
+            <div class="col-12 col-md-3 col-lg-2">
+                <select name="custodian_id" class="form-select">
+                    <option value="">Colaborador: Todos</option>
+                    <option value="1">Fulano Silva (2024101)</option>
+                    <option value="2">Cegona Santos (2023112)</option>
+                </select>
+            </div>
+
+            <!-- Ações -->
+            <div class="col-12 col-md-6 col-lg-4 d-flex gap-2 align-items-end">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filtrar</button>
+                <a href="/assets/labels" class="btn btn-ghost" title="Limpar Filtros"><i class="bi bi-x-lg"></i></a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Selection list (não alterado nesta slice) -->
+    <div class="card no-print">
+        <div class="card-header-clean">
+            <span class="text-muted small">Mostrando 3 de 38 equipamentos</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead><tr><th></th><th>Tombamento</th><th>Equipamento / Modelo</th><th>Setor</th><th>Localização</th></tr></thead>
+                <tbody>
+                <tr>
+                    <td><input class="form-check-input asset-check" type="checkbox" value="1"></td>
+                    <td><span class="tag-badge">PAT-0001</span></td>
+                    <td><i class="bi bi-eye"></i> Notebook Dell Vostro (i7 / 16GB / SSD 512GB)</td>
+                    <td class="small text-muted">TI - Informática</td>
+                    <td class="small text-muted">Sede - Divisão de Previdência (IPMJP - Sede)</td>
+                </tr>
+                <tr>
+                    <td><input class="form-check-input asset-check" type="checkbox" value="2"></td>
+                    <td><span class="tag-badge">PAT-0002</span></td>
+                    <td><i class="bi bi-eye"></i> Impressora Laser HP M404</td>
+                    <td class="small text-muted">TI - Informática</td>
+                    <td class="small text-muted">IPMJP - Sede - Setor de Arquivo</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div style="margin-top:2rem; font-size:.82rem; color:var(--c-text-muted);">
+        <i class="bi bi-file-earmark-text me-1"></i>
+        Status: <b>PARA CANDIDATURA</b> — ready to become feature ~063-filtros-por-departamento.
+        Esta slice cobre apenas o filtro <code>location_id</code>; a planilha de seleção e o script de impressão são intocados.
+    </div>
+</div>
+</body>
+</html>
