@@ -1,5 +1,13 @@
 {% extends "base.html" %}
 
+{% macro _local_curto(name, department) -%}
+{%- if department and name.endswith(' - ' + department) -%}
+{{- name.rsplit(' - ' + department, 1)[0] -}}
+{%- else -%}
+{{- name -}}
+{%- endif -%}
+{% endmacro %}
+
 {% block title %}{{ asset.tag }} - {{ asset.name }} | SisPatrimônio Pro{% endblock %}
 
 {% block flash_messages %}
@@ -255,7 +263,17 @@
                             <div class="row g-2 align-items-center">
                                 <div class="col-12 col-md-5">
                                     <div class="flow-label flow-label-origin">Origem</div>
+                                    {% set origin_loc = item.data.origin_location %}
+                                    {% if origin_loc %}
+                                    <div class="flow-value"><i class="bi bi-geo-alt me-1 text-muted"></i>{{ origin_loc.department }}</div>
+                                    {% set curto = _local_curto(origin_loc.name, origin_loc.department) %}
+                                    {% set partes = [] %}
+                                    {% if curto and curto != origin_loc.department %}{% set _ = partes.append(curto) %}{% endif %}
+                                    {% if origin_loc.branch and origin_loc.branch not in partes and origin_loc.branch != origin_loc.department %}{% set _ = partes.append(origin_loc.branch) %}{% endif %}
+                                    <div class="flow-sub-local">{{ partes | join(' • ') }}</div>
+                                    {% else %}
                                     <div class="flow-value"><i class="bi bi-geo-alt me-1 text-muted"></i>{{ item.data.origin_location_name or 'Estoque Geral' }}</div>
+                                    {% endif %}
                                     <div class="flow-sub">{{ item.data.origin_custodian_name or 'Nenhum' }}</div>
                                 </div>
                                 <div class="col-12 col-md-2 text-center d-none d-md-block" style="color:var(--c-primary-text);font-size:1.2rem;">
@@ -263,7 +281,17 @@
                                 </div>
                                 <div class="col-12 col-md-5">
                                     <div class="flow-label flow-label-dest">Destino</div>
+                                    {% set dest_loc = item.data.destination_location %}
+                                    {% if dest_loc %}
+                                    <div class="flow-value" style="color:var(--c-primary-text);font-weight:700;"><i class="bi bi-geo-alt-fill me-1"></i>{{ dest_loc.department }}</div>
+                                    {% set curto = _local_curto(dest_loc.name, dest_loc.department) %}
+                                    {% set partes = [] %}
+                                    {% if curto and curto != dest_loc.department %}{% set _ = partes.append(curto) %}{% endif %}
+                                    {% if dest_loc.branch and dest_loc.branch not in partes and dest_loc.branch != dest_loc.department %}{% set _ = partes.append(dest_loc.branch) %}{% endif %}
+                                    <div class="flow-sub-local">{{ partes | join(' • ') }}</div>
+                                    {% else %}
                                     <div class="flow-value" style="color:var(--c-primary-text);font-weight:700;"><i class="bi bi-geo-alt-fill me-1"></i>{{ item.data.destination_location_name or 'Estoque Geral' }}</div>
+                                    {% endif %}
                                     <div class="flow-sub" style="color:var(--c-primary-text);">{{ item.data.destination_custodian_name or 'Almoxarifado / Estoque' }}</div>
                                 </div>
                             </div>
