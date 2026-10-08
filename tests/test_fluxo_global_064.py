@@ -288,6 +288,41 @@ class TestUS2GuardaNaoMutacao:
         assert "Fluxo Global de Movimentações" in resp.text
         assert "/movements/new" in resp.text
 
+    def test_fluxo_global_fallbacks_snapshot_e_literais(self, movimentos, db_session, client):
+        """Casos 5-8: registros sem FK e literais especiais ('Não definido',
+        'Nenhum / Estoque', 'Fornecedor / Entrada Inicial') exibidos byte-a-byte (T009 / AC06 / AC07)."""
+        asset, _, _, _, _ = movimentos
+        from app.models.movement import Movement
+
+        mov_sem_fk = Movement(
+            asset_id=asset.id,
+            movement_type=MovementType.TRANSFER,
+            new_status=asset.status,
+            reason="Transferência sem FK de teste",
+            origin_location_id=None,
+            origin_location_name="Não definido",
+            origin_custodian_id=None,
+            origin_custodian_name="Nenhum / Estoque",
+            destination_location_id=None,
+            destination_location_name="Não definido",
+            destination_custodian_id=None,
+            destination_custodian_name="Nenhum / Estoque",
+            operator_name="Validador 064",
+        )
+        db_session.add(mov_sem_fk)
+        db_session.commit()
+
+        resp = client.get("/movements")
+        assert resp.status_code == 200
+        html = resp.text
+
+        # (a) Entrada inicial com literal preservado byte-a-byte
+        assert "Fornecedor / Entrada Inicial" in html
+
+        # (b) Literais gravados sem FK exibidos byte-a-byte
+        assert "Não definido" in html
+        assert "Nenhum / Estoque" in html
+
 
 # ============================================================================
 # Mocks mínimos (compatível com app.schemas.movement.MovementFilter)

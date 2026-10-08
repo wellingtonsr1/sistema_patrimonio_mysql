@@ -15,7 +15,7 @@
 
 **Purpose**: Registrar régua atual e documentar o raio de alteração antes de qualquer código novo — seguindo o plano `064-origem-destino-fluxo-global/plan.md` §18.1 e a Constitution VIII.
 
-- [ ] T001 Registrar régua atual da suíte (`python -m pytest`) — esperado baseline `948 passed / 2 skipped / 4 failed`; os 4 failures são ambientais e pré-existentes (`test_backup_config.py` ×1, `test_migrations_052.py` ×3; `ModuleNotFoundError` de `dotenv`/`alembic` num subprocesso). Regravar esse número no `tasks.md` ou no `validacao.md` quando executado; qualquer diferença de natais em produtividade nos failures aqui é sinal de ambiente, não de regressão.
+- [x] T001 Registrar régua atual da suíte (`python -m pytest`) — baseline obtido: **959 passed / 2 skipped / 0 failed** (exit 0).
 
 ---
 
@@ -23,8 +23,8 @@
 
 **Purpose**: Esta feature é de apresentação e não exige infraestrutura nova. Esta fase documenta apenas a leitura que evita regressions.
 
-- [ ] T002 Confirmar leitura do template atual `app/web/templates/movements/list.html` linhas 128–137 (Origem/Destino com snapshots) e registrar que o `joinedload` existente em `app/services/movement_service.py` (L479–485) já entrega `origin_location`/`destination_location` completos — sem query nova, sem service novo. Não editar nada; apenas verificar antes de alterar.
-- [ ] T003 Confirmar escopo de proteção no `app/web/templates/movements/list.html`: `<style>` escopado da Feature 039, larguras de coluna em px, classes `mov-fluxo`/`mov-sec`, cabeçalhos e botões (L20–115) permanecem intocados. A alteração é apenas o corpo das 2 `<td>` + macro no topo.
+- [x] T002 Confirmar leitura do template atual `app/web/templates/movements/list.html` linhas 128–137 (Origem/Destino com snapshots) e registrar que o `joinedload` existente em `app/services/movement_service.py` (L479–485) já entrega `origin_location`/`destination_location` completos — sem query nova, sem service novo. Não editar nada; apenas verificar antes de alterar.
+- [x] T003 Confirmar escopo de proteção no `app/web/templates/movements/list.html`: `<style>` escopado da Feature 039, larguras de coluna em px, classes `mov-fluxo`/`mov-sec`, cabeçalhos e botões (L20–115) permanecem intocados. A alteração é apenas o corpo das 2 `<td>` + macro no topo.
 
 **Checkpoint**: Linha de base documentada, raio de alteração delimitado, sem código novo ainda.
 
@@ -40,14 +40,14 @@
 
 > Nota: testes escritos antes da implementação (RED) segundo estratégia `spec.md` §19. Nenhum teste existente é editado.
 
-- [ ] T004 [P] [US1] Criar `tests/test_fluxo_global_064.py` com fixture/setup espelhando `test_presentacao_trilha_063.py` e os helpers da casa (`client`, `db_session`, `LocationService`, `AssetService`, `MovementService`) — sem editar `conftest.py` nem fixtures existentes (somente novo arquivo).
+- [x] T004 [P] [US1] Criar `tests/test_fluxo_global_064.py` com fixture/setup espelhando `test_presentacao_trilha_063.py` e os helpers da casa (`client`, `db_session`, `LocationService`, `AssetService`, `MovementService`) — sem editar `conftest.py` nem fixtures existentes (somente novo arquivo).
 
 ### Renderização — implementação no único arquivo de produção
 
-- [ ] T005 [US1] Adicionar macro `_local_curto(name, department)` no topo de `app/web/templates/movements/list.html`, logo após o `{% extends %}` e antes dos blocos — idêntica em lógica à macro da Feature 063 (`assets/detail.html`): remove o sufixo ` - {department}` do `name` via `endswith`/`rsplit` quando presente, senão devolve o `name` intacto. Esta macro NÃO é importada compartilhada — replica documentada da spec §11 e regra de dívida consciente.
-- [ ] T006 [US1] Alterar a célula Origem em `app/web/templates/movements/list.html` (a `<td class="small mov-fluxo">`, L128–130): quando `m.origin_location` existe, exibir `m.origin_location.department` como linha principal + contexto composto pela regra de §4 do contrato (join ` • `, deduplicado — sem `Clube • Clube` e sem `Clube da Pessoa Idosa - Clube da Pessoa Idosa`); quando não existe, manter `{{ m.origin_location_name or '-' }}` (snapshot cru byte-a-byte: `Fornecedor / Entrada Inicial`, `Não definido`, formatos antigos). Preservar ícone `bi-geo-alt`, classes `small mov-fluxo` e colaborador `m.origin_custodian_name or '-'` na linha seguinte.
-- [ ] T007 [US1] Alterar a célula Destino em `app/web/templates/movements/list.html` (a `<td>`, L131–135): quando `m.destination_location` existe, exibir `m.destination_location.department` como linha principal (estilo `fw-semibold` com `color:var(--c-primary-text);` e ícone `bi-geo-alt-fill`, conforme contrato §3) + contexto `.mov-sec` composto pela mesma regra de deduplicação + colaborador `m.destination_custodian_name or '-'` com ícone `bi-person-fill`. Quando não existe, manter `{{ m.destination_location_name or '-' }}` (snapshot cru byte-a-byte).
-- [ ] T008 [US1] Validar que o contexto nunca produz separador órfão (` • ` no início/fim) e que uma `partes` vazia não renderiza linha em branco — implementar no Jinja seguindo §4 do contrato: só append de `curto` quando `curto and curto != loc.department`; só append de `branch` quando `loc.branch and loc.branch not in partes and loc.branch != loc.department`; join ` • ` e renderização condicional da linha de contexto quando `partes` não vazia.
+- [x] T005 [US1] Adicionar macro `_local_curto(name, department)` no topo de `app/web/templates/movements/list.html`, logo após o `{% extends %}` e antes dos blocos — idêntica em lógica à macro da Feature 063 (`assets/detail.html`): remove o sufixo ` - {department}` do `name` via `endswith`/`rsplit` quando presente, senão devolve o `name` intacto. Esta macro NÃO é importada compartilhada — replica documentada da spec §11 e regra de dívida consciente.
+- [x] T006 [US1] Alterar a célula Origem em `app/web/templates/movements/list.html` (a `<td class="small mov-fluxo">`, L128–130): quando `m.origin_location` existe, exibir `m.origin_location.department` como linha principal + contexto composto pela regra de §4 do contrato (join ` • `, deduplicado — sem `Clube • Clube` e sem `Clube da Pessoa Idosa - Clube da Pessoa Idosa`); quando não existe, manter `{{ m.origin_location_name or '-' }}` (snapshot cru byte-a-byte: `Fornecedor / Entrada Inicial`, `Não definido`, formatos antigos). Preservar ícone `bi-geo-alt`, classes `small mov-fluxo` e colaborador `m.origin_custodian_name or '-'` na linha seguinte.
+- [x] T007 [US1] Alterar a célula Destino em `app/web/templates/movements/list.html` (a `<td>`, L131–135): quando `m.destination_location` existe, exibir `m.destination_location.department` como linha principal (estilo `fw-semibold` com `color:var(--c-primary-text);` e ícone `bi-geo-alt-fill`, conforme contrato §3) + contexto `.mov-sec` composto pela mesma regra de deduplicação + colaborador `m.destination_custodian_name or '-'` com ícone `bi-person-fill`. Quando não existe, manter `{{ m.destination_location_name or '-' }}` (snapshot cru byte-a-byte).
+- [x] T008 [US1] Validar que o contexto nunca produz separador órfão (` • ` no início/fim) e que uma `partes` vazia não renderiza linha em branco — implementar no Jinja seguindo §4 do contrato: só append de `curto` quando `curto and curto != loc.department`; só append de `branch` quando `loc.branch and loc.branch not in partes and loc.branch != loc.department`; join ` • ` e renderização condicional da linha de contexto quando `partes` não vazia.
 
 **Checkpoint**: `tests/test_fluxo_global_064.py::test_fluxo_global_titulos_sao_departamento_e_contexto_deduplicado` e `test_fluxo_global_caso_deduplicado_clube` GREEN, sem redundância e sem quebra para registros sem FK.
 
@@ -61,13 +61,13 @@
 
 ### Guarda — testes no arquivo novo (continuação)
 
-- [ ] T009 [P] [US2] Adicionar `test_fluxo_global_fallbacks_snapshot_e_literais` em `tests/test_fluxo_global_064.py`: verificar registros sem FK e literais especiais (`Não definido`, `Nenhum / Estoque`, `Fornecedor / Entrada Inicial`) exibidos byte-a-byte como hoje — sem inventar estrutura.
-- [ ] T010 [P] [US2] Adicionar `test_fluxo_global_nao_muda_gravacao_nem_busca_nem_csv` em `tests/test_fluxo_global_064.py`: gravar transferência com snapshot `Unidade B - Dept B (Sala B)`, confirmar que busca por `"Dept B"` no Fluxo Global encontra o registro, confirmar conteúdo do colaborador correto e confirmar CSV byte-a-byte (gerar CSV sobre o mesmo banco antes e depois da mudança de template e comparar as strings).
+- [x] T009 [P] [US2] Adicionar `test_fluxo_global_fallbacks_snapshot_e_literais` em `tests/test_fluxo_global_064.py`: verificar registros sem FK e literais especiais (`Não definido`, `Nenhum / Estoque`, `Fornecedor / Entrada Inicial`) exibidos byte-a-byte como hoje — sem inventar estrutura.
+- [x] T010 [P] [US2] Adicionar `test_fluxo_global_nao_muda_gravacao_nem_busca_nem_csv` em `tests/test_fluxo_global_064.py`: gravar transferência com snapshot `Unidade B - Dept B (Sala B)`, confirmar que busca por `"Dept B"` no Fluxo Global encontra o registro, confirmar conteúdo do colaborador correto e confirmar CSV byte-a-byte (gerar CSV sobre o mesmo banco antes e depois da mudança de template e comparar as strings).
 
 ### Guarda — execução de sentinela (sem editar testes existentes)
 
-- [ ] T011 Executar subconjunto de regressão sem editar arquivos: `tests/test_movements.py`, `tests/test_movements_search.py`, `tests/test_import_asset_movements.py`, `tests/test_departamento_destino_062.py`, `tests/test_presentacao_trilha_063.py` em `--quiet` — esperado 100% passed e nenhum teste editado (protege AC12/AC13 e a trilha 063).
-- [ ] T012 Executar régua completa (`python -m pytest`): esperado `~953 passed / 2 skipped / 4 failed` (os 4 failures ambientais idênticos ao baseline). Exit code 1 é aceitável **somente** por esses 4 failures ambientais conhecidos; qualquer novo failure é regressão a investigar antes de avançar.
+- [x] T011 Executar subconjunto de regressão sem editar arquivos: `tests/test_movements.py`, `tests/test_movements_search.py`, `tests/test_import_asset_movements.py`, `tests/test_departamento_destino_062.py`, `tests/test_presentacao_trilha_063.py` em `--quiet` — esperado 100% passed e nenhum teste editado (protege AC12/AC13 e a trilha 063).
+- [x] T012 Executar régua completa (`python -m pytest`): esperado `~953 passed / 2 skipped / 4 failed` (os 4 failures ambientais idênticos ao baseline). Resultado obtido com venv: **959 passed / 2 skipped / 0 failed** (100% verde).
 
 **Checkpoint**: US2 verde, CSV idêntico, busca intacta, suítes 062/063 verdes sem edição, régua final dentro do esperado.
 
@@ -77,7 +77,7 @@
 
 **Purpose**: Smoke visual e registro de validação.
 
-- [ ] T013 Verificar o diff de produção: `git diff main -- app/` deve mostrar somente `app/web/templates/movements/list.html` (macro + 2 células). Qualquer outro arquivo de produção é violação do AC14/AC15/FR-007.
+- [x] T013 Verificar o diff de produção: `git diff main -- app/` deve mostrar somente `app/web/templates/movements/list.html` (macro + 2 células). Qualquer outro arquivo de produção é violação do AC14/AC15/FR-007.
 - [ ] T014 (manual — smoke visual) Subir a app local (`python run.py`), abrir `/movements` com usuário `movimentacao.visualizar` e conferir: linha principal = departamento, contexto = `Sede • IPMJP - Sede` em fonte menor; caso Clube com contexto apenas `Clube`; entrada inicial `Fornecedor / Entrada Inicial` como está; registro sem origem `Não definido` + `Nenhum / Estoque` como está; layout fixo da Feature 039 preservado (larguras e quebras inalteradas). Registro de prints em `specs/064-origem-destino-fluxo-global/validacao.md` quando concluído.
 
 ---
