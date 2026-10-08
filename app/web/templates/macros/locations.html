@@ -1,0 +1,22 @@
+{# ============================================================================
+  Macro compartilhada de localização e contexto — SisPatrimônio Pro.
+  Centraliza a apresentação de locais e contexto deduplicado em templates.
+=============================================================================#}
+
+{% macro local_curto(name, department) -%}
+{%- if department and name.endswith(' - ' + department) -%}
+{{- name.rsplit(' - ' + department, 1)[0] -}}
+{%- else -%}
+{{- name -}}
+{%- endif -%}
+{%- endmacro %}
+
+{% macro render_location_context(loc) -%}
+{%- if loc -%}
+{%- set curto = local_curto(loc.name, loc.department) -%}
+{%- set partes = [] -%}
+{%- if curto and curto != loc.department -%}{%- set _ = partes.append(curto) -%}{%- endif -%}
+{%- if loc.branch and loc.branch not in partes and loc.branch != loc.department -%}{%- set _ = partes.append(loc.branch) -%}{%- endif -%}
+{{- partes | join(' • ') -}}
+{%- endif -%}
+{%- endmacro %}

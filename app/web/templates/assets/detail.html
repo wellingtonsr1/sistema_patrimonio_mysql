@@ -1,12 +1,6 @@
 {% extends "base.html" %}
 
-{% macro _local_curto(name, department) -%}
-{%- if department and name.endswith(' - ' + department) -%}
-{{- name.rsplit(' - ' + department, 1)[0] -}}
-{%- else -%}
-{{- name -}}
-{%- endif -%}
-{% endmacro %}
+{% from "macros/locations.html" import local_curto, render_location_context %}
 
 {% block title %}{{ asset.tag }} - {{ asset.name }} | SisPatrimônio Pro{% endblock %}
 
@@ -266,11 +260,8 @@
                                     {% set origin_loc = item.data.origin_location %}
                                     {% if origin_loc %}
                                     <div class="flow-value"><i class="bi bi-geo-alt me-1 text-muted"></i>{{ origin_loc.department }}</div>
-                                    {% set curto = _local_curto(origin_loc.name, origin_loc.department) %}
-                                    {% set partes = [] %}
-                                    {% if curto and curto != origin_loc.department %}{% set _ = partes.append(curto) %}{% endif %}
-                                    {% if origin_loc.branch and origin_loc.branch not in partes and origin_loc.branch != origin_loc.department %}{% set _ = partes.append(origin_loc.branch) %}{% endif %}
-                                    <div class="flow-sub-local">{{ partes | join(' • ') }}</div>
+                                    {% set o_partes = render_location_context(origin_loc) | trim %}
+                                    {% if o_partes %}<div class="flow-sub-local">{{ o_partes }}</div>{% endif %}
                                     {% else %}
                                     <div class="flow-value"><i class="bi bi-geo-alt me-1 text-muted"></i>{{ item.data.origin_location_name or 'Estoque Geral' }}</div>
                                     {% endif %}
@@ -284,11 +275,8 @@
                                     {% set dest_loc = item.data.destination_location %}
                                     {% if dest_loc %}
                                     <div class="flow-value" style="color:var(--c-primary-text);font-weight:700;"><i class="bi bi-geo-alt-fill me-1"></i>{{ dest_loc.department }}</div>
-                                    {% set curto = _local_curto(dest_loc.name, dest_loc.department) %}
-                                    {% set partes = [] %}
-                                    {% if curto and curto != dest_loc.department %}{% set _ = partes.append(curto) %}{% endif %}
-                                    {% if dest_loc.branch and dest_loc.branch not in partes and dest_loc.branch != dest_loc.department %}{% set _ = partes.append(dest_loc.branch) %}{% endif %}
-                                    <div class="flow-sub-local">{{ partes | join(' • ') }}</div>
+                                    {% set d_partes = render_location_context(dest_loc) | trim %}
+                                    {% if d_partes %}<div class="flow-sub-local">{{ d_partes }}</div>{% endif %}
                                     {% else %}
                                     <div class="flow-value" style="color:var(--c-primary-text);font-weight:700;"><i class="bi bi-geo-alt-fill me-1"></i>{{ item.data.destination_location_name or 'Estoque Geral' }}</div>
                                     {% endif %}

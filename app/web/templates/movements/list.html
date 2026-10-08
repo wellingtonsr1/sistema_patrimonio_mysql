@@ -2,19 +2,7 @@
 
 {% block title %}Histórico de Movimentações{% endblock %}
 
-{# ============================================================================
-  Feature 064 — Macro de apresentação local (compactada).
-  Idêntica em regra à macro da Feature 063 (assets/detail.html), replicada aqui
-  por escopo mínimo (Constitution I + spec §11 Alternativa A). Dívida de
-  macro compartilhada registrada para feature futura (Alternativa B).
-=============================================================================#}
-{% macro _local_curto(name, department) -%}
-{%- if department and name.endswith(' - ' + department) -%}
-{{- name.rsplit(' - ' + department, 1)[0] -}}
-{%- else -%}
-{{- name -}}
-{%- endif -%}
-{% endmacro %}
+{% from "macros/locations.html" import local_curto, render_location_context %}
 
 {% block content %}
 <!--
@@ -142,12 +130,9 @@
                     <td class="small mov-fluxo">
                         {% if m.origin_location %}
                         {% set o_loc = m.origin_location %}
-                        {% set o_curto = _local_curto(o_loc.name, o_loc.department) %}
-                        {% set o_partes = [] %}
-                        {% if o_curto and o_curto != o_loc.department %}{% set _ = o_partes.append(o_curto) %}{% endif %}
-                        {% if o_loc.branch and o_loc.branch not in o_partes and o_loc.branch != o_loc.department %}{% set _ = o_partes.append(o_loc.branch) %}{% endif %}
+                        {% set o_partes = render_location_context(o_loc) | trim %}
                         <div><i class="bi bi-geo-alt text-muted me-1"></i>{{ o_loc.department }}</div>
-                        {% if o_partes %}<div class="text-muted mov-sec">{{ o_partes | join(' • ') }}</div>{% endif %}
+                        {% if o_partes %}<div class="text-muted mov-sec">{{ o_partes }}</div>{% endif %}
                         {% else %}
                         {{ m.origin_location_name or '-' }}
                         {% endif %}
@@ -156,12 +141,9 @@
                     <td class="small">
                         {% if m.destination_location %}
                         {% set d_loc = m.destination_location %}
-                        {% set d_curto = _local_curto(d_loc.name, d_loc.department) %}
-                        {% set d_partes = [] %}
-                        {% if d_curto and d_curto != d_loc.department %}{% set _ = d_partes.append(d_curto) %}{% endif %}
-                        {% if d_loc.branch and d_loc.branch not in d_partes and d_loc.branch != d_loc.department %}{% set _ = d_partes.append(d_loc.branch) %}{% endif %}
+                        {% set d_partes = render_location_context(d_loc) | trim %}
                         <div class="fw-semibold" style="color:var(--c-primary-text);"><i class="bi bi-geo-alt-fill me-1"></i>{{ d_loc.department }}</div>
-                        {% if d_partes %}<div class="mov-sec" style="color:var(--c-primary-text);">{{ d_partes | join(' • ') }}</div>{% endif %}
+                        {% if d_partes %}<div class="mov-sec" style="color:var(--c-primary-text);">{{ d_partes }}</div>{% endif %}
                         {% else %}
                         {{ m.destination_location_name or '-' }}
                         {% endif %}
