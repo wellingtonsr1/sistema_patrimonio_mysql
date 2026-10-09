@@ -96,6 +96,27 @@ CONDITION_MAP = {
 }
 
 
+def _normalize_text(value: str) -> str:
+    """Normaliza texto de célula importada contra erros de digitação/autocorreção
+    de planilhas (LibreOffice Calc / Excel):
+    - travessão/en dash (–, U+2013) e traço horizontal (―, U+2015) → hífen ' - '
+      (padrão dos nomes de locations no cadastro; o Calc costuma digitar o
+      travessão quando o operador escreve ' - ')
+    - NBSP (U+00A0) e espaços de largura variável → espaço comum
+    - espaços múltiplos internos → um único espaço
+    Tudo sem alterar o significado do dado — evita ERRO 'Local não encontrado'
+    por diferença invisível de caractere."""
+    if not value:
+        return value
+    # NBSP e espaços de largura variável → espaço comum
+    value = value.replace("\u00a0", " ").replace("\u2007", " ").replace("\u202f", " ")
+    # travessões de autocorreção → hífen simples
+    value = value.replace("\u2013", "-").replace("\u2014", "-").replace("\u2015", "-")
+    # colapsa espaços múltiplos internos
+    value = " ".join(value.split())
+    return value
+
+
 def _detect_delimiter(content: str) -> str:
     """Detecta o delimitador do CSV (pode ser ; ou ,)."""
     first_lines = content.split("\n")[:5]
@@ -338,7 +359,7 @@ def parse_csv(content: str) -> Tuple[List[Dict[str, str]], List[str]]:
         normalized = {}
         for orig_key, value in row.items():
             norm_key = normalized_fields.get(orig_key, _normalize_column_name(orig_key))
-            normalized[norm_key] = (value or "").strip()
+            normalized[norm_key] = _normalize_text(value or "")
 
         row_errors = _validate_row(normalized, i)
         errors.extend(row_errors)

@@ -1,6 +1,6 @@
 tombamento,equipamento,categoria,responsavel,marca,modelo,número de série,nota fiscal,fornecedor,valor,data de aquisição,condição,notas,locations
 IPMJP1456,Computador,Desktop, ,,Arquimedes Corporativo-A,A84286,,Arquimedes Automacao e Informatica Ltda,,,,,IPMJP - Sede - Divisão de Previdência
-PMJP679450,Computador,Desktop, ,,DC3E-U,1030151010064,,Daten Tecnologia Ltda,,,,,IPMJP - Sede - Superintendência Adjunta
+PMJP679450,Computador,Desktop, ,,DC3E-U,1030151010064,,Daten Tecnologia Ltda,,,,,IPMJP - Sede - Supernitendência Adjunta
 PMJP663548,Computador,Desktop,Aldineide Alves Barbosa,,DC3E-U,1030150050159,,Daten Tecnologia Ltda,,,,,IPMJP - Sede - Setor de Análise de Benefícios
 PMJP679479,Computador,Desktop,Aline Freire Paiva Pita,,DC3E-U,1030151020057,,Daten Tecnologia Ltda,,,,,IPMJP - Sede - Assessoria Jurídica
 IPMJP662011,Computador,Desktop,Alzieny de Sa Nascimento,,Desktop,Ltd.,,Gigabyte Technology Co.,,,,,IPMJP - Sede - Setor de Contabilidade
@@ -50,7 +50,7 @@ PMJP679198,Computador,Desktop,Maria Dione Dias Barbosa,,DC3E-U,1030151010081,,Da
 IPMJP1434,Computador,Desktop,Mariana Souto Soares,,Arquimedes Corporativo-A,A84285,,Arquimedes Automacao e Informatica Ltda,,,,,IPMJP - Sede - Assessoria Jurídica
 PMJP661720,Computador,Desktop,Matheus Araujo,,Desktop,Ltd.,,Gigabyte Technology Co.,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1437,Computador,Desktop,Micael de Araújo Silva,,Arquimedes Corporativo-A,A84274,,Arquimedes Automacao e Informatica Ltda,,,,,IPMJP - Sede - Divisão de Previdência
-PMJP679430,Computador,Desktop,Milena Medeiros de Alencar Feitosa Coutinho Torres,,DC3E-U,1030151020126,,Daten Tecnologia Ltda,,,,,IPMJP - Sede - Assessoria de Controle Interno
+PMJP679430,Computador,Desktop,Milena Medeiros de Alencar Feitosa Coutinho Torres,,DC3E-U,1030151020126,,Daten Tecnologia Ltda,,,,,IPMJP - Assessoria de Controle Interno
 IPMJP1463,Computador,Desktop,Mychelle Desiree Gomes Cabral,,Arquimedes Corporativo-A,A84290,,Arquimedes Automacao e Informatica Ltda,,,,,IPMJP - Sede - Divisão de Previdência
 PMJP679436,Computador,Desktop,Paulo Roberto Alves de Brito,,DC3E-U,1030151020001,,Daten Tecnologia Ltda,,,,,IPMJP - Sede - Assessoria Jurídica
 PMJP679194,Computador,Desktop,Raelma Kecia Dantas Martins,,DC3E-U,1030151010008,,Daten Tecnologia Ltda,,,,,IPMJP - Sede - Setor de Arquivo
@@ -70,63 +70,63 @@ PMJP679200,Computador,Desktop,Thyago Alves da Silva,,DC3E-U,1030151010027,,Daten
 PMJP679452,Computador,Desktop,Victor Matheus F. Coutinho,,DC3E-U,1030151010098,,Daten Tecnologia Ltda,,,,,IPMJP - Sede - Setor de Arquivo
 IPMJP1455,Computador,Desktop,Victor Assis de Oliveira Targino,,Arquimedes Corporativo-A,A84267,,Arquimedes Automacao e Informatica Ltda,,,,,IPMJP - Sede - Assessoria de Gabinete
 PMJP661745,Computador,Desktop,Wellington dos Santos Rodrigues,,Desktop,Ltd.,,Gigabyte Technology Co.,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0005,Monitor ,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0005,Monitor ,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0004 ,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0354,,Informática,,,,,,,,,,,
+IPMJP0354,,,,,,,,,,,,,
 IPMJP0881,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1504,Monitor ,Informática,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - SEAD
+IPMJP1504,Monitor ,,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - SEAD
 IPMJP1511,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1515,Monitor ,Desktop,,,LED 195IN/,,, LG,,,,,
 IPMJP1513,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1457,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Compras
-IPMJP1519,Monitor ,Informática,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1457,Computador,,,,,,,,,,,,IPMJP - Sede - Seção de Compras
+IPMJP1519,Monitor ,,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1514,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1522,Monitor,Informática,,,LED 195IN/,,, LG,,,,,
+IPMJP1522,Monitor,,,,LED 195IN/,,, LG,,,,,
 IPMJP1516,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1524,Monitor ,Informática,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Setor de Contabilidade
+IPMJP1524,Monitor ,,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Setor de Contabilidade
 IPMJP1518,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1523,Monitor ,Informática,,,LED 195IN/,,, LG,,,,,
+IPMJP1523,Monitor ,,,,LED 195IN/,,, LG,,,,,
 IPMJP1503,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
-IPMJP1525,Monitor ,Informática,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Setor de Cálculo
+IPMJP1525,Monitor ,,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Setor de Cálculo
 IPMJP1505,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1527,Monitor ,Informática,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Seção de Compensação Previdenciária
+IPMJP1527,Monitor ,,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Seção de Compensação Previdenciária
 IPMJP1508,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1521,Monitor ,Informática,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Seção de Desenvolvimento
+IPMJP1521,Monitor ,,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Seção de Desenvolvimento
 IPMJP1507,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1528,Monitor,Informática,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Divisão de Previdência
-IPMJP1512,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1509,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Compras
-IPMJP0323,Monitor ,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Compras
-IPMJP1529,Monitor ,Informática,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Divisão de Previdência
-IPMJP1502,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1531,Monitor,Informática,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Divisão de Previdência
+IPMJP1528,Monitor,,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Divisão de Previdência
+IPMJP1512,Computador,Desktop,,,,,,,,,,,IPMJP - Seção de Suporte
+IPMJP1509,Computador,Desktop,,,,,,,,,,,IPMJP - Seção de Compras
+IPMJP0323,Monitor ,,,,,,,,,,,,IPMJP - Seção de Compras
+IPMJP1529,Monitor ,,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Divisão de Previdência
+IPMJP1502,Computador,Desktop,,,,,,,,,,,IPMJP - Seção de Suporte
+IPMJP1531,Monitor,,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Divisão de Previdência
 IPMJP1506,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1520,Monitor ,Informática,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1520,Monitor ,,,,LED 195IN/,,, LG,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1517,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0408,MONITOR DE 20 ,Informática,,, 2036VA ,,,AOC,,,,,IPMJP - Sede - Digitalização
+IPMJP0408,MONITOR DE 20 ,,,, 2036VA ,,,AOC,,,,,IPMJP - Sede - Digitalização
 IPMJP1452,Computador completo ( Monitor  gabinete  teclado e mouse) ( Sistema Arquimedes corporativo A) - GABINETE,Desktop,,,,,,,,,,,IPMJP - Sede - Digitalização
-IPMJP1483,Computador completo ( Monitor  gabinete  teclado e mouse) ( Sistema Arquimedes corporativo A) -  MONITOR,Desktop,,,,,,,,,,,IPMJP - Sede - Digitalização
-IPMJP3957,CAMERA DE MONITORAMENTO INTELBRAS IM7 FULL COLOR,Informática,,,,,,,,,,,IPMJP - Sede - Digitalização
-IPMJP0053,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
+IPMJP1483,Computador completo ( Monitor  gabinete  teclado e mouse) ( Sistema Arquimedes corporativo A) -  MONITOR,,,,,,,,,,,,IPMJP - Sede - Digitalização
+IPMJP3957,CAMERA DE MONITORAMENTO INTELBRAS IM7 FULL COLOR,,,,,,,,,,,,IPMJP - Sede - Digitalização
+IPMJP0053,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
 IPMJP0030,COMPUTADOR LENOVO C.TECL.MOUSE - MONITOR,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
 IPMJP0796,COMPUTADOR LENOVO C.TECL.MOUSE - MONITOR,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
 IPMJP0381,COMPUTADOR LENOVO C.TECL.MOUSE - MONITOR,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
 IPMJP0160,COMPUTADOR LENOVO C.TECL.MOUSE - MONITOR,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
 IPMJP0404,COMPUTADOR DELL OPTIPLEX,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
 IPMJP0623,COMPUTADOR DELL OPTIPLEX,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
-IPMJP0328,SCANERS FUJITSU MOD 6140Z ,Informática,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
-IPMJP1185,TRANSFORMADOR BMI 1050V A,Informática,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
-IPMJP0174,MONITOR AOC LED E970WNL 18.5P,Informática,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
-IPMJP1250,SWITCH 24 GIGA 2SFP 1410-24G j9561A HP,Informática,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
+IPMJP0328,SCANERS FUJITSU MOD 6140Z ,,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
+IPMJP1185,TRANSFORMADOR BMI 1050V A,,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
+IPMJP0174,MONITOR AOC LED E970WNL 18.5P,,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
+IPMJP1250,SWITCH 24 GIGA 2SFP 1410-24G j9561A HP,,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
 IPMJP1434,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
 IPMJP1450,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
 IPMJP1449,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
 IPMJP1479,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria Jurídica
-IPMJP1531,MONITOR LG LED 195IN/,Informática,,,,,,,,,,,IPMJP - Sede - ATENDIMENTO PREVIDENCIÁRIO
+IPMJP1531,MONITOR LG LED 195IN/,,,,,,,,,,,,IPMJP - Sede - ATENDIMENTO PREVIDENCIÁRIO
 IPMJP1506,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0316,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
-IPMJP1182,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
-IPMJP1244,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
+IPMJP0316,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
+IPMJP1182,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
+IPMJP1244,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
 IPMJP0250,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
 IPMJP0252,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
 IPMJP0335,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
@@ -136,34 +136,34 @@ IPMJP1437,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
 IPMJP1461,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
 IPMJP1497,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
 IPMJP1470,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Cálculo
-IPMJP0850,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Clube - Clube da Pessoa Idosa
-IPMJP1092,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Clube - Clube da Pessoa Idosa
-IPMJP1840,SWICH 8 PORTAS,Informática,,,,,,,,,,,IPMJP - Clube - Clube da Pessoa Idosa
-IPMJP0482,TV SEMPTOSHIBA  PRETA,Informática,,,,,,,,,,,IPMJP - Clube - Clube da Pessoa Idosa
-,SWITCH 48 GIGA 4SFP 1920--48G JG927A HP,Informática,,,,,,,,,,,IPMJP - Clube - Clube da Pessoa Idosa
+IPMJP0850,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Clube - Clube da Pessoa Idosa
+IPMJP1092,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Clube - Clube da Pessoa Idosa
+IPMJP1840,SWICH 8 PORTAS,,,,,,,,,,,,IPMJP - Clube - Clube da Pessoa Idosa
+IPMJP0482,TV SEMPTOSHIBA  PRETA,,,,,,,,,,,,IPMJP - Clube - Clube da Pessoa Idosa
+,SWITCH 48 GIGA 4SFP 1920--48G JG927A HP,,,,,,,,,,,,IPMJP - Clube - Clube da Pessoa Idosa
 IPMJP0755,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Contabilidade
-IPMJP0140,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Sede - Assessoria de Controle Interno
-IPMJP0425,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Compensação Previdenciária
+IPMJP0140,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - Assessoria de Controle Interno
+IPMJP0425,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - Seção de Compensação Previdenciária
 IPMJP0248,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Compensação Previdenciária
 IPMJP1485,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Compensação Previdenciária
 IPMJP1480,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Compensação Previdenciária
 IPMJP0259,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Compensação Previdenciária
-IPMJP0072,SCANERS FUJITSU MOD 6140Z ,Informática,,,,,,,,,,,IPMJP - Sede - Setor de Contabilidade
-IPMJP0380,MONITOR AOC LED E970WNL 18.5P,Informática,,,,,,,,,,,IPMJP - Sede - Setor de Contabilidade
+IPMJP0072,SCANERS FUJITSU MOD 6140Z ,,,,,,,,,,,,IPMJP - Sede - Setor de Contabilidade
+IPMJP0380,MONITOR AOC LED E970WNL 18.5P,,,,,,,,,,,,IPMJP - Sede - Setor de Contabilidade
 IPMJP1447,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Contabilidade
-IPMJP0089,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Sede - Setor de Contabilidade
-IPMJP0299,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Sede - Assessoria de Controle Interno
+IPMJP0089,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - Setor de Contabilidade
+IPMJP0299,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - Assessoria de Controle Interno
 IPMJP0104,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria de Controle Interno
 IPMJP0204,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria de Controle Interno
 IPMJP1454,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria de Controle Interno
 IPMJP1478,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Assessoria de Controle Interno
-IPMJP0015,SCANERS FUJITSU MOD 6140Z,Informática,,,,,,,,,,,IPMJP - Sede - Assessoria de Controle Interno
-IPMJP0127,SCANERS FUJITSU MOD 6140Z,Informática,,,,,,,,,,,IPMJP - Sede - Digitalização
-IPMJP0348,SCANERS FUJITSU MOD 6140Z,Informática,,,,,,,,,,,IPMJP - Sede - Digitalização
+IPMJP0015,SCANERS FUJITSU MOD 6140Z,,,,,,,,,,,,IPMJP - Sede - Assessoria de Controle Interno
+IPMJP0127,SCANERS FUJITSU MOD 6140Z,,,,,,,,,,,,IPMJP - Sede - Digitalização
+IPMJP0348,SCANERS FUJITSU MOD 6140Z,,,,,,,,,,,,IPMJP - Sede - Digitalização
 IPMJP1453,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Digitalização
 IPMJP1477,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Digitalização
 IPMJP1439,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Digitalização
-IPMJP0097,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Sede - DIV TIN
+IPMJP0097,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - DIV TIN
 IPMJP0726,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Divisão Administrativa e Financeira
 IPMJP0428,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Divisão Administrativa e Financeira
 IPMJP1465,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Divisão Administrativa e Financeira
@@ -181,37 +181,37 @@ IPMJP1466,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Divisão de Previdência
 IPMJP1446,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Divisão de Previdência
 IPMJP1481,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Divisão de Previdência
 IPMJP0326,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Folha de Benefícios
-IPMJP1432,SWITCH 26 PORTAS,Informática,,,,,,,,,,,IPMJP - Sede - Setor de Gestão de Pessoal
+IPMJP1432,SWITCH 26 PORTAS,,,,,,,,,,,,IPMJP - Sede - Setor de Gestão de Pessoal
 IPMJP1441,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Gestão de Pessoal
 IPMJP1197,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Gestão de Pessoal
 IPMJP0246,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Gestão de Pessoal
-IPMJP0262,SCANERS FUJITSU MOD 6140Z ,Informática,,,,,,,,,,,IPMJP - Sede - Setor de Gestão de Pessoal
+IPMJP0262,SCANERS FUJITSU MOD 6140Z ,,,,,,,,,,,,IPMJP - Sede - Setor de Gestão de Pessoal
 IPMJP1444,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Gestão de Pessoal
-IPMJP0513,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Sede - Fundo Municipal de Previdência
-IPMJP0928,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Sede - Fundo Municipal de Previdência
-IPMJP0214,SCANERS FUJITSU MOD 6140Z ,Informática,,,,,,,,,,,IPMJP - Sede - Fundo Municipal de Previdência
+IPMJP0513,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - Fundo Municipal de Previdência
+IPMJP0928,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - Fundo Municipal de Previdência
+IPMJP0214,SCANERS FUJITSU MOD 6140Z ,,,,,,,,,,,,IPMJP - Sede - Fundo Municipal de Previdência
 IPMJP1459,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Fundo Municipal de Previdência
 IPMJP1468,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Fundo Municipal de Previdência
 IPMJP1476,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Compras
-IPMJP0215,SCANERS FUJITSU MOD 6140Z ,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Compras
-IPMJP0293,TV LCD 32 1366x768 FULL HD ,Informática,,,,,,,,,,,IPMJP - Sede - RECEPÇÃO
-IPMJP0293,TV SAMSUNG,Informática,,,, 29 POLEGADAS,,,,,,,IPMJP - Sede - RECEPÇÃO
-IPMJP3944,"TV 32"" SAMSUNG HD UN32H5000FGXZD",Informática,,,,,,,,,,,IPMJP - Sede - RECEPÇÃO
-IPMJP1640,SMART TV LED 50'' TCL 50P755,Informática,,,,,,,,,,,IPMJP - Sede - Sala de Reunião
-IPMJP1540,GABINETE RESET,Desktop,,,,,,,,,,,IPMJP - Shopping - Shopping 4400
-IPMJP1539,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Shopping - Shopping 4400
-IPMJP0501,MONITOR POSITIVO,Informática,,,, PRETO,,,,,,,IPMJP - Shopping - Shopping 4400
-IPMJP1474,Computador,Desktop,,,,,,,,,,,IPMJP - Sede – Superintendência Adjunta 
-IPMJP0055,MONITOR DE 20 AOC 2036VA ,Informática,,,,,,,,,,,IPMJP - Sede - Gabinete da Superintendência
+IPMJP0215,SCANERS FUJITSU MOD 6140Z ,,,,,,,,,,,,IPMJP - Sede - Seção de Compras
+IPMJP0293,TV LCD 32 1366x768 FULL HD ,,,,,,,,,,,,IPMJP - Sede - RECEPÇÃO
+IPMJP0293,TV SAMSUNG,,,,, 29 POLEGADAS,,,,,,,IPMJP - Sede - RECEPÇÃO
+IPMJP3944,"TV 32"" SAMSUNG HD UN32H5000FGXZD",,,,,,,,,,,,IPMJP - Sede - RECEPÇÃO
+IPMJP1640,SMART TV LED 50'' TCL 50P755,,,,,,,,,,,,IPMJP - Sede - Sala de Reunião
+IPMJP1540,GABINETE RESET,Desktop,,,,,,,,,,,IPMJP - Sede - Shopping 4400
+IPMJP1539,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - Shopping 4400
+IPMJP0501,MONITOR POSITIVO,,,,, PRETO,,,,,,,IPMJP - Sede - Shopping 4401
+IPMJP1474,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Superintendência Adjunta
+IPMJP0055,MONITOR DE 20 AOC 2036VA ,,,,,,,,,,,,IPMJP - Sede - Gabinete da Superintendência
 IPMJP1179,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Gabinete da Superintendência
-IPMJP0772,TV LG TELA PLANA 49,Informática,,,,,,,,,,,IPMJP - Sede - Gabinete da Superintendência
+IPMJP0772,TV LG TELA PLANA 49,,,,,,,,,,,,IPMJP - Sede - Gabinete da Superintendência
 IPMJP1455,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Gabinete da Superintendência
 IPMJP1435,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Gabinete da Superintendência
 IPMJP1436,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1482,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Gabinete da Superintendência
 IPMJP1484,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1822,IMAC 24 POLEGADAS,Desktop,,,,processador M1,, SSD de 256 GB e contenbdo 2 Portas de entrada USB e 1 Porta de entrada HDMI.,,,,,IPMJP - Sede - Gabinete da Superintendência
-IPMJP3930,CAMERA DE MONITORAMENTO INTELBRAS IM7 FULL COLOR,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP3930,CAMERA DE MONITORAMENTO INTELBRAS IM7 FULL COLOR,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0530,COMPUTADOR AL-IN-ON APPLE LCF 21,Desktop,,,,5,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0630,COMPUTADOR ALL-IN-ONE APPLE DE 21,Desktop,,,,5,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1464,Computador,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Desenvolvimento
@@ -280,102 +280,102 @@ IPMJP0406,COMPUTADOR THIN CLIENT NCOMPUTING L300,Desktop,,,,,,,,,,,IPMJP - Sede 
 IPMJP0908,COMPUTADOR THIN CLIENT NCOMPUTING L300,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0102,COMPUTADOR THIN CLIENT NCOMPUTING L300,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0142,COMPUTADOR THIN CLIENT NCOMPUTING L300,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1270,EXPANSOR/REPETIDOR WIRELESS CONTAC WN9255 300MB,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1261,EXPANSOR/REPETIDOR WIRELESS CONTAC WN9255 300MB,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1258,EXPANSOR/REPETIDOR WIRELESS CONTAC WN9255 300MB,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1257,EXPANSOR/REPETIDOR WIRELESS CONTAC WN9255 300MB,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1256,EXPANSOR/REPETIDOR WIRELESS CONTAC WN9255 300MB,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Desenvolvimento
-IPMJP1259,EXPANSOR/REPETIDOR WIRELESS CONTAC WN9255 300MB,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0138,Monitor ,Informática,,,LED E970WNL,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0416,MONITOR DE 20 AOC 2036VA ,Informática,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0051,MONITOR DE 20 AOC 2036VA ,Informática,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0239,MONITOR DE 20 AOC 2036VA ,Informática,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0057,MONITOR DE 20 AOC 2036VA ,Informática,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1246,MONITOR DE 20 AOC 2036VA ,Informática,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0857,MONITOR DE 20 AOC 2036VA ,Informática,,,,,, AOC,,,,,IPMJP - Sede - Digitalização
-IPMJP1243,MONITOR DE 20 AOC 2036VA ,Informática,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0909,MONITOR PHILIPS,Informática,,,, PRETO,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0213,SCANERS FUJITSU MOD 6140Z,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0629,SCANERS FUJITSU MOD 6140Z,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0212,SCANERS FUJITSU MOD 6140Z,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0021,SCANERS FUJITSU MOD 6140Z,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0090,SCANERS FUJITSU MOD 6140Z,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP0750,SCANERS FUJITSU MOD 6140Z,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1433,SWICH HUB 24P. 10/100,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP1251,SWITCH 48 PORTAS C/ 2GB,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP3988,SWITCH 48 PORTAS DGS 12105-52,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0874,SWITCH 48P 10-100-1000MBTS 4P SFT HP-3COM,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0872,SWITCH GB ETHERNET V191048G,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Desenvolvimento
-IPMJP1269,TRANSFORMADOR BMI 1050V A,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0254,TRANSFORMADOR BMI 1050V A,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1270,EXPANSOR/REPETIDOR WIRELESS CONTAC WN9255 300MB,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1261,EXPANSOR/REPETIDOR WIRELESS CONTAC WN9255 300MB,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1258,EXPANSOR/REPETIDOR WIRELESS CONTAC WN9255 300MB,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1257,EXPANSOR/REPETIDOR WIRELESS CONTAC WN9255 300MB,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1256,EXPANSOR/REPETIDOR WIRELESS CONTAC WN9255 300MB,,,,,,,,,,,,IPMJP - Sede - Seção de Desenvolvimento
+IPMJP1259,EXPANSOR/REPETIDOR WIRELESS CONTAC WN9255 300MB,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0138,Monitor ,,,,LED E970WNL,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0416,MONITOR DE 20 AOC 2036VA ,,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0051,MONITOR DE 20 AOC 2036VA ,,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0239,MONITOR DE 20 AOC 2036VA ,,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0057,MONITOR DE 20 AOC 2036VA ,,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1246,MONITOR DE 20 AOC 2036VA ,,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0857,MONITOR DE 20 AOC 2036VA ,,,,,,, AOC,,,,,IPMJP - Sede - Digitalização
+IPMJP1243,MONITOR DE 20 AOC 2036VA ,,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0909,MONITOR PHILIPS,,,,, PRETO,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0213,SCANERS FUJITSU MOD 6140Z,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0629,SCANERS FUJITSU MOD 6140Z,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0212,SCANERS FUJITSU MOD 6140Z,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0021,SCANERS FUJITSU MOD 6140Z,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0090,SCANERS FUJITSU MOD 6140Z,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP0750,SCANERS FUJITSU MOD 6140Z,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1433,SWICH HUB 24P. 10/100,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP1251,SWITCH 48 PORTAS C/ 2GB,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP3988,SWITCH 48 PORTAS DGS 12105-52,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0874,SWITCH 48P 10-100-1000MBTS 4P SFT HP-3COM,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0872,SWITCH GB ETHERNET V191048G,,,,,,,,,,,,IPMJP - Sede - Seção de Desenvolvimento
+IPMJP1269,TRANSFORMADOR BMI 1050V A,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0254,TRANSFORMADOR BMI 1050V A,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0429,COMPUTADOR ,Desktop,,,OPTIPLEX,,,DELL ,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0584,COMPUTADOR ,Desktop,,,OPTIPLEX,,,DELL ,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0795,COMPUTADOR ,Desktop,,,,,,LENOVO ,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1817,COMPUTADOR THIN CLIENT NCOMPUTING L300,Desktop,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0103,Monitor ,Informática,,,,,,AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0961,SCANERS FUJITSU MOD 6140Z ,Informática,,,,,,,,,,,IPMJP - Sede - Gabinete da Superintendência
-IPMJP1284,TV 55POL LED FULLHD LG 55LY540S,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP3932,Switch 10Gbps CRS312-4C+8XG-RM MIKROTIK,Informática,,,,,,,,,,,IPMJP - Sede - Gabinete da Superintendência
+IPMJP0103,Monitor ,,,,,,,AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0961,SCANERS FUJITSU MOD 6140Z ,,,,,,,,,,,,IPMJP - Sede - Gabinete da Superintendência
+IPMJP1284,TV 55POL LED FULLHD LG 55LY540S,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP3932,Switch 10Gbps CRS312-4C+8XG-RM MIKROTIK,,,,,,,,,,,,IPMJP - Sede - Gabinete da Superintendência
 IPMJP3971,TABLET SAMSUNG GALAXY TAB S10 LITE 5G 128GB,TABLET,,,,,,,,,,,IPMJP - Sede - Assistência Social
 IPMJP3948,NOTEBOOK I5 16GB 512GB WIN11 PRO,NOTEBOOK,,,,,,DELL,,,,,IPMJP - Sede - Assistência Social
 IPMJP3947,NOTEBOOK I5 16GB 512GB WIN11 PRO,NOTEBOOK,,,,,,DELL,,,,,IPMJP - Sede - Divisão Administrativa e Financeira
 IPMJP3972,TABLET,TABLET,,,GALAXY TAB S10 LITE 5G 128GB,,,SAMSUNG ,,,,,IPMJP - Sede - ADM GERAL
 IPMJP3983,TABLET ,TABLET,,,GALAXY TAB S10 LITE 5G 128GB,,,SAMSUNG ,,,,,IPMJP - Clube - Clube da Pessoa Idosa
 IPMJP3985,TABLET ,TABLET,,,GALAXY TAB S10 LITE 5G 128GB,,,SAMSUNG ,,,,,IPMJP - Clube - Clube da Pessoa Idosa
-IPMJP0941,RELÓGIO DE PONTO ,Informática,,,,,,PRIMME,,,,,IPMJP - Sede - Protocolo
-IPMJP0962,ESTABILIZADOR PRETO,Informática,,,,,,FORCE LINE,,,,,IPMJP - Shopping - Shopping 4400
-IPMJP0994,TELAO C COM CX ACUST,Informática,,,, AMPLIF,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP0036,ESTABILIZADOR,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP1541,MULTIFUNCIONAL,Informática,,, LASER JET MFP M125A,,,HP ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP0876,ESTABILIZADOR,Informática,,,,,,FORCE LINE,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP1417,NOBREAK,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1290,RACK PISO 44X870 GAB FEC COM CAPACIDADE PARA 1400 KG,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0877,RACK SERVIDOR,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1717,RELÓGIO DE PONTO ,Informática,,,,,,PRIMME,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP3911,SSD 2,Informática,,,,"5"" 960 GB SATA",,Informática ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP3912,SSD 2,Informática,,,,"5"" 960 GB SATA",,Informática ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP0885,TERMINAL INTELIGENTE,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP1299,UD SERVIDOR SYSTEM X3650  16 MB,Informática,,,, RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP1297,UD SERVIDOR SYSTEM X3650  16 MB,Informática,,,, RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP1295,UD SERVIDOR SYSTEM X3650  16 MB,Informática,,,, RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1296,UD SERVIDOR SYSTEM X3650,Informática,,,, RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0876,ESTABILIZADOR,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0946,MULTIFUNCIONAL ,Informática,,, LASER JET MFP M125A,,,HP,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP3960,NOBREAK 10KVA 220V AC 50/60Hz,Informática,,,,,,,,,,,IPMJP - Sede - Setor de Contabilidade
+IPMJP0941,RELÓGIO DE PONTO ,,,,,,,PRIMME,,,,,IPMJP - Sede - Protocolo
+IPMJP0962,ESTABILIZADOR PRETO,,,,,,,FORCE LINE,,,,,IPMJP - Sede - Shopping 4400
+IPMJP0994,TELAO C COM CX ACUST,,,,, AMPLIF,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP0036,ESTABILIZADOR,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP1541,MULTIFUNCIONAL,,,, LASER JET MFP M125A,,,HP ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP0876,ESTABILIZADOR,,,,,,,FORCE LINE,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP1417,NOBREAK,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1290,RACK PISO 44X870 GAB FEC COM CAPACIDADE PARA 1400 KG,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0877,RACK SERVIDOR,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1717,RELÓGIO DE PONTO ,,,,,,,PRIMME,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP3911,SSD 2,,,,,"5"" 960 GB SATA",,Informática ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP3912,SSD 2,,,,,"5"" 960 GB SATA",,Informática ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP0885,TERMINAL INTELIGENTE,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP1299,UD SERVIDOR SYSTEM X3650  16 MB,,,,, RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP1297,UD SERVIDOR SYSTEM X3650  16 MB,,,,, RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP1295,UD SERVIDOR SYSTEM X3650  16 MB,,,,, RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1296,UD SERVIDOR SYSTEM X3650,,,,, RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0876,ESTABILIZADOR,,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0946,MULTIFUNCIONAL ,,,, LASER JET MFP M125A,,,HP,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP3960,NOBREAK 10KVA 220V AC 50/60Hz,,,,,,,,,,,,IPMJP - Sede - Setor de Contabilidade
 IPMJP3999,Desktop Integralizado i7 - 13700F,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Manutenção
-IPMJP3933,SSD 2,Informática,,,,"5"" 960 GB SATA",,Informática ,,,,,IPMJP - Sede - RECEPÇÃO
-IPMJP0271,IMPRESSORA ,Informática,,,LASERJET P2015,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1282,IMPRESSORA,Informática,,,HP M425 DN MULT. LASER MONO,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1172,IMPRESSORA  ,Informática,,,MP4200TH,,,BEMATECH,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1283,IMPRESSORA  ,Informática,,,MFC8712DW MULTIFUNCIONAL LASER MONO,,,BROTHER,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1247,IMPRESSORA,Informática,,,MFC8712DW MULTIFUNCIONAL LASER MONO,,,BROTHER,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0216,IMPRESSORA,Informática,,,1020A LASER,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1846,IMPRESSORA ,Informática,,,LASER JET P100 S,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1178,IMPRESSORA ,Informática,,, M425 DN MULT. LASER MONO,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1249,IMPRESSORA ,Informática,,, M425 DN MULT. LASER MONO,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1248,IMPRESSORA ,Informática,,, M425 DN MULT. LASER MONO,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1863,IMPRESSORA ,Informática,,, M425 DN MULT. LASER MONO,,,HP ,,,,,IPMJP - Sede - Setor de Contabilidade
-IPMJP1173,IMPRESSORA,Informática,,,3050 MULTIFUNCIONAL,,,HP ,,,,,IPMJP - Sede - Divisão Administrativa e Financeira
-IPMJP1840,IMPRESSORA ,Informática,,,LASER JET P100 S,,,HP ,,,,,IPMJP - Sede - Setor de Gestão de Pessoal
-IPMJP1770,ROTEADOR ,Informática,,, WIRELESS 3000MBPS TL-WR840N,,,TPLINK,,,,,IPMJP - Sede - Seção de Compras
-IPMJP3937,ROTEADOR DUAL BAND ,Informática,,,AX12 AX1500,,,TP-LINK,,,,,IPMJP - Sede - RECEPÇÃO
-IPMJP1767,ROTEADOR  ,Informática,,,WIRELESS 3000MBPS TL-WR840N,,,TPLINK,,,,,IPMJP - Sede - Sala de Reunião
-IPMJP3938,ROTEADOR DUAL BAND  ,Informática,,,AX12 AX1500 ,,,TP-LINK,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1769,ROTEADOR  ,Informática,,,WIRELESS 3000MBPS TL-WR840N,,,TPLINK,,,,,IPMJP - Sede - Gabinete da Superintendência
-IPMJP3936,ROTEADOR DUAL BAND  ,Informática,,,AX12 AX1500 ,,,TP-LINK,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1766,ROTEADOR ,Informática,,, WIRELESS 3000MBPS TL-WR840N,,,TPLINK,,,,,IPMJP - Sede - Assistência Social
-IPMJP3935,ROTEADOR DUAL BAND,Informática,,,AX12 AX1500 ,,,TP-LINK,,,,,IPMJP - Sede - Divisão Administrativa e Financeira
-IPMJP1768,ROTEADOR ,Informática,,,WIRELESS 3000MBPS TL-WR840N,,,TPLINK,,,,,IPMJP - Sede - Sala de Reunião
-IPMJP1719,WEBCAM 1080P USB 30FPS WARRIOR,Informática,,, MICROFONE INTEGRADO ,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1721,WEBCAM 1080P USB 30FPS WARRIOR,Informática,,, MICROFONE INTEGRADO,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1722,WEBCAM 1080P USB 30FPS WARRIOR,Informática,,, MICROFONE INTEGRADO ,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1723,WEBCAM 1080P USB 30FPS WARRIOR,Informática,,, MICROFONE INTEGRADO ,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1771,HD EXTERNO 2TB  3.0,Informática,,,WESTERN DIGITAL,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1693,HD EXTERNO 1TB USB 3.0,Informática,,, SEAGATE ,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP1720,WEBCAM 1080P USB 30FPS WARRIOR,Informática,,, MICROFONE INTEGRADO - ,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP3909,SSD 2,Informática,,,"5"" 960 GB SATA",,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP3980,DISCO RÍGIDO MECÂNICO  P/ SERVIDORES NAS  TAMANHO: 3,Informática,,,5’’  CAPACIDADE: 4TB,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP3981,DISCO RÍGIDO MECÂNICO  P/ SERVIDORES NAS  TAMANHO: 3,Informática,,,5’’  CAPACIDADE: 4TB,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP3913,fonte de alimentacao 550W ,Informática,,,LENOVO ,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP3914,fonte de alimentacao 550W ,Informática,,,LENOVO ,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1252,DRIVE BLU-RAY  PRETO,Informática,,,PIONEER,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP3933,SSD 2,,,,,"5"" 960 GB SATA",,Informática ,,,,,IPMJP - Sede - RECEPÇÃO
+IPMJP0271,IMPRESSORA ,,,,LASERJET P2015,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1282,IMPRESSORA,,,,HP M425 DN MULT. LASER MONO,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1172,IMPRESSORA  ,,,,MP4200TH,,,BEMATECH,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1283,IMPRESSORA  ,,,,MFC8712DW MULTIFUNCIONAL LASER MONO,,,BROTHER,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1247,IMPRESSORA,,,,MFC8712DW MULTIFUNCIONAL LASER MONO,,,BROTHER,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0216,IMPRESSORA,,,,1020A LASER,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1846,IMPRESSORA ,,,,LASER JET P100 S,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1178,IMPRESSORA ,,,, M425 DN MULT. LASER MONO,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1249,IMPRESSORA ,,,, M425 DN MULT. LASER MONO,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1248,IMPRESSORA ,,,, M425 DN MULT. LASER MONO,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1863,IMPRESSORA ,,,, M425 DN MULT. LASER MONO,,,HP ,,,,,IPMJP - Sede - Setor de Contabilidade
+IPMJP1173,IMPRESSORA,,,,3050 MULTIFUNCIONAL,,,HP ,,,,,IPMJP - Sede - Divisão Administrativa e Financeira
+IPMJP1840,IMPRESSORA ,,,,LASER JET P100 S,,,HP ,,,,,IPMJP - Sede - Setor de Gestão de Pessoal
+IPMJP1770,ROTEADOR ,,,, WIRELESS 3000MBPS TL-WR840N,,,TPLINK,,,,,IPMJP - Sede - Seção de Compras
+IPMJP3937,ROTEADOR DUAL BAND ,,,,AX12 AX1500,,,TP-LINK,,,,,IPMJP - Sede - RECEPÇÃO
+IPMJP1767,ROTEADOR  ,,,,WIRELESS 3000MBPS TL-WR840N,,,TPLINK,,,,,IPMJP - Sede - Sala de Reunião
+IPMJP3938,ROTEADOR DUAL BAND  ,,,,AX12 AX1500 ,,,TP-LINK,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1769,ROTEADOR  ,,,,WIRELESS 3000MBPS TL-WR840N,,,TPLINK,,,,,IPMJP - Sede - Gabinete da Superintendência
+IPMJP3936,ROTEADOR DUAL BAND  ,,,,AX12 AX1500 ,,,TP-LINK,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1766,ROTEADOR ,,,, WIRELESS 3000MBPS TL-WR840N,,,TPLINK,,,,,IPMJP - Sede - Assistência Social
+IPMJP3935,ROTEADOR DUAL BAND,,,,AX12 AX1500 ,,,TP-LINK,,,,,IPMJP - Sede - Divisão Administrativa e Financeira
+IPMJP1768,ROTEADOR ,,,,WIRELESS 3000MBPS TL-WR840N,,,TPLINK,,,,,IPMJP - Sede - Sala de Reunião
+IPMJP1719,WEBCAM 1080P USB 30FPS WARRIOR,,,, MICROFONE INTEGRADO ,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1721,WEBCAM 1080P USB 30FPS WARRIOR,,,, MICROFONE INTEGRADO,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1722,WEBCAM 1080P USB 30FPS WARRIOR,,,, MICROFONE INTEGRADO ,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1723,WEBCAM 1080P USB 30FPS WARRIOR,,,, MICROFONE INTEGRADO ,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1771,HD EXTERNO 2TB  3.0,,,,WESTERN DIGITAL,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1693,HD EXTERNO 1TB USB 3.0,,,, SEAGATE ,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP1720,WEBCAM 1080P USB 30FPS WARRIOR,,,, MICROFONE INTEGRADO - ,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP3909,SSD 2,,,,"5"" 960 GB SATA",,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP3980,DISCO RÍGIDO MECÂNICO  P/ SERVIDORES NAS  TAMANHO: 3,,,,5’’  CAPACIDADE: 4TB,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP3981,DISCO RÍGIDO MECÂNICO  P/ SERVIDORES NAS  TAMANHO: 3,,,,5’’  CAPACIDADE: 4TB,,,,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP3913,fonte de alimentacao 550W ,,,,LENOVO ,,,,,,,,IPMJP - Seção de Suporte
+IPMJP3914,fonte de alimentacao 550W ,,,,LENOVO ,,,,,,,,IPMJP - Seção de Suporte
+IPMJP1252,DRIVE BLU-RAY  PRETO,,,,PIONEER,,,,,,,,IPMJP - Seção de Suporte

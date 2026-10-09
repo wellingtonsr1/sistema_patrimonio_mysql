@@ -199,7 +199,10 @@ def _apply_mapping_to_rows(content: str, mapping: dict, kind: str) -> list:
         for original_col, value in raw.items():
             field = mapping.get(original_col or "")
             if field:
-                resolved[field] = (value or "").strip()
+                # mesma normalização do parse_csv (travessão de autocorreção,
+                # NBSP, espaços múltiplos) para os dois caminhos ficarem iguais
+                from app.services.import_service import _normalize_text
+                resolved[field] = _normalize_text(value or "")
         rows.append({"row_num": row_num, "resolved": resolved})
         row_num += 1
     return rows
