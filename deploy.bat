@@ -36,7 +36,7 @@ set C_ERR=%ESC%[31m
 set C_WARN=%ESC%[33m
 set C_INFO=%ESC%[36m
 
-banner
+call :banner
 if "%~1"=="" goto :usage
 if /i "%~1"=="pre"       goto :pre
 if /i "%~1"=="historico" goto :historico
