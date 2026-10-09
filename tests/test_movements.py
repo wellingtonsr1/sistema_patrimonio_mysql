@@ -657,3 +657,160 @@ def test_maintenance_and_writeoff_flows_unaffected(db_session):
             reason="Tentativa após baixa",
             operator_name="Auditor"
         ))
+
+
+# ============================================================================
+# FEATURE 065 — OPERADOR RESPONSÁVEL VINCULADO AO USUÁRIO AUTENTICADO
+# ============================================================================
+
+def test_feature_065_web_form_operator_prefill_and_readonly(client, db_session):
+    """T005 (US1) — GET /movements/new apresenta campo do operador preenchido e readonly."""
+    resp = client.get("/movements/new")
+    assert resp.status_code == 200
+    html = resp.text
+    assert "Operador Responsável" in html
+    assert "(Preenchido automaticamente)" in html
+    assert "readonly" in html
+
+
+def test_feature_065_web_form_post_records_authenticated_user(client, db_session):
+    """T006 (US1) — POST /movements/new grava a movimentação com a identidade do usuário logado."""
+    loc = LocationService.create(db_session, LocationCreate(name="TI 065 A", branch="Matriz", department="TI"))
+    loc_dest = LocationService.create(db_session, LocationCreate(name="TI 065 B", branch="Matriz", department="Suporte"))
+    asset = AssetService.create(db_session, AssetCreate(
+        tag="PAT-06501",
+        name="Equipamento 065",
+        category=AssetCategory.NOTEBOOK,
+        initial_location_id=loc.id
+    ))
+
+    resp = client.post("/movements/new", data={
+        "asset_id": asset.id,
+        "movement_type": MovementType.TRANSFER.value,
+        "destination_location_id": loc_dest.id,
+        "reason": "Transferência de teste US1",
+        "operator_name": "Qualquer Nome Enviado"
+    }, follow_redirects=True)
+
+    assert resp.status_code == 200
+
+    # Verifica movimentação persistida no banco
+    mv = db_session.query(Movement).filter(Movement.asset_id == asset.id, Movement.movement_type == MovementType.TRANSFER).first()
+    assert mv is not None
+    # Deve ter gravado a identidade do usuário da sessão ("testuser" ou "Usuário de Teste")
+    assert mv.operator_name != "Qualquer Nome Enviado"
+    assert mv.operator_name in ["testuser", "Usuário de Teste", "Desenvolvedor", "Test User", "Admin TI"]
+
+
+def test_feature_065_web_form_anti_spoofing_ignores_client_operator_name(client, db_session):
+    """T008 (US2) — POST /movements/new ignora manipulação maliciosa de operator_name no formulário."""
+    loc = LocationService.create(db_session, LocationCreate(name="Almoxarifado 065 A", branch="Matriz", department="Logística"))
+    loc_dest = LocationService.create(db_session, LocationCreate(name="Almoxarifado 065 B", branch="Matriz", department="Depósito"))
+    asset = AssetService.create(db_session, AssetCreate(
+        tag="PAT-06502",
+        name="Servidor 065",
+        category=AssetCategory.DESKTOP,
+        initial_location_id=loc.id
+    ))
+
+    # Tenta forjar a identidade do operador via POST HTTP
+    resp = client.post("/movements/new", data={
+        "asset_id": asset.id,
+        "movement_type": MovementType.TRANSFER.value,
+        "destination_location_id": loc_dest.id,
+        "reason": "Tentativa de spoofing",
+        "operator_name": "Hacker Malicioso"
+    }, follow_redirects=True)
+
+    assert resp.status_code == 200
+
+    mv = db_session.query(Movement).filter(Movement.asset_id == asset.id, Movement.reason == "Tentativa de spoofing").first()
+    assert mv is not None
+    assert mv.operator_name != "Hacker Malicioso"
+
+
+def test_feature_065_rest_api_anti_spoofing_overrides_client_operator_name(client, db_session):
+    """T009 (US2) — POST /api/v1/movements sobrescreve operator_name enviado via API REST pelo usuário logado."""
+    loc = LocationService.create(db_session, LocationCreate(name="Manutenção 065", branch="Matriz", department="Oficina"))
+    asset = AssetService.create(db_session, AssetCreate(
+        tag="PAT-06503",
+        name="Equipamento Manut 065",
+        category=AssetCategory.NOTEBOOK,
+        initial_location_id=loc.id
+    ))
+
+    resp = client.post("/api/v1/movements", json={
+        "asset_id": asset.id,
+        "movement_type": MovementType.MAINTENANCE_OUT.value,
+        "reason": "Envio para reparo via API",
+        "operator_name": "Operador Inexistente Na API"
+    })
+
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["operator_name"] != "Operador Inexistente Na API"
+
+    mv = db_session.query(Movement).filter(Movement.id == data["id"]).first()
+    assert mv.operator_name != "Operador Inexistente Na API"
+
+
+def test_feature_065_historical_movements_unaltered(db_session):
+    """T010 (US3) — Registros históricos criados com operadores genéricos ou específicos permanecem intocados."""
+    loc = LocationService.create(db_session, LocationCreate(name="Estoque", branch="Matriz", department="Depósito"))
+    asset = AssetService.create(db_session, AssetCreate(
+        tag="PAT-06504",
+        name="Monitor 065",
+        category=AssetCategory.MONITOR,
+        initial_location_id=loc.id
+    ))
+
+    # Cria movimentação diretamente no banco simulando registro antigo
+    mv_antiga = Movement(
+        asset_id=asset.id,
+        movement_type=MovementType.ACQUISITION,
+        reason="Entrada antiga",
+        operator_name="Operador do Patrimônio",
+        new_status=AssetStatus.AVAILABLE
+    )
+    db_session.add(mv_antiga)
+    db_session.commit()
+
+    db_session.refresh(mv_antiga)
+    assert mv_antiga.operator_name == "Operador do Patrimônio"
+
+
+def test_feature_065_term_generation_preserves_authenticated_operator(client, db_session):
+    """T011 (US3) — Geração de termo preserva o operador autenticado registrado."""
+    loc = LocationService.create(db_session, LocationCreate(name="TI Termo", branch="Matriz", department="TI"))
+    cust = CustodianService.create(db_session, CustodianCreate(
+        registration_code="MAT-065",
+        name="Analista Teste",
+        role="Analista",
+        department="TI",
+        email="analista065@empresa.com"
+    ))
+    asset = AssetService.create(db_session, AssetCreate(
+        tag="PAT-06505",
+        name="Tablet 065",
+        category=AssetCategory.NOTEBOOK,
+        initial_location_id=loc.id
+    ))
+
+    resp = client.post("/movements/new", data={
+        "asset_id": asset.id,
+        "movement_type": MovementType.ALLOCATION.value,
+        "destination_custodian_id": cust.id,
+        "reason": "Alocação para teste de termo",
+        "operator_name": "Nome Ignorado"
+    }, follow_redirects=True)
+    assert resp.status_code == 200
+
+    mv = db_session.query(Movement).filter(Movement.asset_id == asset.id, Movement.movement_type == MovementType.ALLOCATION).first()
+    assert mv is not None
+
+    # Verifica os detalhes do termo via API REST
+    term_resp = client.get(f"/api/v1/movements/{mv.id}/term")
+    assert term_resp.status_code == 200
+    term_data = term_resp.json()
+    assert term_data["operator"] == mv.operator_name
+    assert term_data["operator"] != "Nome Ignorado"

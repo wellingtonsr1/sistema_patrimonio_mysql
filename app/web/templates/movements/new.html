@@ -121,8 +121,11 @@
                     </select>
                 </div>
                 <div class="col-12 col-md-6">
-                    <label class="form-label">Operador Responsável <span class="text-danger">*</span></label>
-                    <input type="text" name="operator_name" class="form-control" value="Operador do Patrimônio" required>
+                    <label class="form-label">
+                        Operador Responsável <span class="text-danger">*</span>
+                        <span class="text-muted ms-1" style="font-size: 0.8rem;">(Preenchido automaticamente)</span>
+                    </label>
+                    <input type="text" name="operator_name" class="form-control bg-light" value="{{ current_user.full_name or current_user.username if current_user else 'Operador do Patrimônio' }}" readonly required>
                 </div>
             </div>
 

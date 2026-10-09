@@ -112,6 +112,10 @@ def create_movement_form(
 ):
     cond_enum = AssetCondition(new_condition) if new_condition and new_condition in [e.value for e in AssetCondition] else None
 
+    # Feature 065 — o operador das movimentações é obrigatoriamente o usuário autenticado no servidor
+    auth_user = getattr(request.state, "user", None)
+    actual_operator = ((auth_user.full_name or auth_user.username)[:100]) if auth_user else operator_name
+
     movement_data = MovementCreate(
         asset_id=asset_id,
         movement_type=MovementType(movement_type),
@@ -119,7 +123,7 @@ def create_movement_form(
         destination_custodian_id=destination_custodian_id if destination_custodian_id and destination_custodian_id > 0 else None,
         new_condition=cond_enum,
         reason=reason,
-        operator_name=operator_name,
+        operator_name=actual_operator,
         notes=notes or None,
         generate_term=True,
         onedoc_process_number=onedoc_process_number,  # 031: processo 1Doc (validação no service — FR-002)

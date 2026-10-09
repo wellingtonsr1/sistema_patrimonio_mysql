@@ -65,6 +65,11 @@ def record_movement(data: MovementCreate, request: Request, db: Session = Depend
     - Devolução ao Estoque
     - Baixa / Descarte
     """
+    # Feature 065 — o operador das movimentações via REST API é obrigatoriamente o usuário autenticado
+    auth_user = getattr(request.state, "user", None)
+    if auth_user:
+        data.operator_name = ((auth_user.full_name or auth_user.username)[:100])
+
     try:
         movement = MovementService.create_movement(db, data)
     except ValueError as err:
