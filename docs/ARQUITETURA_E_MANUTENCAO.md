@@ -725,11 +725,29 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
   `Location.name` ("Nome / Identificação"), parcial e case-insensitive, termo normalizado com
   `strip()` (na rota e no service); sem `search`, a consulta é idêntica à anterior
   (retrocompatível com a API REST, que não expõe o filtro). Card de filtros separado com
-  botões Filtrar/Limpar no padrão das telas de bens/colaboradores.
-- **Regras reais:** matrícula e e-mail únicos (matrícula normalizada para maiúsculas, e-mail
-  para minúsculas na importação); `count_assigned_assets` exclui bens `BAIXADO`; importação CSV
-  de colaboradores valida e-mail por regex, converte `ativo` (sim/não/true/false/1/0/ativo/inativo)
-  e aceita atualização por matrícula (protegendo colisões de e-mail).
+  botões Filtrar/Limpar no padrão das telas de bens/colaboradores.- **Regras reais:** matrícula e e-mail únicos (matrícula normalizada para maiúsculas, e-mail
+para minúsculas na importação); `count_assigned_assets` exclui bens `BAIXADO`; importação CSV
+de colaboradores valida e-mail por regex, converte `ativo` (sim/não/true/false/1/0/ativo/inativo)
+e aceita atualização por matrícula (protegendo colisões de e-mail).
+- **Preenchimento automático do nome do local (feature 066):** no formulário web de cadastro
+(`GET/POST /locations/new`), o campo **Localização** passa a ser gerado automaticamente a partir
+de **Unidade Administrativa + Departamento / Setor**, no padrão
+`TRIM(branch) + " - " + TRIM(department)` (ex.: `IPMJP - Sede - Divisão de Previdência`).
+
+  - **Front-end:** o campo `name` do formulário é exibido `readonly`, com label e placeholder que
+  indicam o preenchimento automático, e é atualizado a cada digitação nos campos de origem por
+  JavaScript vanilla inline no próprio template.
+  - **Back-end (autoridade):** a rota web ignora o valor do campo `name` enviado pelo navegador e
+  recompõe o nome antes de persistir, usando o helper puro `compose_location_name` em
+  `app/services/location_service.py`. Se o nome composto exceder 100 caracteres (limite da coluna
+  `locations.name`), a criação é rejeitada com mensagem amigável, sem truncamento silencioso.
+  - **Escopo preservado:** essa regra vale **somente** para o fluxo web de cadastro. A API REST
+  (`POST/PUT /api/v1/locations`), a importação CSV de locais e a importação de bens continuam
+  aceitando/ressolvendo `name` explicitamente — contratos intactos. Registros existentes nunca são
+  renomeados (zero DDL, zero migração, zero UPDATE); edição web de local não existe (feature própria).
+  - **Documentação correlata:** artigo `cadastrar-locais` da central de ajuda (+ seção sobre o
+  preenchimento automático) e placeholder do campo do formulário.
+
 
 ### 12.5 Dashboard & Relatórios
 

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.api.deps import _client_ip, require_permission
 from app.schemas.location import LocationCreate
-from app.services.location_service import LocationService
+from app.services.location_service import LocationService, compose_location_name
 from app.services.location_import_service import (
     execute_locations_import,
     parse_locations_csv,
@@ -204,7 +204,7 @@ def form_new_location(request: Request, error: Optional[str] = None):
 @web_router.post("/locations/new", dependencies=[Depends(require_permission("locais.criar"))])
 def create_location_form(
     request: Request,
-    name: str = Form(...),
+    name: Optional[str] = Form(None),
     branch: str = Form(...),
     building: Optional[str] = Form(None),
     floor: Optional[str] = Form(None),
@@ -214,8 +214,14 @@ def create_location_form(
     description: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
+    generated_name = compose_location_name(branch, department)
+    if len(generated_name) > 100:
+        return RedirectResponse(
+            url=f"/locations/new?error={quote('Localização gerada excede o limite de 100 caracteres')}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
     loc_data = LocationCreate(
-        name=name,
+        name=generated_name,
         branch=branch,
         building=building or None,
         floor=floor or None,

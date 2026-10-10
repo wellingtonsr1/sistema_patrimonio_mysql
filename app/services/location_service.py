@@ -6,6 +6,15 @@ from app.models.asset import Asset
 from app.schemas.location import LocationCreate, LocationUpdate
 
 
+def compose_location_name(branch: str, department: str) -> str:
+    """Nome padrão de um local a partir de Unidade Administrativa + Departamento/Setor.
+
+    Regra de composição da feature 066 — fonte única usada pela rota web de
+    cadastro (autoridade) e replicada no cliente apenas para UX.
+    """
+    return f"{branch.strip()} - {department.strip()}"
+
+
 class LocationService:
     @staticmethod
     def get_all(db: Session, search: Optional[str] = None) -> List[Location]:

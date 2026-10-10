@@ -25,8 +25,8 @@
         <form method="post" action="/locations/new" class="card p-4">
             <div class="row g-3">
                 <div class="col-12 col-md-8">
-                    <label class="form-label">Localização <span class="text-danger">*</span></label>
-                    <input type="text" name="name" class="form-control" placeholder="Ex: Matriz SP - TI - Data Center" required>
+                    <label class="form-label">Localização <span class="text-danger">*</span> <small class="text-muted">(preenchido automaticamente)</small></label>
+                    <input type="text" name="name" class="form-control" placeholder="Será preenchido automaticamente como Unidade - Departamento" readonly>
                 </div>
                 <div class="col-12 col-md-4">
                     <label class="form-label">Unidade Administrativa <span class="text-danger">*</span></label>
@@ -36,6 +36,56 @@
                     <label class="form-label">Departamento / Setor <span class="text-danger">*</span></label>
                     <input type="text" name="department" class="form-control" placeholder="Ex: Tecnologia da Informação" required>
                 </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Gestor / Responsável pelo Setor</label>
+                    <input type="text" name="manager_name" class="form-control" placeholder="Ex: Roberto Almeida">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Prédio / Bloco</label>
+                    <input type="text" name="building" class="form-control" placeholder="Ex: Bloco B">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Andar</label>
+                    <input type="text" name="floor" class="form-control" placeholder="Ex: 4º Andar">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Sala</label>
+                    <input type="text" name="room" class="form-control" placeholder="Ex: Sala 405">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Descrição / Observações</label>
+                    <textarea name="description" class="form-control" rows="2" placeholder="Observações de acesso, finalidade da sala, etc."></textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 border-top pt-3 mt-4">
+                <a href="/locations" class="btn btn-ghost px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                    <i class="bi bi-check-lg me-1"></i> Salvar Localização
+                </button>
+            </div>
+        </form>
+
+        <script>
+            (function () {
+                var branchEl = document.querySelector('[name=branch]');
+                var departmentEl = document.querySelector('[name=department]');
+                var nameEl = document.querySelector('[name=name]');
+
+                function updateName() {
+                    var branch = (branchEl.value || '').trim();
+                    var department = (departmentEl.value || '').trim();
+                    if (branch && department) {
+                        nameEl.value = (branch + ' - ' + department).trim();
+                    } else {
+                        nameEl.value = '';
+                    }
+                }
+
+                branchEl.addEventListener('input', updateName);
+                departmentEl.addEventListener('input', updateName);
+            })();
+        </script>
                 <div class="col-12 col-md-6">
                     <label class="form-label">Gestor / Responsável pelo Setor</label>
                     <input type="text" name="manager_name" class="form-control" placeholder="Ex: Roberto Almeida">

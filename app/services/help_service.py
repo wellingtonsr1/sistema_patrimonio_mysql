@@ -894,7 +894,11 @@ ARTICLES: List[Dict] = [
                 "heading": "Passo a passo",
                 "steps": [
                     "Acesse Locais e clique em Cadastrar Novo Local.",
-                    "Informe o nome do local, a filial e o departamento.",
+                    "Informe a Unidade Administrativa e o Departamento / Setor. O campo "
+                    "Localização é preenchido automaticamente pelo sistema no padrão "
+                    "Unidade - Departamento (ex.: IPMJP - Sede - Divisão de Previdência) "
+                    "e não pode ser editado; para adicionar detalhes como prédio, andar "
+                    "ou sala, use os campos próprios abaixo.",
                     "Preencha prédio, andar e sala quando aplicável.",
                     "Informe o gestor responsável e uma descrição, se desejar.",
                     "Clique em Salvar.",
