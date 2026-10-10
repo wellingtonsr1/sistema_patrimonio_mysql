@@ -86,35 +86,6 @@
                 departmentEl.addEventListener('input', updateName);
             })();
         </script>
-                <div class="col-12 col-md-6">
-                    <label class="form-label">Gestor / Responsável pelo Setor</label>
-                    <input type="text" name="manager_name" class="form-control" placeholder="Ex: Roberto Almeida">
-                </div>
-                <div class="col-12 col-md-4">
-                    <label class="form-label">Prédio / Bloco</label>
-                    <input type="text" name="building" class="form-control" placeholder="Ex: Bloco B">
-                </div>
-                <div class="col-12 col-md-4">
-                    <label class="form-label">Andar</label>
-                    <input type="text" name="floor" class="form-control" placeholder="Ex: 4º Andar">
-                </div>
-                <div class="col-12 col-md-4">
-                    <label class="form-label">Sala</label>
-                    <input type="text" name="room" class="form-control" placeholder="Ex: Sala 405">
-                </div>
-                <div class="col-12">
-                    <label class="form-label">Descrição / Observações</label>
-                    <textarea name="description" class="form-control" rows="2" placeholder="Observações de acesso, finalidade da sala, etc."></textarea>
-                </div>
-            </div>
-
-            <div class="d-flex justify-content-end gap-2 border-top pt-3 mt-4">
-                <a href="/locations" class="btn btn-ghost px-4">Cancelar</a>
-                <button type="submit" class="btn btn-primary px-4 fw-bold">
-                    <i class="bi bi-check-lg me-1"></i> Salvar Localização
-                </button>
-            </div>
-        </form>
     </div>
 </div>
 {% endblock %}

@@ -91,6 +91,14 @@ class TestUS1FormularioAutoPreenchimento:
         assert "name=branch" in html and "name=department" in html
         assert "name=name" in html
 
+        # Regressão: o bloco de detalhes + rodapé chegou duplicado fora do
+        # <form> (botão "Salvar Localização" duas vezes e campos soltos no fim
+        # da página). A tela deve ter uma única submissão e um único conjunto
+        # de campos de detalhe.
+        assert html.count("Salvar Localização") == 1, "rodapé do formulário duplicado"
+        assert html.count('name="manager_name"') == 1, "bloco de detalhes duplicado"
+        assert html.count('name="description"') == 1, "bloco de detalhes duplicado"
+
     def test_composicao_helper_idem_regra_da_spec(self):
         """Guarda da regra V1: compose_name(branch, department) ==
         f"{branch.strip()} - {department.strip()}"."""
