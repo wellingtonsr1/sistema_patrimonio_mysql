@@ -16,13 +16,23 @@ from app.api.deps import _client_ip, require_permission
 from app.models.asset import Asset
 from app.models.enums import AssetCategory, AssetCondition, AssetStatus, InventarioStatus
 from app.models.inventario import Inventario
-from app.schemas.asset import AssetCreate
-from app.services.asset_service import AssetService
+from app.schemas.asset import AssetCreate, AssetUpdate
+from app.services.asset_service import (
+    AssetEditConflictError,
+    AssetNotEditableError,
+    AssetService,
+)
 from app.services.custodian_service import CustodianService
 from app.services.import_service import execute_import, parse_csv, preview_import  # noqa: F401 (parse/preview mantidos por compat)
 from app.services.location_service import LocationService
 from app.services.movement_service import MovementService
-from app.services.audit_service import ACTION_CREATE, ACTION_IMPORT, write_audit, write_change_audit
+from app.services.audit_service import (
+    ACTION_CREATE,
+    ACTION_IMPORT,
+    ACTION_UPDATE,
+    write_audit,
+    write_change_audit,
+)
 from app.web.routers.templates_env import templates
 from app.web.routers.shared import (
     _confirm_payload_rows,
@@ -489,6 +499,10 @@ def view_asset_detail(request: Request, asset_id: int, db: Session = Depends(get
             .all()
         )
 
+    # Feature 067 (FR-016/FR-017) — histórico cadastral SEPARADO da trilha de
+    # movimentações: leitura somente da trilha de auditoria já existente.
+    cadastral_history = AssetService.get_cadastral_history(db, asset_id)
+
     return templates.TemplateResponse(
         request=request,
         name="assets/detail.html",
@@ -497,6 +511,187 @@ def view_asset_detail(request: Request, asset_id: int, db: Session = Depends(get
             "timeline": timeline,
             "depreciation": deprec,
             "open_inventarios": open_inventarios,
+            "cadastral_history": cadastral_history,
             "active_tab": "assets"
         }
+    )
+
+
+# ============================================================================
+# Feature 067 — Edição controlada do cadastro do bem (US2)
+# ============================================================================
+
+_BEM_BAIXADO_MSG = (
+    "Bem baixado não pode ter o cadastro editado por esta via. "
+    "Utilize o procedimento administrativo apropriado."
+)
+
+
+def _redirect_erro_edicao(asset_id: int, mensagem: str) -> RedirectResponse:
+    """Volta ao formulário de edição com a mensagem de negócio (sem detalhes internos)."""
+    return RedirectResponse(
+        url=f"/assets/{asset_id}/edit?error={quote(mensagem)}",
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@web_router.get(
+    "/assets/{asset_id}/edit",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_permission("patrimonio.editar"))],
+)
+def form_edit_asset(
+    request: Request,
+    asset_id: int,
+    error: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """Formulário de edição cadastral (FR-003/P4: bem baixado é recusado)."""
+    asset = AssetService.get_by_id(db, asset_id)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Equipamento não encontrado")
+    if asset.status == AssetStatus.WRITTEN_OFF:
+        return RedirectResponse(
+            url=f"/assets/{asset_id}?error={quote(_BEM_BAIXADO_MSG)}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="assets/edit.html",
+        context={
+            "asset": asset,
+            "categories": AssetCategory,
+            "conditions": AssetCondition,
+            "error": error or "",
+            "active_tab": "assets",
+        },
+    )
+
+
+@web_router.post(
+    "/assets/{asset_id}/edit",
+    dependencies=[Depends(require_permission("patrimonio.editar"))],
+)
+def update_asset_form(
+    request: Request,
+    asset_id: int,
+    name: str = Form(...),
+    category: str = Form(...),
+    brand: Optional[str] = Form(None),
+    model: Optional[str] = Form(None),
+    serial_number: Optional[str] = Form(None),
+    specifications: Optional[str] = Form(None),
+    purchase_date: Optional[str] = Form(None),
+    purchase_value: Optional[str] = Form(None),
+    invoice_number: Optional[str] = Form(None),
+    supplier: Optional[str] = Form(None),
+    warranty_expiry: Optional[str] = Form(None),
+    condition: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+    expected_updated_at: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+):
+    """Aplica a edição cadastral: validação, conflito, trilha e transação única (FR-008/FR-015).
+
+    A alteração do cadastro e o registro de auditoria fecham na MESMA transação
+    (`commit=False` no serviço e na trilha, `db.commit()` no final) — falha em
+    qualquer etapa desfaz ambas (AC11).
+    """
+    asset = AssetService.get_by_id(db, asset_id)
+    if not asset:
+        raise HTTPException(status_code=404, detail="Equipamento não encontrado")
+    if asset.status == AssetStatus.WRITTEN_OFF:
+        return RedirectResponse(
+            url=f"/assets/{asset_id}?error={quote(_BEM_BAIXADO_MSG)}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+    try:
+        dt_purchase = datetime.strptime(purchase_date, "%Y-%m-%d") if purchase_date else None
+        dt_warranty = datetime.strptime(warranty_expiry, "%Y-%m-%d") if warranty_expiry else None
+        if purchase_value in (None, ""):
+            valor = None
+        else:
+            valor = float(purchase_value)
+        versao = (
+            datetime.fromisoformat(expected_updated_at)
+            if expected_updated_at
+            else None
+        )
+        data = AssetUpdate(
+            name=name,
+            category=AssetCategory(category),
+            brand=brand,
+            model=model,
+            serial_number=serial_number,
+            specifications=specifications,
+            purchase_date=dt_purchase,
+            purchase_value=valor,
+            invoice_number=invoice_number,
+            supplier=supplier,
+            warranty_expiry=dt_warranty,
+            condition=AssetCondition(condition) if condition else None,
+            notes=notes,
+        )
+    except ValueError:
+        return _redirect_erro_edicao(
+            asset_id, "Dados inválidos no formulário. Revise as datas, a categoria e o valor."
+        )
+
+    operator = request.state.user.full_name or request.state.user.username
+
+    try:
+        # V9 — sinal explícito de "nada mudou": sem auditoria vazia e sem movimentação
+        if not AssetService.edit_changes(asset, data):
+            return RedirectResponse(
+                url=f"/assets/{asset_id}?unchanged=true",
+                status_code=status.HTTP_303_SEE_OTHER,
+            )
+
+        before = _asset_audit_snapshot(asset)
+        AssetService.update(
+            db,
+            asset_id,
+            data,
+            operator_name=operator,
+            change_reason=f"Edição cadastral da ficha do bem (por {operator})",
+            expected_updated_at=versao,
+            commit=False,
+        )
+        write_change_audit(
+            db,
+            user=request.state.user,
+            action=ACTION_UPDATE,
+            module="Patrimônio",
+            resource="Asset",
+            resource_ref=asset.tag,
+            resource_id=asset.id,
+            ip_address=_client_ip(request),
+            before=before,
+            after=_asset_audit_snapshot(asset),
+            commit=False,
+        )
+        db.commit()
+    except AssetEditConflictError as err:
+        db.rollback()
+        return _redirect_erro_edicao(asset_id, str(err))
+    except AssetNotEditableError as err:
+        db.rollback()
+        return RedirectResponse(
+            url=f"/assets/{asset_id}?error={quote(str(err))}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    except ValueError as err:
+        db.rollback()
+        return _redirect_erro_edicao(asset_id, str(err))
+    except Exception:
+        db.rollback()
+        return _redirect_erro_edicao(
+            asset_id, "Não foi possível salvar a edição. Tente novamente."
+        )
+
+    return RedirectResponse(
+        url=f"/assets/{asset_id}?updated=true",
+        status_code=status.HTTP_303_SEE_OTHER,
     )

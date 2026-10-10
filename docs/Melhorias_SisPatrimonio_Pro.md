@@ -130,3 +130,43 @@ impede a regressão; suíte completa **682 passed**.
 É a identidade institucional vigente também no modo claro; se algum dia se
 decidir por escurecer o vermelho dos botões no dark, fazer em feature própria
 com varredura de impacto em todos os botões primários.
+
+---
+
+## M-003 — Ata de inventário e exportações leem nome/tag/categoria do cadastro atual — **ACEITO** (2026-10-10)
+
+**Status**: aceito conscientemente · **Prioridade**: média (integridade documental) · **Origem**: feature 067 (decisão P5)
+
+### Sintoma / risco
+
+A ata comprobatória de inventário (`app/services/report_service.py::_inventario_rows`,
+L~541–546) monta as colunas Tombamento, Equipamento e Categoria lendo **ao vivo**
+`asset.tag`, `asset.name` e `asset.category.label`, enquanto local e responsável
+esperados vêm do snapshot gravado em `InventarioItem.expected_*`. O CSV de
+movimentações (`report_service.py` L510–511) faz o mesmo com `m.asset.tag`/`m.asset.name`,
+embora origem/destino sejam snapshots de texto em `Movement`.
+
+**Consequência**: uma edição cadastral legítima (por exemplo, corrigir o nome de um bem)
+altera o conteúdo exibido/exportado de uma ata de inventário **já encerrado** e de
+exportações de movimentações já emitidas — o documento deixa de refletir exatamente o que
+foi conferido no momento do encerramento.
+
+### Por que está aberto (e não foi corrigido na 067)
+
+Congelar esses dados exigiria colunas de snapshot em `inventario_itens` (DDL aditivo) e
+mudança na geração de documentos comprobatórios — mudança de comportamento fora do
+escopo aprovado da feature 067 (Constitution I). Na 067 a decisão aprovada pelo
+responsável foi **manter o comportamento atual** e registrar a dívida.
+
+### Ação recomendada (quando especificado em feature própria)
+
+- Gravar snapshot de `tag`/`name`/`category` no `InventarioItem` na geração da lista
+  esperada (valores congelados) e passar a usá-los na ata (CSV/PDF).
+- Avaliar o mesmo tratamento para o CSV de movimentações — ou manter a leitura viva e
+  documentar o efeito na central de ajuda.
+- Migração aditiva e idempotente; itens pré-existentes sem snapshot exigem regra explícita
+  de exibição (por exemplo, usar o valor atual quando o snapshot for nulo).
+
+**Regra vigente enquanto aberto**: a leitura viva **não** bloqueia a edição cadastral
+aprovada na 067; a limitação é conhecida e está registrada na spec 067 (§1.7, §14 P5,
+AC10/SC-007) e deve constar da documentação do sistema (Constitution XI).

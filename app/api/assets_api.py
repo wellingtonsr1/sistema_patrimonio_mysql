@@ -170,8 +170,17 @@ def update_asset(asset_id: int, data: AssetUpdate, request: Request, db: Session
     if not before_asset:
         raise HTTPException(status_code=404, detail="Equipamento não encontrado")
     before = _asset_snapshot(before_asset)
+    # Feature 067 (FR-012/T027): a movimentação gerada por mudança de condição
+    # registra o OPERADOR AUTENTICADO (não mais o literal "Sistema").
+    operator = request.state.user.full_name or request.state.user.username
     try:
-        asset = AssetService.update(db, asset_id, data)
+        asset = AssetService.update(
+            db,
+            asset_id,
+            data,
+            operator_name=operator,
+            change_reason=f"Alteração cadastral via API (por {operator})",
+        )
     except ValueError as err:
         raise HTTPException(status_code=400, detail=str(err))
     if not asset:

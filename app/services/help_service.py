@@ -245,8 +245,8 @@ ARTICLES: List[Dict] = [
         "module": "Patrimônio & Equipamentos",
         "icon": "bi-eye",
         "audience": "user",
-        "summary": "Ficha técnica, custódia, localização, depreciação, QR Code e linha do tempo.",
-        "keywords": ["detalhes", "ficha", "histórico", "linha do tempo", "timeline", "depreciação", "qr", "código"],
+        "summary": "Ficha técnica, custódia, localização, observações, depreciação, QR Code, alterações cadastrais e linha do tempo.",
+        "keywords": ["detalhes", "ficha", "histórico", "linha do tempo", "timeline", "depreciação", "qr", "código", "observações", "alterações"],
         "sections": [
             {
                 "heading": "Abrindo o detalhe",
@@ -259,9 +259,12 @@ ARTICLES: List[Dict] = [
                 "heading": "O que a tela mostra",
                 "steps": [
                     "Custódia e localização atual — quem é o responsável e onde o bem está.",
-                    "Ficha técnica e dados fiscais — marca, modelo, série, nota fiscal, garantia.",
+                    "Ficha técnica e dados fiscais — marca, modelo, série, especificações, nota fiscal, "
+                    "garantia e a data da última atualização cadastral.",
+                    "Observações — as anotações do cadastro, quando houver.",
                     "Contabilidade e depreciação — valor de aquisição e valor contábil atual.",
                     "Etiqueta QR Code — código para identificação/impressão do bem.",
+                    "Alterações cadastrais — quem corrigiu o quê e quando (campo, valor anterior e novo).",
                     "Trilha de fluxo — todo o histórico de movimentações do bem, do mais recente ao mais antigo.",
                 ],
             },
@@ -410,25 +413,47 @@ ARTICLES: List[Dict] = [
         "module": "Patrimônio & Equipamentos",
         "icon": "bi-pencil",
         "audience": "user",
-        "summary": "Correção de dados de cadastro (técnica, fiscal e observações).",
-        "keywords": ["corrigir", "editar", "alterar", "dados", "cadastro", "erro"],
+        "summary": "Edição cadastral pela ficha do bem, com auditoria automática da correção.",
+        "keywords": ["corrigir", "editar", "alterar", "dados", "cadastro", "erro", "observações"],
         "sections": [
             {
-                "heading": "Correção de dados cadastrais",
+                "heading": "Antes de começar",
                 "body": (
-                    "A alteração de dados cadastrais (marca, modelo, nota fiscal, observações, estado "
-                    "de conservação) é feita pela API do sistema, para usuários com permissão de edição "
-                    "de patrimônio (ex.: perfil Gestor de TI ou Patrimônio).\n\n"
-                    "Para correções em massa, utilize a reimportação CSV. Mudanças de responsável, "
-                    "localização ou situação devem ser feitas por uma movimentação (ver Fluxo & "
-                    "Movimentação), nunca por edição direta."
+                    "É preciso ter a permissão de edição de patrimônio (ex.: perfis Gestor de TI, "
+                    "Patrimônio ou Administrador). Sem ela, a ação de edição nem aparece e a tentativa "
+                    "de acesso direto é negada e registrada na trilha de auditoria."
                 ),
             },
             {
-                "heading": "O que NÃO deve ser editado",
+                "heading": "Passo a passo",
+                "steps": [
+                    "Abra o bem (Equipamentos → clique no nome ou no tombamento).",
+                    "Clique em Editar bem.",
+                    "Corrija os campos desejados: nome, categoria, marca, modelo, série, "
+                    "especificações, dados fiscais, estado de conservação e observações.",
+                    "Clique em Salvar Alterações — você volta à ficha com a mensagem de confirmação.",
+                ],
+            },
+            {
+                "heading": "O que acontece ao salvar",
+                "body": (
+                    "A correção e o registro na trilha de auditoria (quem alterou, quando, campo, de "
+                    "→ para) são gravados juntos: se algo falhar, nenhum dos dois fica no sistema.\n\n"
+                    "A alteração aparece na seção Alterações cadastrais da ficha, separada das "
+                    "movimentações. Mudar o estado de conservação também gera uma movimentação em seu "
+                    "nome. Salvar sem alterar nada não grava auditoria.\n\n"
+                    "Se outra pessoa alterou o bem desde que você abriu o formulário, o sistema avisa "
+                    "e pede que você recarregue a página antes de salvar — evitando sobrescrever a "
+                    "alteração dela."
+                ),
+            },
+            {
+                "heading": "O que NÃO se edita por aqui",
                 "note": (
-                    "Responsável, localização e status não se alteram por edição: eles mudam por "
-                    "movimentação, para que tudo fique registrado no histórico do bem."
+                    "Tombamento (tag), situação, localização e responsável não se alteram por esta "
+                    "tela: eles mudam por movimentação ou baixa, para que tudo fique registrado no "
+                    "histórico do bem. Bem baixado tem o cadastro bloqueado. Para correções em massa, "
+                    "utilize a reimportação por CSV."
                 ),
             },
         ],

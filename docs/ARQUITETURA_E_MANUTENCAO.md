@@ -610,7 +610,25 @@ Não existe rotina de expurgos/retenção de logs no código — `não identific
   - `tag` única (normalizada para maiúsculas); `serial_number` único quando informado.
   - Todo cadastro gera automaticamente a movimentação `ENTRADA_AQUISICAO` com termo
     `TR-INIC-<ano>-<id>` e status inicial `EM_USO` (se custodiante) ou `DISPONIVEL`.
-  - Alteração de `condition` via `AssetService.update` gera movimentação `ATUALIZACAO_ESTADO`.
+  - Alteração de `condition` via `AssetService.update` gera movimentação `ATUALIZACAO_ESTADO`
+    **com o operador autenticado** (`operator_name`, fallback `"Sistema"` para chamadores legados)
+    e o motivo informado (`change_reason`) — feature 067.
+  - **Consulta detalhada e edição controlada (feature 067)**: a ficha `GET /assets/{id}`
+    (`assets/detail.html`) apresenta todos os dados cadastrais, incluindo **Observações**
+    (`notes`) e **Última atualização cadastral** (`updated_at`), além da seção
+    **"Alterações cadastrais"** (`AssetService.get_cadastral_history` — leitura somente da
+    trilha `audit_logs` com `resource='Asset'`, ação `ALTERACAO`, teto de 50 eventos com aviso
+    de truncamento), **separada** da trilha de movimentação. A edição vive em
+    `GET/POST /assets/{asset_id}/edit` (`assets/edit.html`, `assets.py:form_edit_asset` /
+    `update_asset_form`), ambas com `patrimonio.editar`, e reutiliza `AssetService.update`
+    como fonte única das regras: V1 nome não vazio, V2 limites de coluna (150/100), V3 valor
+    `>= 0`, V4 unicidade de `serial_number`, V9 "nada mudou" (sem auditoria vazia), V10 controle
+    otimista por `updated_at` (campo oculto `expected_updated_at`) e V11 bem `BAIXADO` recusado.
+    A alteração e a trilha fecham na **mesma transação** (`commit=False` no serviço e em
+    `write_change_audit`), com `rollback` em qualquer falha. **Campos protegidos** (nunca no
+    formulário nem aceitos do cliente): `tag`/tombamento, `status`/situação, `location_id`
+    e `custodian_id` — alterados apenas pelos fluxos próprios (movimentação/baixa).
+    Nenhum DDL, migração ou permissão nova.
   - **Depreciação linear**: `calculate_depreciation(asset, annual_rate=0.20)` — 20%/ano (5 anos),
     cálculo por meses, valor mínimo zero.
   - **Importação CSV** (`import_service.py`): delimitador detectado (`;` ou `,`), aliases de
@@ -856,6 +874,8 @@ Códigos de erro padronizados: `400` (regra de negócio via `ValueError`), `401`
 | GET/POST | `/assets/import` | importação (preview) | `patrimonio.criar` |
 | POST | `/assets/import/confirm` | `confirm_import_assets` | `patrimonio.criar` |
 | GET | `/assets/{id}` | `view_asset_detail` | `patrimonio.visualizar` |
+| GET | `/assets/{asset_id}/edit` | `form_edit_asset` (feature 067) | `patrimonio.editar` |
+| POST | `/assets/{asset_id}/edit` | `update_asset_form` (feature 067) | `patrimonio.editar` |
 | GET | `/assets/labels` | `assets_labels` (etiquetas em lote) | `patrimonio.visualizar` |
 | GET | `/movements` | `list_movements_view` | `movimentacao.visualizar` |
 | GET/POST | `/movements/new` | nova movimentação | `movimentacao.criar` |

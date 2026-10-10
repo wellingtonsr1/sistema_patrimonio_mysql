@@ -233,6 +233,12 @@
                             <a href="/assets/{{ a.id }}" class="btn btn-ghost btn-icon" title="Ver Detalhes">
                                 <i class="bi bi-eye"></i>
                             </a>
+                            {# Feature 067 (P4/T023) — edição cadastral, oculta para bem baixado #}
+                            {% if can('patrimonio.editar') and a.status.value != 'BAIXADO' %}
+                            <a href="/assets/{{ a.id }}/edit" class="btn btn-ghost btn-icon" title="Editar cadastro">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            {% endif %}
                             {% if can('movimentacao.criar') %}
                             <a href="/movements/new?asset_id={{ a.id }}" class="btn btn-ghost btn-icon" title="Movimentar">
                                 <i class="bi bi-arrow-repeat"></i>

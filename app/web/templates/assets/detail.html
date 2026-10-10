@@ -23,6 +23,24 @@
         <span>Conferência de inventário registrada com sucesso!</span>
     </div>
     {% endif %}
+    {% if request.query_params.get('updated') == 'true' %}
+    <div class="alert alert-success d-flex align-items-center gap-2 py-2 small mb-3" role="alert">
+        <i class="bi bi-check-circle-fill text-success"></i>
+        <span>Alteração cadastral salva com sucesso!</span>
+    </div>
+    {% endif %}
+    {% if request.query_params.get('unchanged') == 'true' %}
+    <div class="alert alert-info d-flex align-items-center gap-2 py-2 small mb-3" role="alert">
+        <i class="bi bi-info-circle-fill text-info"></i>
+        <span>Nenhuma alteração foi detectada — nada foi gravado.</span>
+    </div>
+    {% endif %}
+    {% if request.query_params.get('error') %}
+    <div class="alert alert-danger d-flex align-items-center gap-2 py-2 small mb-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+        <span>{{ request.query_params.get('error') }}</span>
+    </div>
+    {% endif %}
     {% if request.query_params.get('inventario') == 'erro' %}
     <div class="alert alert-danger d-flex align-items-center gap-2 py-2 small mb-3" role="alert">
         <i class="bi bi-exclamation-triangle-fill text-danger"></i>
@@ -47,6 +65,11 @@
             </div>
         </div>
         <div class="d-flex flex-wrap gap-2">
+            {% if can('patrimonio.editar') and asset.status.value != 'BAIXADO' %}
+            <a href="/assets/{{ asset.id }}/edit" class="btn btn-primary btn-sm">
+                <i class="bi bi-pencil-square"></i> Editar bem
+            </a>
+            {% endif %}
             {% if asset.status.value != 'BAIXADO' %}
             {% if can('movimentacao.criar') %}
             <a href="/movements/new?asset_id={{ asset.id }}" class="btn btn-primary btn-sm">
@@ -143,7 +166,19 @@
                 <div class="text-secondary bg-light p-2 rounded" style="font-size:.82rem;">{{ asset.specifications }}</div>
             </div>
             {% endif %}
+            <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center text-muted" style="font-size:.74rem;">
+                <span><i class="bi bi-clock-history me-1"></i>Última atualização cadastral</span>
+                <span class="fw-semibold" style="color:var(--c-text);">{{ (asset.updated_at | localtime).strftime('%d/%m/%Y %H:%M') if asset.updated_at else 'Não informado' }}</span>
+            </div>
         </div>
+
+        {% if asset.notes %}
+        <!-- Notas cadastrais do bem (Feature 067 — FR-001/FR-002) -->
+        <div class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-journal-text"></i> Observações</div>
+            <div class="text-secondary bg-light p-2 rounded" style="font-size:.82rem;white-space:pre-line;">{{ asset.notes }}</div>
+        </div>
+        {% endif %}
 
         <!-- Depreciation -->
         <div class="card p-4 mb-4">
@@ -177,6 +212,52 @@
 
     <!-- Right Column: Timeline -->
     <div class="col-12 col-lg-7">
+        {# Feature 067 (FR-016/FR-017) — histórico de alterações CADASTRAIS,
+           separado e visualmente distinto da trilha de movimentação #}
+        <div class="card p-4 mb-4" id="historico-cadastral">
+            <div class="section-divider mb-3"><i class="bi bi-journal-text"></i> Alterações cadastrais</div>
+            {% if cadastral_history and cadastral_history.eventos %}
+            {% if cadastral_history.truncado %}
+            <div class="alert alert-info py-2 small mb-3" role="alert">
+                <i class="bi bi-info-circle me-1"></i>Existem alterações anteriores não listadas
+                (exibindo as {{ cadastral_history.eventos | length }} mais recentes de
+                {{ cadastral_history.total }}).
+            </div>
+            {% endif %}
+            <ul class="list-unstyled mb-0">
+                {% for evento in cadastral_history.eventos %}
+                <li class="py-2 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <span class="small fw-semibold" style="color:var(--c-text);">
+                            <i class="bi bi-person-check me-1 text-muted"></i>{{ evento.username }}
+                        </span>
+                        <span class="text-muted" style="font-size:.74rem;">
+                            <i class="bi bi-calendar3 me-1"></i>{{ (evento.timestamp | localtime).strftime('%d/%m/%Y %H:%M') }}
+                        </span>
+                    </div>
+                    <ul class="list-unstyled mb-0 mt-1 ps-1">
+                        {% for mudanca in evento.changes %}
+                        <li class="small text-muted">
+                            {{ mudanca.label }}:
+                            <span class="text-decoration-line-through">{{ mudanca.before if mudanca.before is not none else '—' }}</span>
+                            <i class="bi bi-arrow-right mx-1"></i>
+                            <strong style="color:var(--c-text);">{{ mudanca.after if mudanca.after is not none else '—' }}</strong>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-journal-text empty-state-icon"></i>
+                <div class="empty-state-title">Nenhuma alteração cadastral registrada</div>
+                <div class="empty-state-text">O cadastro inicial do bem é registrado na trilha de movimentação, não aqui.</div>
+            </div>
+            {% endif %}
+        </div>
+        <!-- fim do histórico cadastral -->
+
         <div class="card p-4">
             <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
                 <div>

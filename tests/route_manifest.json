@@ -392,6 +392,20 @@
     "endpoint": "get_asset_depreciation"
   },
   {
+    "path": "/assets/{asset_id}/edit",
+    "methods": [
+      "GET"
+    ],
+    "endpoint": "form_edit_asset"
+  },
+  {
+    "path": "/assets/{asset_id}/edit",
+    "methods": [
+      "POST"
+    ],
+    "endpoint": "update_asset_form"
+  },
+  {
     "path": "/assets/{asset_id}/timeline",
     "methods": [
       "GET"

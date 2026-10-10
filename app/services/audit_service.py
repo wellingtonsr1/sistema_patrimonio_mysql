@@ -222,12 +222,18 @@ def write_audit(
     previous_data: Optional[Dict[str, Any]] = None,
     new_data: Optional[Dict[str, Any]] = None,
     username: Optional[str] = None,
+    commit: bool = True,
 ) -> AuditLog:
     """
     Grava um registro na trilha de auditoria.
 
     `username` permite registrar o nome de usuário mesmo quando o usuário
     não existe ou não autenticou (ex: falha de login, conta bloqueada).
+
+    `commit=False` grava o registro apenas na transação corrente (`flush`),
+    deixando o `commit` para o chamador — permite fechar a operação auditada e
+    sua trilha numa única transação (feature 067, FR-015). O padrão
+    (`commit=True`) preserva integralmente o comportamento anterior.
     """
     entry = AuditLog(
         timestamp=datetime.utcnow(),
@@ -245,8 +251,11 @@ def write_audit(
         new_data=_to_json(new_data),
     )
     db.add(entry)
-    db.commit()
-    db.refresh(entry)
+    if commit:
+        db.commit()
+        db.refresh(entry)
+    else:
+        db.flush()
     return entry
 
 
@@ -263,10 +272,14 @@ def write_change_audit(
     before: Optional[Dict[str, Any]] = None,
     after: Optional[Dict[str, Any]] = None,
     description: Optional[str] = None,
+    commit: bool = True,
 ) -> AuditLog:
     """
     Grava auditoria de CRIACAO/ALTERACAO comparando dados anteriores e
     posteriores; a descrição lista automaticamente os campos alterados.
+
+    `commit=False` mantém a trilha na transação corrente (ver `write_audit`) —
+    usado pela edição cadastral de bens (feature 067, FR-015).
     """
     before = before or {}
     after = after or {}
@@ -289,6 +302,7 @@ def write_change_audit(
         description=description,
         previous_data=before or None,
         new_data=after or None,
+        commit=commit,
     )
 
 

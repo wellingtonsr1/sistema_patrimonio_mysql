@@ -1,18 +1,149 @@
+import json
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, desc, and_
 from app.utils.time_utils import now_utc
 from app.models.asset import Asset
+from app.models.audit_log import AuditLog
 from app.models.movement import Movement
 from app.models.location import Location
 from app.models.custodian import Custodian
 from app.models.maintenance import Maintenance
 from app.models.enums import AssetStatus, AssetCondition, MovementType, MaintenanceStatus
 from app.schemas.asset import AssetCreate, AssetUpdate
+from app.services.audit_service import ACTION_UPDATE, changed_fields
+
+
+def _safe_json(raw: Optional[str]) -> Dict[str, Any]:
+    """Desserializa `previous_data`/`new_data` da trilha, tolerando valor inválido.
+
+    Mesmo padrão tolerante de `MovementService.get_timeline_for_asset`.
+    """
+    if not raw:
+        return {}
+    try:
+        dados = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+    return dados if isinstance(dados, dict) else {}
+
+
+# Feature 067 — limites de coluna validados na edição (data-model V2)
+_EDIT_TEXT_LIMITS: Dict[str, int] = {
+    "name": 150,
+    "brand": 100,
+    "model": 100,
+    "serial_number": 100,
+    "invoice_number": 100,
+    "supplier": 150,
+}
+
+# Feature 067 — campos de texto opcionais normalizados na edição:
+# `strip` e string vazia viram `None` (mesma normalização do cadastro web;
+# evita colidir com a unicidade de `serial_number` ao limpar o valor).
+_EDIT_OPTIONAL_TEXT = (
+    "brand", "model", "serial_number", "invoice_number", "supplier",
+    "specifications", "notes",
+)
+
+# Feature 067 — campos de data comparados na PRECISÃO DE DIA: o formulário web
+# envia `<input type="date">` (sem hora) enquanto a coluna é `DateTime`; sem
+# isso, salvar o formulário pré-preenchido contaria como alteração (auditoria
+# espúria) e gravaria a data à meia-noite em toda edição.
+_EDIT_DATE_FIELDS = ("purchase_date", "warranty_expiry")
+
+
+class AssetNotEditableError(ValueError):
+    """Bem em situação que não permite edição cadastral (feature 067 — P4).
+
+    Subclasse de `ValueError` de propósito: as rotas de API já convertem
+    `ValueError` em HTTP 400, preservando o contrato existente.
+    """
+
+
+class AssetEditConflictError(ValueError):
+    """Conflito de edição otimista: o bem mudou desde a abertura da tela.
+
+    Feature 067 — P3 (controle otimista por `updated_at`). Subclasse de
+    `ValueError` para preservar o mapeamento de erro da API (HTTP 400).
+    """
+
+
+# Feature 067 — rótulos de negócio para o histórico cadastral (FR-016/FR-017).
+_ASSET_FIELD_LABELS: Dict[str, str] = {
+    "name": "Nome do bem",
+    "category": "Categoria",
+    "brand": "Marca",
+    "model": "Modelo",
+    "serial_number": "Nº de Série",
+    "specifications": "Especificações Técnicas",
+    "purchase_date": "Data de Compra",
+    "purchase_value": "Valor de Aquisição",
+    "invoice_number": "Nº da Nota Fiscal",
+    "supplier": "Fornecedor",
+    "warranty_expiry": "Validade da Garantia",
+    "condition": "Estado de Conservação",
+    "notes": "Observações",
+    "tag": "Tombamento",
+    "status": "Situação",
+    "location_id": "Localização",
+    "custodian_id": "Responsável",
+}
 
 
 class AssetService:
+    @staticmethod
+    def get_cadastral_history(db: Session, asset_id: int, limit: int = 50) -> Dict[str, Any]:
+        """Histórico das ALTERAÇÕES CADASTRAIS do bem (feature 067 — FR-016/FR-017).
+
+        Leitura **somente** da trilha de auditoria já existente (`AuditLog` com
+        `resource == 'Asset'` e `resource_id == asset_id`) — nenhum mecanismo
+        paralelo, nenhuma tabela nova (Constitution IV/VI). O cadastro inicial
+        (`CRIACAO`) fica de fora de propósito: ele já é representado pela
+        movimentação `ENTRADA_AQUISICAO`, e o §4.5 da spec exige estado vazio
+        claro para bens sem alteração cadastral (sem informação enganosa).
+
+        Retorna `{"eventos": [...], "total": int, "truncado": bool}` — `truncado`
+        avisa que existem eventos mais antigos que o teto `limit` (FR-016: sem
+        truncamento silencioso). As chaves evitam os métodos nativos de `dict`
+        (Jinja resolveria `historico.items` como o método `items`).
+        """
+        query = db.query(AuditLog).filter(
+            AuditLog.resource == "Asset",
+            AuditLog.resource_id == asset_id,
+            AuditLog.action == ACTION_UPDATE,
+        )
+        total = query.count()
+        registros = query.order_by(AuditLog.timestamp.desc(), AuditLog.id.desc()).limit(limit).all()
+
+        items = []
+        for registro in registros:
+            before = _safe_json(registro.previous_data)
+            after = _safe_json(registro.new_data)
+            alteracoes = []
+            for campo, valores in changed_fields(before, after).items():
+                alteracoes.append(
+                    {
+                        "field": campo,
+                        "label": _ASSET_FIELD_LABELS.get(campo, campo),
+                        "before": valores.get("de"),
+                        "after": valores.get("para"),
+                    }
+                )
+            alteracoes.sort(key=lambda item: item["label"])
+            items.append(
+                {
+                    "id": registro.id,
+                    "timestamp": registro.timestamp,
+                    "username": registro.username or "Sistema",
+                    "description": registro.description,
+                    "changes": alteracoes,
+                }
+            )
+
+        return {"eventos": items, "total": total, "truncado": total > len(items)}
+
     @staticmethod
     def get_all(
         db: Session,
@@ -198,13 +329,123 @@ class AssetService:
         return asset
 
     @staticmethod
-    def update(db: Session, asset_id: int, data: AssetUpdate) -> Optional[Asset]:
+    def _edit_payload(data: AssetUpdate) -> Dict[str, Any]:
+        """Normaliza e valida o payload de edição (feature 067 — V1/V2/V3).
+
+        Fonte única da regra de edição (Constitution III) — aplicada tanto pelo
+        fluxo web quanto pela API:
+
+        - campos de texto opcionais: `strip` e vazio -> `None`;
+        - `name` presente precisa ser não vazio (V1);
+        - limites de coluna com mensagem de negócio, sem truncamento (V2);
+        - `purchase_value` presente precisa ser >= 0 (V3).
+
+        Campos não enviados (`exclude_unset`) permanecem intocados.
+        """
+        payload = data.model_dump(exclude_unset=True)
+
+        for field in _EDIT_OPTIONAL_TEXT:
+            value = payload.get(field)
+            if isinstance(value, str):
+                payload[field] = value.strip() or None
+
+        if "name" in payload:
+            name = payload["name"]
+            if name is None or not str(name).strip():
+                raise ValueError("O nome do equipamento é obrigatório")
+            payload["name"] = str(name).strip()
+
+        for field, limit in _EDIT_TEXT_LIMITS.items():
+            value = payload.get(field)
+            if isinstance(value, str) and len(value) > limit:
+                raise ValueError(
+                    f"O campo '{field}' excede o limite de {limit} caracteres"
+                )
+
+        if "purchase_value" in payload:
+            value = payload["purchase_value"]
+            if value is not None and value < 0:
+                raise ValueError("O valor de aquisição não pode ser negativo")
+
+        return payload
+
+    @staticmethod
+    def edit_changes(asset: Asset, data: AssetUpdate) -> Dict[str, Any]:
+        """Campos que a edição realmente alteraria (feature 067 — V9).
+
+        Sinal explícito para o chamador distinguir "salvar sem alterações" de
+        uma edição efetiva: sem diferença, não há movimentação nem registro de
+        auditoria (FR-019/AC11).
+        """
+        payload = AssetService._edit_payload(data)
+        changes: Dict[str, Any] = {}
+        for key, value in payload.items():
+            atual = getattr(asset, key, None)
+            if key in _EDIT_DATE_FIELDS:
+                atual = atual.date() if atual else None
+                value_cmp = value.date() if value else None
+            else:
+                value_cmp = value
+            if atual != value_cmp:
+                changes[key] = value
+        return changes
+
+    @staticmethod
+    def update(
+        db: Session,
+        asset_id: int,
+        data: AssetUpdate,
+        *,
+        operator_name: Optional[str] = None,
+        change_reason: Optional[str] = None,
+        expected_updated_at: Optional[datetime] = None,
+        commit: bool = True,
+    ) -> Optional[Asset]:
+        """Atualiza os dados cadastrais de um bem (feature 067).
+
+        Regras aplicadas aqui (fonte única — Constitution III):
+
+        - V1–V3 (nome obrigatório, limites de coluna, valor >= 0) e
+          normalização de texto opcional via `_edit_payload`;
+        - V4: unicidade de `serial_number` ignorando o próprio bem;
+        - V11: bem `BAIXADO` não é editável por esta via (P4) →
+          `AssetNotEditableError`;
+        - V10: `expected_updated_at` habilita o controle otimista de edição
+          concorrente usado pela tela web (P3) → `AssetEditConflictError`;
+        - V8/FR-012: mudança de `condition` grava a movimentação
+          `ATUALIZACAO_ESTADO` com o operador autenticado e o motivo informado
+          (padrão da feature 065), sem eles o comportamento anterior é mantido.
+
+        `commit=False` permite ao chamador fechar a alteração e o registro de
+        auditoria numa única transação (FR-015); o padrão preserva o
+        comportamento anterior. As duas novas exceções herdam de `ValueError`
+        para manter o mapeamento HTTP 400 da API (contrato preservado).
+
+        `tag`, `status`, `location_id` e `custodian_id` não fazem parte de
+        `AssetUpdate` e continuam protegidos (Constitution IV).
+        """
         asset = AssetService.get_by_id(db, asset_id)
         if not asset:
             return None
 
-        if data.serial_number:
-            serial_number = data.serial_number.strip()
+        if asset.status == AssetStatus.WRITTEN_OFF:
+            raise AssetNotEditableError(
+                "Bem baixado não pode ter o cadastro editado por esta via. "
+                "Utilize o procedimento administrativo apropriado."
+            )
+
+        if expected_updated_at is not None and asset.updated_at is not None:
+            # Precisão de segundo: MariaDB/MySQL armazena DATETIME sem fração.
+            if asset.updated_at.replace(microsecond=0) != expected_updated_at.replace(microsecond=0):
+                raise AssetEditConflictError(
+                    "O bem foi alterado por outro usuário desde que esta tela foi aberta. "
+                    "Recarregue e refaça a edição."
+                )
+
+        payload = AssetService._edit_payload(data)
+
+        serial_number = payload.get("serial_number")
+        if serial_number:
             existing = db.query(Asset).filter(
                 Asset.serial_number == serial_number,
                 Asset.id != asset_id
@@ -214,11 +455,13 @@ class AssetService:
 
         old_condition = asset.condition
 
-        for key, value in data.model_dump(exclude_unset=True).items():
+        for key, value in payload.items():
             setattr(asset, key, value)
 
-        # Se houve alteração de condição, grava no fluxo
-        if data.condition and data.condition != old_condition:
+        new_condition = payload.get("condition")
+
+        # Se houve alteração de condição, grava no fluxo (V8/FR-012)
+        if new_condition is not None and new_condition != old_condition:
             movement = Movement(
                 asset_id=asset.id,
                 movement_type=MovementType.STATUS_UPDATE,
@@ -234,15 +477,18 @@ class AssetService:
                 previous_status=asset.status,
                 new_status=asset.status,
                 previous_condition=old_condition,
-                new_condition=data.condition,
-                reason="Vistoria técnica / Atualização de estado de conservação",
-                operator_name="Sistema",
-                notes=f"Estado de conservação alterado de {old_condition.label} para {data.condition.label}."
+                new_condition=new_condition,
+                reason=change_reason or "Vistoria técnica / Atualização de estado de conservação",
+                operator_name=operator_name or "Sistema",
+                notes=f"Estado de conservação alterado de {old_condition.label} para {new_condition.label}."
             )
             db.add(movement)
 
-        db.commit()
-        db.refresh(asset)
+        if commit:
+            db.commit()
+            db.refresh(asset)
+        else:
+            db.flush()
         return asset
 
     @staticmethod

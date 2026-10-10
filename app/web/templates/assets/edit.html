@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Editar {{ asset.tag }} | SisPatrimônio Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        <div class="page-header">
+            <div>
+                <h3 class="page-header-title">Editar Cadastro do Bem</h3>
+                <p class="page-header-subtitle">
+                    Corrija os dados cadastrais. Tombamento, situação, localização e responsável
+                    são alterados apenas pelos fluxos próprios (movimentação/baixa).
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/assets/{{ asset.id }}" class="btn btn-ghost">
+                    <i class="bi bi-arrow-left me-1"></i> Voltar ao Detalhe
+                </a>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/assets/{{ asset.id }}/edit" class="card p-4">
+            {# P3 aprovada — controle otimista por `updated_at` (versão do formulário) #}
+            <input type="hidden" name="expected_updated_at"
+                   value="{{ asset.updated_at.strftime('%Y-%m-%dT%H:%M:%S') if asset.updated_at else '' }}">
+
+            <div class="form-section"><i class="bi bi-tag"></i> 1. Identificação Principal</div>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Nº de Tombamento / Tag</label>
+                    <input type="text" class="form-control text-uppercase font-monospace fw-bold" value="{{ asset.tag }}" disabled>
+                    <div class="form-text">Identificador patrimonial — imutável nesta tela.</div>
+                </div>
+                <div class="col-12 col-md-5">
+                    <label class="form-label">Nome / Descrição do Bem <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" maxlength="150" required
+                           value="{{ asset.name or '' }}">
+                    <div class="form-text">Obrigatório, até 150 caracteres.</div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Categoria <span class="text-danger">*</span></label>
+                    <select name="category" class="form-select" required>
+                        {% for cat in categories %}
+                        <option value="{{ cat.value }}" {% if asset.category and cat.value == asset.category.value %}selected{% endif %}>{{ cat.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Marca / Fabricante</label>
+                    <input type="text" name="brand" class="form-control" maxlength="100"
+                           value="{{ asset.brand or '' }}" placeholder="Dell, Lenovo, HP, Apple...">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Modelo</label>
+                    <input type="text" name="model" class="form-control" maxlength="100"
+                           value="{{ asset.model or '' }}" placeholder="ThinkPad E14 Gen 4">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Número de Série (S/N)</label>
+                    <input type="text" name="serial_number" class="form-control font-monospace" maxlength="100"
+                           value="{{ asset.serial_number or '' }}" placeholder="8XF99120KL">
+                    <div class="form-text">Único no sistema. Deixe em branco para remover o valor.</div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Especificações Técnicas Detalhadas</label>
+                    <textarea name="specifications" class="form-control" rows="2"
+                              placeholder="Processador, Memória RAM, SSD, Acessórios inclusos...">{{ asset.specifications or '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="form-section"><i class="bi bi-receipt"></i> 2. Informações Fiscais & Aquisição</div>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Data de Compra</label>
+                    <input type="date" name="purchase_date" class="form-control"
+                           value="{{ asset.purchase_date.strftime('%Y-%m-%d') if asset.purchase_date else '' }}">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Valor de Aquisição (R$)</label>
+                    <input type="number" step="0.01" min="0" name="purchase_value" class="form-control"
+                           value="{{ '%.2f'|format(asset.purchase_value or 0.0) }}">
+                    <div class="form-text">Não pode ser negativo.</div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Nº da Nota Fiscal (NF)</label>
+                    <input type="text" name="invoice_number" class="form-control" maxlength="100"
+                           value="{{ asset.invoice_number or '' }}" placeholder="NF-e 452109">
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Fornecedor / Loja</label>
+                    <input type="text" name="supplier" class="form-control" maxlength="150"
+                           value="{{ asset.supplier or '' }}" placeholder="Dell Computadores do Brasil">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Validade da Garantia</label>
+                    <input type="date" name="warranty_expiry" class="form-control"
+                           value="{{ asset.warranty_expiry.strftime('%Y-%m-%d') if asset.warranty_expiry else '' }}">
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Estado de Conservação</label>
+                    <select name="condition" class="form-select">
+                        {% for cond in conditions %}
+                        <option value="{{ cond.value }}" {% if asset.condition and cond.value == asset.condition.value %}selected{% endif %}>{{ cond.label }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Ao alterar, uma movimentação é registrada em seu nome.</div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Observações Gerais</label>
+                    <textarea name="notes" class="form-control" rows="2"
+                              placeholder="Observações de vistoria, termos específicos, etc.">{{ asset.notes or '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                <a href="/assets/{{ asset.id }}" class="btn btn-ghost px-4">Cancelar</a>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                    <i class="bi bi-check-lg me-1"></i> Salvar Alterações
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
