@@ -170,3 +170,33 @@ responsável foi **manter o comportamento atual** e registrar a dívida.
 **Regra vigente enquanto aberto**: a leitura viva **não** bloqueia a edição cadastral
 aprovada na 067; a limitação é conhecida e está registrada na spec 067 (§1.7, §14 P5,
 AC10/SC-007) e deve constar da documentação do sistema (Constitution XI).
+
+---
+
+## M-004 — `/reports/custodians`: N+1 de contagens e carga não paginada — **ABERTO** (2026-10-11)
+
+**Status**: aberto · **Prioridade**: média (performance; sem perda de dados) · **Origem**: feature 068 (achado da T002, decisão P6)
+
+### Sintoma / risco
+
+A tela `/reports/custodians` (`app/web/routers/reports.py::view_custodians_report`, L~101)
+carrega **todos** os colaboradores (`CustodianService.get_all(db)`, sem `limit`) e, para
+**cada linha**, chama `count_assigned_assets` — um **N+1** de consultas. Diferente das
+telas alcançadas pela feature 068, aqui **não há corte silencioso** (o `total = len(...)`
+coerente com o exibido), logo a limitação é de desempenho, não de completude.
+
+### Por que ficou fora da 068
+
+A spec 068 (decisão **P6**, `specs/068-paginacao-listas-e-relatorios-integros/spec.md` §14)
+incluiu `/reports/movements` no escopo e deliberadamente deixou `/reports/custodians` de
+fora (Constitution I: escopo estrito). A spec 068 dedica o P5 à agregação única (GROUP BY)
+**apenas das listas paginadas**; esta tela não é uma delas.
+
+### Ação recomendada (quando especificado em feature própria)
+
+- Trocar o N+1 por uma agregação única (`GROUP BY custodian_id`) — mesmo padrão aprovado
+  no P5 da 068 para as listas (`AssetService.count_by_custodian`).
+- Avaliar paginação (`page`/200) com total, reutilizando `app/utils/pagination.py` (criado
+  na 068) e a macro `pagination.html`, mantendo a permissão `relatorios.visualizar`.
+- Sem mudança de colunas/formato do relatório (FR-012 da 068 vale como referência de
+  fidelidade).

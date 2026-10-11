@@ -83,7 +83,7 @@ Leitura: **a aplicação é rápida no volume atual**. Os riscos são de escala 
 | # | Achado | Evidência | Recomendação |
 |---|---|---|---|
 | P1 | **Sem paginação nas listas web** — `/assets` traz `limit=200` e o template mostra *"Mostrando X de Y"* sem controles de página | `app/web/routers/assets.py` (`limit=200`), `templates/assets/list.html:164`; grep por `pagination`/`page-item` = **0 arquivos** | Implementar paginação (offset/limit + controles) em Assets, Movimentações, Colaboradores, Locais, Audit log. Hoje registros além dos 200 são **inacessíveis** sem filtro |
-| P2 | **Corte silencioso nos relatórios/exportações**: `limit_query = limit if limit > 0 else 10000` | `app/services/report_service.py:39` | Avisar na tela/CSV quando o total > limite, ou remover o teto com streaming |
+| P2 | **Corte silencioso nos relatórios/exportações**: `limit_query = limit if limit > 0 else 10000` | `app/services/report_service.py:47` | Avisar na tela/CSV quando o total > limite, ou remover o teto com streaming |
 | P3 | **Exportações montam tudo em memória** | `report_service.py:488` (`db.query(Movement)...all()`), CSV/XLSX/PDF como string/bytes | `StreamingResponse` com `yield` por lote (CSV) e paginação em lotes para XLSX/PDF |
 | P4 | **Dashboard com ~16 consultas por request e sem cache** | `app/services/dashboard_service.py:11-60` | Consolidar em 3-4 agregações (`GROUP BY`) + cache curto (30-60 s) por usuário/sistema |
 | P5 | **`joinedload(Asset.maintenances)` junto de `LIMIT`** na listagem | `app/services/asset_service.py:164-166, 237` | Confirmar no MariaDB real (log de SQL) que o LIMIT é aplicado ao subquery; se não, explodir linhas em volume |

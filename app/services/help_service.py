@@ -26,6 +26,7 @@ from app.services.help_article_031 import ARTIGO_ONEDOC  # feature 031
 from app.services.help_article_032 import ARTIGO_CENTRAL_INTEGRACOES  # feature 032
 from app.services.help_article_045 import ARTIGO_BACKUP_EXTERNO  # feature 045
 from app.services.help_article_rede import ARTIGO_CENARIOS_REDE  # feature 060
+from app.services.help_article_068 import ARTIGO_PAGINACAO_RELATORIOS  # feature 068
 
 # ============================================================================
 # ARTIGOS
@@ -1325,6 +1326,7 @@ ARTICLES: List[Dict] = [
     ARTIGO_ONEDOC,  # feature 031 — integração 1Doc (administração)
     ARTIGO_CENTRAL_INTEGRACOES,  # feature 032 — central de integrações (administração)
     ARTIGO_BACKUP_EXTERNO,  # feature 045 — destino externo de backups (administração)
+    ARTIGO_PAGINACAO_RELATORIOS,  # feature 068 — paginação de listas e integridade de relatórios/exportações
     {
         "id": "restauracao-de-backup",
         "title": "Restauração de backup (administração)",

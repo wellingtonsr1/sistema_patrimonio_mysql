@@ -132,7 +132,13 @@ class CustodianService:
         return custodian
 
     @staticmethod
-    def get_all(db: Session, active_only: bool = False, search: Optional[str] = None) -> List[Custodian]:
+    def get_all(
+        db: Session,
+        active_only: bool = False,
+        search: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 0,
+    ) -> List[Custodian]:
         """Lista colaboradores, opcionalmente filtrada por termo de pesquisa.
 
         Feature 006: `search` é combinado (matrícula, nome, cargo, departamento,
@@ -140,6 +146,11 @@ class CustodianService:
         minúsculas (padrão da pesquisa de bens em asset_service.get_all).
         Sem termo (None/vazio), a consulta permanece idêntica à anterior —
         retrocompatível com API REST e demais chamadores.
+
+        Feature 068 (FR-017): parâmetros aditivos `skip`/`limit`; **`limit=0`
+        (default) mantém "retorna tudo"** — nenhum chamador existente muda de
+        comportamento. A paginação web usa `skip=offset_for(page)` e
+        `limit=page_size`, com o total via `count`.
         """
         query = db.query(Custodian)
         if active_only:
@@ -156,7 +167,31 @@ class CustodianService:
                 Custodian.email.ilike(filtro),
             ))
 
-        return query.order_by(Custodian.name).all()
+        query = query.order_by(Custodian.name)
+        if skip:
+            query = query.offset(skip)
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def count(db: Session, active_only: bool = False, search: Optional[str] = None) -> int:
+        """Total do filtro (feature 068, FR-004) — mesmo recorte de `get_all`."""
+        query = db.query(Custodian)
+        if active_only:
+            query = query.filter(Custodian.is_active == True)
+
+        termo = (search or "").strip()
+        if termo:
+            filtro = f"%{termo}%"
+            query = query.filter(or_(
+                Custodian.registration_code.ilike(filtro),
+                Custodian.name.ilike(filtro),
+                Custodian.role.ilike(filtro),
+                Custodian.department.ilike(filtro),
+                Custodian.email.ilike(filtro),
+            ))
+        return query.count()
 
     @staticmethod
     def get_by_id(db: Session, custodian_id: int) -> Optional[Custodian]:

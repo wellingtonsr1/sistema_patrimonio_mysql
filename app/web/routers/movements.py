@@ -20,6 +20,7 @@ from app.services.custodian_service import CustodianService
 from app.services.location_service import LocationService
 from app.services.movement_service import MovementService
 from app.services.audit_service import ACTION_MOVEMENT, write_change_audit
+from app.utils.pagination import DEFAULT_PAGE_SIZE, offset_for, page_meta
 from app.web.routers.templates_env import templates
 
 logger = logging.getLogger("sispatrimonio.web")
@@ -41,12 +42,18 @@ def list_movements_view(
     movement_type: Optional[str] = None,
     asset_id: Optional[int] = None,
     search: Optional[str] = None,
+    page: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     m_type_enum = MovementType(movement_type) if movement_type and movement_type in [e.value for e in MovementType] else None
     clean_search = search.strip() if search and search.strip() else None
     filters = MovementFilter(movement_type=m_type_enum, asset_id=asset_id, search=clean_search)
-    movements, total = MovementService.get_all_movements(db, filters=filters, limit=200)
+    # Feature 068: paginação com total (FR-001/FR-004) — antes, só o primeiro
+    # bloco de 200 era exibido e o `total` retornava sem ser mostrado.
+    movements, total = MovementService.get_all_movements(
+        db, filters=filters, skip=offset_for(page), limit=DEFAULT_PAGE_SIZE
+    )
+    meta = page_meta(total, page)
 
     return templates.TemplateResponse(
         request=request,
@@ -54,6 +61,7 @@ def list_movements_view(
         context={
             "movements": movements,
             "total": total,
+            "meta": meta,
             "selected_type": movement_type or "",
             "search": clean_search or "",
             "movement_types": MovementType,

@@ -21,6 +21,7 @@ from app.services.custodian_import_service import (
     preview_custodian_import,
 )
 from app.services.audit_service import ACTION_CREATE, ACTION_IMPORT, ACTION_UPDATE, write_audit, write_change_audit
+from app.utils.pagination import DEFAULT_PAGE_SIZE, offset_for, page_meta
 from app.web.routers.templates_env import templates
 from app.web.routers.shared import (
     _confirm_payload_rows,
@@ -46,15 +47,32 @@ def _custodian_audit_snapshot(c) -> dict:
 
 
 @web_router.get("/custodians", response_class=HTMLResponse, dependencies=[Depends(require_permission("colaboradores.visualizar"))])
-def list_custodians_view(request: Request, search: Optional[str] = None, db: Session = Depends(get_db)):
-    custodians = CustodianService.get_all(db, search=search)
+def list_custodians_view(
+    request: Request,
+    search: Optional[str] = None,
+    page: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    # Feature 068: paginação server-side com total (FR-001/FR-004) — antes a
+    # rota carregava TODOS os colaboradores em memória, sem indicador.
+    total = CustodianService.count(db, search=search)
+    custodians = CustodianService.get_all(
+        db, search=search, skip=offset_for(page), limit=DEFAULT_PAGE_SIZE
+    )
+    meta = page_meta(total, page)
     for c in custodians:
         c.active_assets_count = CustodianService.count_assigned_assets(db, c.id)
 
     return templates.TemplateResponse(
         request=request,
         name="custodians/list.html",
-        context={"custodians": custodians, "search": search or "", "active_tab": "custodians"}
+        context={
+            "custodians": custodians,
+            "total": total,
+            "meta": meta,
+            "search": search or "",
+            "active_tab": "custodians",
+        }
     )
 
 

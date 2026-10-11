@@ -17,18 +17,42 @@ def compose_location_name(branch: str, department: str) -> str:
 
 class LocationService:
     @staticmethod
-    def get_all(db: Session, search: Optional[str] = None) -> List[Location]:
+    def get_all(
+        db: Session,
+        search: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 0,
+    ) -> List[Location]:
         """Lista locais; com `search`, filtra pelo nome (Nome / Identificação).
 
         Feature 007 — pesquisa server-side mono-campo (apenas Location.name),
         parcial e case-insensitive; sem termo, consulta idêntica à original
         (retrocompatível com API REST e demais chamadores).
+
+        Feature 068 (FR-017): parâmetros aditivos `skip`/`limit`; **`limit=0`
+        (default) mantém "retorna tudo"** — nenhum chamador existente muda de
+        comportamento. A paginação web usa `skip=offset_for(page)` e
+        `limit=page_size`, com o total via `count`.
         """
         query = db.query(Location)
         termo = (search or "").strip()
         if termo:
             query = query.filter(Location.name.ilike(f"%{termo}%"))
-        return query.order_by(Location.branch, Location.department, Location.name).all()
+        query = query.order_by(Location.branch, Location.department, Location.name)
+        if skip:
+            query = query.offset(skip)
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+
+    @staticmethod
+    def count(db: Session, search: Optional[str] = None) -> int:
+        """Total do filtro (feature 068, FR-004) — mesmo recorte de `get_all`."""
+        query = db.query(Location)
+        termo = (search or "").strip()
+        if termo:
+            query = query.filter(Location.name.ilike(f"%{termo}%"))
+        return query.count()
 
     @staticmethod
     def get_by_id(db: Session, location_id: int) -> Optional[Location]:

@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% from "macros/pagination.html" import pager %}
+
 {% block title %}Histórico de Movimentações{% endblock %}
 
 {% from "macros/locations.html" import local_curto, render_location_context %}
@@ -82,7 +84,7 @@
 <!-- Table -->
 <div class="card">
     <div class="card-header-clean">
-        <span class="text-muted small">Mostrando <strong>{{ movements|length }}</strong> registros de fluxo</span>
+        <span class="text-muted small">Mostrando <strong>{{ meta.start }}–{{ meta.end }}</strong> de <strong>{{ meta.total }}</strong> registros de fluxo</span>
     </div>
 
     {% if movements %}
@@ -185,5 +187,6 @@
         {% endif %}
     </div>
     {% endif %}
+    {{ pager(meta.page, meta.pages, meta.total, meta.start, meta.end, request) }}
 </div>
 {% endblock %}

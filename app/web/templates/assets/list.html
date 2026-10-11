@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% from "macros/pagination.html" import pager %}
+
 {% block title %}Equipamentos{% endblock %}
 
 {% block content %}
@@ -161,7 +163,7 @@
 
 <div class="card">
     <div class="card-header-clean">
-        <span class="text-muted small">Mostrando <strong>{{ assets|length }}</strong> de <strong>{{ total }}</strong> equipamentos</span>
+        <span class="text-muted small">Mostrando <strong>{{ meta.start }}–{{ meta.end }}</strong> de <strong>{{ meta.total }}</strong> equipamentos</span>
     </div>
 
     {% if assets %}
@@ -261,5 +263,6 @@
         {% endif %}
     </div>
     {% endif %}
+    {{ pager(meta.page, meta.pages, meta.total, meta.start, meta.end, request) }}
 </div>
 {% endblock %}

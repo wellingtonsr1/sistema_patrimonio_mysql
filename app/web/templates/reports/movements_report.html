@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% from "macros/pagination.html" import pager %}
+
 {% block title %}Relatório de Auditoria de Movimentações{% endblock %}
 
 {% block content %}
@@ -58,7 +60,7 @@
 <div class="card p-4 report-print">
     <div class="border-bottom pb-3 mb-3 text-center">
         <h4 class="fw-bold mb-0 text-uppercase" style="font-size:1.1rem;">{{ company_name }}</h4>
-        <div class="small text-muted">Trilha de Auditoria Patrimonial • {{ total }} registros</div>
+        <div class="small text-muted">Trilha de Auditoria Patrimonial • Mostrando <strong>{{ meta.start }}–{{ meta.end }}</strong> de <strong>{{ meta.total }}</strong> registros</div>
     </div>
 
     <div class="table-responsive">
@@ -109,5 +111,6 @@
             </tbody>
         </table>
     </div>
+    {{ pager(meta.page, meta.pages, meta.total, meta.start, meta.end, request) }}
 </div>
 {% endblock %}

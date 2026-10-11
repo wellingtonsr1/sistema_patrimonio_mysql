@@ -1,7 +1,8 @@
 import io
 import csv
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import Iterator, List, Optional, Tuple
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.models.asset import Asset
 from app.models.movement import Movement
@@ -17,6 +18,69 @@ from app.utils.time_utils import format_local
 
 
 class ReportService:
+    # Lote da varredura em memória das exportações (FR-010, research R6)
+    EXPORT_BATCH_SIZE = 1000
+
+    @staticmethod
+    def aviso_corte(exibido: int, total: int) -> Optional[str]:
+        """FR-013 (T019): texto de aviso quando um artefato sai com corte
+        técnico residual — nenhum arquivo é entregue truncado em silêncio.
+
+        Retorna `None` quando não há corte (exibido == total, ou total vazio).
+        """
+        if total and exibido < total:
+            return (
+                f"AVISO: artefato gerado com corte tecnico - exibindo "
+                f"{exibido} de {total} registros do filtro."
+            )
+        return None
+
+    @staticmethod
+    def _asset_query_kwargs(search: Optional[str] = None,
+                            status: Optional[str] = None,
+                            category: Optional[str] = None,
+                            location_id: Optional[int] = None,
+                            custodian_id: Optional[int] = None,
+                            brand: Optional[str] = None,
+                            model: Optional[str] = None,
+                            department: Optional[str] = None,
+                            maintenance_status: Optional[str] = None,
+                            purchase_date_from: Optional[datetime] = None,
+                            purchase_date_to: Optional[datetime] = None) -> dict:
+        """Normaliza os filtros de texto para os enums do domínio (FR-017).
+
+        Vocabulário único compartilhado por `get_filtered_assets`,
+        `count_filtered_assets` e `iter_inventory_rows` — os filtros são
+        aplicados ANTES da página/lote (invariante I3).
+        """
+        status_enum = None
+        if status:
+            try:
+                status_enum = AssetStatus(status)
+            except ValueError:
+                pass
+
+        category_enum = None
+        if category:
+            try:
+                category_enum = AssetCategory(category)
+            except ValueError:
+                pass
+
+        return {
+            "search": search,
+            "status": status_enum,
+            "category": category_enum,
+            "location_id": location_id,
+            "custodian_id": custodian_id,
+            "brand": brand,
+            "model": model,
+            "department": department,
+            "maintenance_status": maintenance_status,
+            "purchase_date_from": purchase_date_from,
+            "purchase_date_to": purchase_date_to,
+        }
+
     @staticmethod
     def get_filtered_assets(db: Session, search: Optional[str] = None,
                            status: Optional[str] = None, category: Optional[str] = None,
@@ -28,140 +92,75 @@ class ReportService:
         """
         Retorna os assets filtrados conforme os parâmetros informados.
         Se limit=0, retorna todos os resultados sem paginação.
+
+        Feature 068 (T015/FR-010): o teto antigo de 10.000 foi REMOVIDO —
+        `limit=0` agora significa literalmente "todos" (`LIMIT` ausente na
+        consulta); quem precisa de constância de memória usa
+        `iter_inventory_rows` (lotes de 1.000).
         """
-        status_enum = None
-        if status:
-            try:
-                status_enum = AssetStatus(status)
-            except ValueError:
-                pass
-        
-        category_enum = None
-        if category:
-            try:
-                category_enum = AssetCategory(category)
-            except ValueError:
-                pass
-        
-        # Define limite: se for 0, usa um valor alto para pegar todos
-        limit_query = limit if limit > 0 else 10000
-        
+        # `limit=0` -> None: SQLAlchemy omite o LIMIT (sem teto — FR-010)
+        limit_query = limit if limit > 0 else None
+
         assets, total = AssetService.get_all(
             db,
-            search=search,
-            status=status_enum,
-            category=category_enum,
-            location_id=location_id,
-            custodian_id=custodian_id,
-            brand=brand,
-            model=model,
-            department=department,
-            maintenance_status=maintenance_status,
-            purchase_date_from=purchase_date_from,
-            purchase_date_to=purchase_date_to,
             skip=skip,
-            limit=limit_query
+            limit=limit_query,
+            **ReportService._asset_query_kwargs(
+                search=search, status=status, category=category,
+                location_id=location_id, custodian_id=custodian_id,
+                brand=brand, model=model, department=department,
+                maintenance_status=maintenance_status,
+                purchase_date_from=purchase_date_from,
+                purchase_date_to=purchase_date_to,
+            )
         )
         return assets, total
 
     @staticmethod
-    def generate_inventory_csv(db: Session, assets: Optional[List[Asset]] = None,
-                               search: Optional[str] = None, status: Optional[str] = None,
-                               category: Optional[str] = None, location_id: Optional[int] = None,
-                               custodian_id: Optional[int] = None, brand: Optional[str] = None,
-                               model: Optional[str] = None, department: Optional[str] = None,
-                               maintenance_status: Optional[str] = None,
-                               purchase_date_from: Optional[datetime] = None,
-                               purchase_date_to: Optional[datetime] = None) -> str:
-        """Gera um arquivo CSV com os bens filtrados conforme os parâmetros informados"""
-        assets, _ = ReportService.get_filtered_assets(
-            db, search=search, status=status, category=category,
-            location_id=location_id, custodian_id=custodian_id,
-            brand=brand, model=model, department=department,
-            maintenance_status=maintenance_status,
-            purchase_date_from=purchase_date_from, purchase_date_to=purchase_date_to,
-            limit=0  # Sem paginação - exporta todos
+    def count_filtered_assets(db: Session, **filters) -> int:
+        """Total do filtro (uma única consulta) — FR-010/R6.
+
+        Reutiliza a normalização de `get_filtered_assets` e pede 1 linha ao
+        serviço (o `count` é devolvido junto, sem carregar o conjunto).
+        """
+        _, total = AssetService.get_all(
+            db, limit=1, **ReportService._asset_query_kwargs(**filters)
         )
-
-        output = io.StringIO()
-        writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
-
-        # Cabeçalho
-        writer.writerow([
-            "Tombamento / Tag",
-            "Nome do Bem",
-            "Categoria",
-            "Marca",
-            "Modelo",
-            "Número de Série",
-            "Status",
-            "Condição",
-            "Localização Atual",
-            "Responsável Atual",
-            "Data Aquisição",
-            "Valor de Compra (R$)",
-            "Depreciação Acumulada (R$)",
-            "Valor Contábil Atual (R$)",
-            "Nota Fiscal",
-            "Fornecedor"
-        ])
-
-        for asset in assets:
-            deprec = AssetService.calculate_depreciation(asset)
-            loc_name = f"{asset.location.branch} - {asset.location.department}" if asset.location else "Não alocado"
-            cust_name = f"{asset.custodian.name} ({asset.custodian.registration_code})" if asset.custodian else "Estoque / Livre"
-            dt_purchase = asset.purchase_date.strftime("%d/%m/%Y") if asset.purchase_date else ""
-
-            writer.writerow([
-                asset.tag,
-                asset.name,
-                asset.category.label,
-                asset.brand or "",
-                asset.model or "",
-                asset.serial_number or "",
-                asset.status.label,
-                asset.condition.label,
-                loc_name,
-                cust_name,
-                dt_purchase,
-                f"{asset.purchase_value:.2f}",
-                f"{deprec['depreciated_amount']:.2f}",
-                f"{deprec['current_value']:.2f}",
-                asset.invoice_number or "",
-                asset.supplier or ""
-            ])
-
-        return output.getvalue()
+        return total
 
     @staticmethod
-    def generate_inventory_excel(db: Session, assets: Optional[List[Asset]] = None,
-                               search: Optional[str] = None, status: Optional[str] = None,
-                               category: Optional[str] = None, location_id: Optional[int] = None,
-                               custodian_id: Optional[int] = None, brand: Optional[str] = None,
-                               model: Optional[str] = None, department: Optional[str] = None,
-                               maintenance_status: Optional[str] = None,
-                               purchase_date_from: Optional[datetime] = None,
-                               purchase_date_to: Optional[datetime] = None) -> bytes:
-        """Gera um arquivo Excel .xlsx com os bens filtrados conforme os parâmetros informados"""
-        from openpyxl import Workbook
-        from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
-        from openpyxl.utils import get_column_letter
-        
-        assets, _ = ReportService.get_filtered_assets(
-            db, search=search, status=status, category=category,
-            location_id=location_id, custodian_id=custodian_id,
-            brand=brand, model=model, department=department,
-            maintenance_status=maintenance_status,
-            purchase_date_from=purchase_date_from, purchase_date_to=purchase_date_to,
-            limit=0
-        )
-        
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Inventário Patrimonial"
-        
-        # Cabeçalho
-        headers = [
+    def iter_inventory_rows(db: Session, **filters) -> Iterator[Asset]:
+        """Varre o acervo filtrado em lotes de 1.000 (FR-010, research R6).
+
+        Memória constante em qualquer volume; o filtro é aplicado no banco
+        antes do recorte (I3). Para se adequar ao monkeypatch de volume dos
+        testes, a parada acontece quando o lote vem menor que o tamanho do
+        lote OU vazio.
+        """
+        kwargs = ReportService._asset_query_kwargs(**filters)
+        skip = 0
+        while True:
+            batch, _ = AssetService.get_all(
+                db, skip=skip, limit=ReportService.EXPORT_BATCH_SIZE, **kwargs
+            )
+            if not batch:
+                break
+            yield from batch
+            if len(batch) < ReportService.EXPORT_BATCH_SIZE:
+                break
+            skip += len(batch)
+
+    @staticmethod
+    def _csv_line(values) -> str:
+        """Uma linha CSV no formato canônico da casa (`;`, QUOTE_MINIMAL)."""
+        buf = io.StringIO()
+        csv.writer(buf, delimiter=";", quoting=csv.QUOTE_MINIMAL).writerow(values)
+        return buf.getvalue()
+
+    @staticmethod
+    def _inventory_csv_header() -> List[str]:
+        """Cabeçalho canônico do CSV de inventário (FR-012 — colunas fixas)."""
+        return [
             "Tombamento / Tag",
             "Nome do Bem",
             "Categoria",
@@ -179,7 +178,98 @@ class ReportService:
             "Nota Fiscal",
             "Fornecedor"
         ]
-        
+
+    @staticmethod
+    def _inventory_csv_row(asset: Asset) -> List[str]:
+        """Uma linha de dado do CSV de inventário (mesmas colunas e formatos)."""
+        deprec = AssetService.calculate_depreciation(asset)
+        loc_name = f"{asset.location.branch} - {asset.location.department}" if asset.location else "Não alocado"
+        cust_name = f"{asset.custodian.name} ({asset.custodian.registration_code})" if asset.custodian else "Estoque / Livre"
+        dt_purchase = asset.purchase_date.strftime("%d/%m/%Y") if asset.purchase_date else ""
+
+        return [
+            asset.tag,
+            asset.name,
+            asset.category.label,
+            asset.brand or "",
+            asset.model or "",
+            asset.serial_number or "",
+            asset.status.label,
+            asset.condition.label,
+            loc_name,
+            cust_name,
+            dt_purchase,
+            f"{asset.purchase_value:.2f}",
+            f"{deprec['depreciated_amount']:.2f}",
+            f"{deprec['current_value']:.2f}",
+            asset.invoice_number or "",
+            asset.supplier or ""
+        ]
+
+    @staticmethod
+    def iter_inventory_csv_rows(db: Session, **filters) -> Iterator[str]:
+        """Linhas CSV do inventário completo, geradas em lotes de 1.000 (FR-010).
+
+        Consumido pela rota de exportação em `StreamingResponse` (T017) e por
+        `generate_inventory_csv` (join — assinatura antiga preservada). Se
+        existir corte técnico residual, a última linha é o AVISO (FR-013).
+        """
+        yield ReportService._csv_line(ReportService._inventory_csv_header())
+        exibido = 0
+        for asset in ReportService.iter_inventory_rows(db, **filters):
+            yield ReportService._csv_line(ReportService._inventory_csv_row(asset))
+            exibido += 1
+        aviso = ReportService.aviso_corte(
+            exibido, ReportService.count_filtered_assets(db, **filters)
+        )
+        if aviso:
+            yield ReportService._csv_line([aviso])
+
+    @staticmethod
+    def generate_inventory_csv(db: Session, assets: Optional[List[Asset]] = None,
+                               search: Optional[str] = None, status: Optional[str] = None,
+                               category: Optional[str] = None, location_id: Optional[int] = None,
+                               custodian_id: Optional[int] = None, brand: Optional[str] = None,
+                               model: Optional[str] = None, department: Optional[str] = None,
+                               maintenance_status: Optional[str] = None,
+                               purchase_date_from: Optional[datetime] = None,
+                               purchase_date_to: Optional[datetime] = None) -> str:
+        """Gera um arquivo CSV com os bens filtrados conforme os parâmetros informados
+
+        Feature 068 (T016/FR-010): consome `iter_inventory_csv_rows` (lotes de
+        1.000) — sem teto de 10.000; cabeçalho, colunas, delimitador e valores
+        formatados inalterados (FR-012).
+        """
+        return "".join(ReportService.iter_inventory_csv_rows(
+            db, search=search, status=status, category=category,
+            location_id=location_id, custodian_id=custodian_id,
+            brand=brand, model=model, department=department,
+            maintenance_status=maintenance_status,
+            purchase_date_from=purchase_date_from, purchase_date_to=purchase_date_to,
+        ))
+
+    @staticmethod
+    def generate_inventory_excel(db: Session, assets: Optional[List[Asset]] = None,
+                               search: Optional[str] = None, status: Optional[str] = None,
+                               category: Optional[str] = None, location_id: Optional[int] = None,
+                               custodian_id: Optional[int] = None, brand: Optional[str] = None,
+                               model: Optional[str] = None, department: Optional[str] = None,
+                               maintenance_status: Optional[str] = None,
+                               purchase_date_from: Optional[datetime] = None,
+                               purchase_date_to: Optional[datetime] = None) -> bytes:
+        """Gera um arquivo Excel .xlsx com os bens filtrados conforme os parâmetros informados
+
+        Feature 068 (T016/T017/FR-010): modo *write-only* do OpenPyXL varrendo
+        o banco em lotes de 1.000 (memória constante); cabeçalho, colunas,
+        estilos e valores inalterados (FR-012; research R7).
+        """
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+        from openpyxl.utils import get_column_letter
+        from openpyxl.cell import WriteOnlyCell
+
+        headers = ReportService._inventory_csv_header()
+
         # Estilos
         header_font = Font(bold=True, color="FFFFFF")
         header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
@@ -190,22 +280,36 @@ class ReportService:
             top=Side(style='thin'),
             bottom=Side(style='thin')
         )
-        
-        # Escrever cabeçalho
-        for col, header in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col, value=header)
+
+        wb = Workbook(write_only=True)
+        ws = wb.create_sheet(title="Inventário Patrimonial")
+
+        # Cabeçalho (WriteOnlyCell é o único jeito de estilizar em write-only)
+        header_cells = []
+        for header in headers:
+            cell = WriteOnlyCell(ws, value=header)
             cell.font = header_font
             cell.fill = header_fill
             cell.alignment = header_alignment
             cell.border = thin_border
-        
-        # Escrever dados
-        for row_idx, asset in enumerate(assets, 2):
+            header_cells.append(cell)
+        ws.append(header_cells)
+
+        # Larguras: acompanham o maior valor visto (write-only não relê células)
+        larguras = [len(h) for h in headers]
+        # Escrever dados (lotes de 1.000 — FR-010)
+        for asset in ReportService.iter_inventory_rows(
+            db, search=search, status=status, category=category,
+            location_id=location_id, custodian_id=custodian_id,
+            brand=brand, model=model, department=department,
+            maintenance_status=maintenance_status,
+            purchase_date_from=purchase_date_from, purchase_date_to=purchase_date_to,
+        ):
             deprec = AssetService.calculate_depreciation(asset)
             loc_name = f"{asset.location.branch} - {asset.location.department}" if asset.location else "Não alocado"
             cust_name = f"{asset.custodian.name} ({asset.custodian.registration_code})" if asset.custodian else "Estoque / Livre"
             dt_purchase = asset.purchase_date.strftime("%d/%m/%Y") if asset.purchase_date else ""
-            
+
             row_data = [
                 asset.tag,
                 asset.name,
@@ -224,22 +328,21 @@ class ReportService:
                 asset.invoice_number or "",
                 asset.supplier or ""
             ]
-            
+
+            row_cells = []
             for col, value in enumerate(row_data, 1):
-                cell = ws.cell(row=row_idx, column=col, value=value)
+                cell = WriteOnlyCell(ws, value=value)
                 cell.border = thin_border
                 if col >= 12:  # Colunas numéricas
                     cell.number_format = "#,##0.00"
-        
-        # Ajustar largura das colunas
+                row_cells.append(cell)
+                larguras[col - 1] = max(larguras[col - 1], len(str(value)) if value is not None else 0)
+            ws.append(row_cells)
+
+        # Ajustar largura das colunas (mesma regra antiga: maxlen+2, teto 50)
         for col in range(1, len(headers) + 1):
-            max_length = len(str(ws.cell(row=1, column=col).value))
-            for row in range(2, len(assets) + 2):
-                cell_value = str(ws.cell(row=row, column=col).value) if ws.cell(row=row, column=col).value else ""
-                max_length = max(max_length, len(cell_value))
-            adjusted_width = min(max_length + 2, 50)
-            ws.column_dimensions[get_column_letter(col)].width = adjusted_width
-        
+            ws.column_dimensions[get_column_letter(col)].width = min(larguras[col - 1] + 2, 50)
+
         # Salvar em bytes
         output = io.BytesIO()
         wb.save(output)
@@ -263,14 +366,17 @@ class ReportService:
         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
         from reportlab.lib.enums import TA_CENTER, TA_LEFT
         
-        assets, _ = ReportService.get_filtered_assets(
-            db, search=search, status=status, category=category,
+        # Feature 068 (T016/FR-010): consumo em lotes de 1.000 — sem teto de
+        # 10.000. ReportLab monta o documento paginado em memória (R8).
+        filters = dict(
+            search=search, status=status, category=category,
             location_id=location_id, custodian_id=custodian_id,
             brand=brand, model=model, department=department,
             maintenance_status=maintenance_status,
             purchase_date_from=purchase_date_from, purchase_date_to=purchase_date_to,
-            limit=0
         )
+        assets = list(ReportService.iter_inventory_rows(db, **filters))
+        total = ReportService.count_filtered_assets(db, **filters)
         
         output = io.BytesIO()
         
@@ -400,10 +506,20 @@ class ReportService:
         else:
             elements.append(Paragraph("Nenhum equipamento encontrado com os filtros aplicados.", ParagraphStyle('Empty', parent=styles['Normal'], fontSize=11, textColor=colors.grey, spaceAfter=12)))
         
-        # Rodapé com total
+        # Rodapé com total (FR-013: total do filtro, nunca só o exibido)
         elements.append(Spacer(1, 10*mm))
-        elements.append(Paragraph(f"<b>Total de equipamentos:</b> {len(assets)} | Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ParagraphStyle('Footer', parent=styles['Normal'], fontSize=9, alignment=TA_CENTER, textColor=colors.grey)))
-        
+        elements.append(Paragraph(f"<b>Total de equipamentos:</b> {total} | Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}", ParagraphStyle('Footer', parent=styles['Normal'], fontSize=9, alignment=TA_CENTER, textColor=colors.grey)))
+
+        # FR-013 (T019): corte técnico residual é escrito NO PRÓPRIO arquivo
+        aviso = ReportService.aviso_corte(len(assets), total)
+        if aviso:
+            elements.append(Paragraph(
+                f"<b>{aviso}</b>",
+                ParagraphStyle('AvisoCorte', parent=styles['Normal'], fontSize=9,
+                               alignment=TA_CENTER, textColor=colors.red,
+                               spaceBefore=6)
+            ))
+
         doc.build(elements)
         output.seek(0)
         return output.getvalue()
@@ -430,6 +546,11 @@ class ReportService:
             "ativo",
         ])
 
+        if custodians is None:
+            custodians = CustodianService.get_all(db)
+
+        total = CustodianService.count(db)
+
         for c in custodians:
             writer.writerow([
                 c.registration_code,
@@ -440,6 +561,10 @@ class ReportService:
                 c.cpf or "",
                 "sim" if c.is_active else "não",
             ])
+
+        aviso = ReportService.aviso_corte(len(custodians), total)
+        if aviso:
+            writer.writerow([aviso])
 
         return output.getvalue()
 
@@ -468,6 +593,11 @@ class ReportService:
             "Gestor",
         ])
 
+        if locations is None:
+            locations = LocationService.get_all(db)
+
+        total = LocationService.count(db)
+
         for loc in locations:
             writer.writerow([
                 loc.name,
@@ -479,13 +609,84 @@ class ReportService:
                 loc.manager_name or "",
             ])
 
+        aviso = ReportService.aviso_corte(len(locations), total)
+        if aviso:
+            writer.writerow([aviso])
+
         return output.getvalue()
+
+    @staticmethod
+    def iter_movements(db: Session) -> Iterator[Movement]:
+        """Varre a trilha de movimentação em lotes de 1.000 (FR-010).
+
+        Semelhante a `iter_inventory_rows`: memória constante; parada quando o
+        lote vem menor que o tamanho do lote ou vazio.
+        """
+        skip = 0
+        while True:
+            batch = db.query(Movement).order_by(Movement.timestamp.desc()).offset(skip).limit(ReportService.EXPORT_BATCH_SIZE).all()
+            if not batch:
+                break
+            yield from batch
+            if len(batch) < ReportService.EXPORT_BATCH_SIZE:
+                break
+            skip += len(batch)
+
+    @staticmethod
+    def count_movements(db: Session) -> int:
+        """Total da trilha de movimentação (uma única consulta COUNT)."""
+        return db.query(func.count(Movement.id)).scalar()
 
     @staticmethod
     def generate_movements_csv(db: Session, movements: Optional[List[Movement]] = None) -> str:
         """Gera um CSV com a trilha de auditoria e fluxo de movimentação"""
         if movements is None:
-            movements = db.query(Movement).order_by(Movement.timestamp.desc()).all()
+            total = ReportService.count_movements(db)
+            output = io.StringIO()
+            writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+
+            writer.writerow([
+                "Código Movimentação",
+                "Data e Hora",
+                "Tombamento",
+                "Equipamento",
+                "Tipo de Movimento",
+                "Origem (Local)",
+                "Origem (Responsável)",
+                "Destino (Local)",
+                "Destino (Responsável)",
+                "Status Resultante",
+                "Motivo / Justificativa",
+                "Operador do Registro",
+                "Termo de Cautela"
+            ])
+
+            exibido = 0
+            for m in ReportService.iter_movements(db):
+                tag = m.asset.tag if m.asset else "N/A"
+                name = m.asset.name if m.asset else "N/A"
+                writer.writerow([
+                    m.movement_uuid,
+                    m.timestamp and format_local(m.timestamp, "%d/%m/%Y %H:%M:%S"),
+                    tag,
+                    name,
+                    m.movement_type.label,
+                    m.origin_location_name or "-",
+                    m.origin_custodian_name or "-",
+                    m.destination_location_name or "-",
+                    m.destination_custodian_name or "-",
+                    m.new_status.label,
+                    m.reason,
+                    m.operator_name,
+                    m.term_code or "-"
+                ])
+                exibido += 1
+
+            aviso = ReportService.aviso_corte(exibido, total)
+            if aviso:
+                writer.writerow([aviso])
+
+            return output.getvalue()
 
         output = io.StringIO()
         writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
@@ -567,6 +768,8 @@ class ReportService:
         rows = ReportService._inventario_rows(db, inventario)
         mostra_responsavel = ReportService._inventario_mostra_responsavel(db, inventario)
 
+        total = len(rows)
+
         output = io.StringIO()
         writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
 
@@ -586,6 +789,10 @@ class ReportService:
         if inventario.closure_notes:
             writer.writerow(["Notas do encerramento", inventario.closure_notes])
         writer.writerow([])
+
+        aviso = ReportService.aviso_corte(len(rows), total)
+        if aviso:
+            writer.writerow([aviso])
 
         headers = [
             "Tipo",

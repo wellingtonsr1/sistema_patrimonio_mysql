@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, Query
+from fastapi.responses import StreamingResponse
 from datetime import datetime
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -52,7 +53,10 @@ def export_inventory_csv(
     date_from = datetime.strptime(purchase_date_from, "%Y-%m-%d") if purchase_date_from else None
     date_to = datetime.strptime(purchase_date_to, "%Y-%m-%d") if purchase_date_to else None
     
-    csv_content = ReportService.generate_inventory_csv(
+    # Feature 068 (T017/FR-010): streaming em lotes de 1.000 — mesmos
+    # media_type/Content-Disposition de antes; a exportação usa o filtro
+    # INTEIRO e ignora qualquer `page` exibido na tela (FR-009).
+    linhas = ReportService.iter_inventory_csv_rows(
         db, search=search, status=status, category=category,
         location_id=loc_id, custodian_id=cust_id,
         brand=brand, model=model, department=department,
@@ -65,8 +69,8 @@ def export_inventory_csv(
         filename += "_filtrado"
     filename += ".csv"
     
-    return Response(
-        content=csv_content,
+    return StreamingResponse(
+        linhas,
         media_type="text/csv; charset=utf-8-sig",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )

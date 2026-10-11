@@ -15,6 +15,8 @@ from app.api.deps import require_permission
 from app.services.asset_service import AssetService
 from app.services.custodian_service import CustodianService
 from app.services.movement_service import MovementService
+from app.services.report_service import ReportService
+from app.utils.pagination import DEFAULT_PAGE_SIZE, offset_for, page_meta
 from app.web.routers.templates_env import templates
 
 web_router = APIRouter(include_in_schema=False)
@@ -34,6 +36,7 @@ def view_inventory_report(
     maintenance_status: Optional[str] = Query(None),
     purchase_date_from: Optional[str] = Query(None),
     purchase_date_to: Optional[str] = Query(None),
+    page: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     # Converter parâmetros (location_id e custodian_id já são string, não precisam converter)
@@ -48,14 +51,21 @@ def view_inventory_report(
     date_from = datetime.strptime(purchase_date_from, "%Y-%m-%d") if purchase_date_from else None
     date_to = datetime.strptime(purchase_date_to, "%Y-%m-%d") if purchase_date_to else None
 
-    assets, total = AssetService.get_all(
-        db, search=search, status=status_enum, category=category_enum,
+    # Feature 068 (T018/P4/P6): o corte de 1.000 saiu — paginação `page`/200
+    # com total real do filtro; a exportação continua exportando o conjunto
+    # inteiro (FR-009).
+    filters = dict(
+        search=search, status=status_enum, category=category_enum,
         location_id=loc_id, custodian_id=cust_id,
         brand=brand, model=model, department=department,
         maintenance_status=maintenance_status,
         purchase_date_from=date_from, purchase_date_to=date_to,
-        limit=1000
     )
+    total = ReportService.count_filtered_assets(db, **filters)
+    assets, _total = AssetService.get_all(
+        db, skip=offset_for(page), limit=DEFAULT_PAGE_SIZE, **filters
+    )
+    meta = page_meta(total, page)
     for a in assets:
         a.deprec_info = AssetService.calculate_depreciation(a)
 
@@ -65,6 +75,9 @@ def view_inventory_report(
         context={
             "assets": assets,
             "total": total,
+            "meta": meta,
+            # FR-011 (P4): aviso prévio quando a geração do PDF pode demorar
+            "pdf_warning": total > 10000,
             "active_tab": "reports",
             "search": search or "",
             "selected_status": status or "",
@@ -82,14 +95,24 @@ def view_inventory_report(
 
 
 @web_router.get("/reports/movements", response_class=HTMLResponse, dependencies=[Depends(require_permission("relatorios.visualizar"))])
-def view_movements_report(request: Request, db: Session = Depends(get_db)):
-    movements, total = MovementService.get_all_movements(db, limit=1000)
+def view_movements_report(
+    request: Request,
+    page: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    # Feature 068 (T018/P6): o corte de 1.000 saiu — paginação `page`/200 com
+    # o total real (antes o template exibia só o tamanho da página).
+    movements, total = MovementService.get_all_movements(
+        db, skip=offset_for(page), limit=DEFAULT_PAGE_SIZE
+    )
+    meta = page_meta(total, page)
     return templates.TemplateResponse(
         request=request,
         name="reports/movements_report.html",
         context={
             "movements": movements,
             "total": total,
+            "meta": meta,
             "active_tab": "reports"
         }
     )

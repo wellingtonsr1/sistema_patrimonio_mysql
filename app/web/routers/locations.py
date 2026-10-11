@@ -20,6 +20,7 @@ from app.services.location_import_service import (
     preview_locations_import,
 )
 from app.services.audit_service import ACTION_CREATE, ACTION_IMPORT, write_audit, write_change_audit
+from app.utils.pagination import DEFAULT_PAGE_SIZE, offset_for, page_meta
 from app.web.routers.templates_env import templates
 from app.web.routers.shared import (
     _confirm_payload_rows,
@@ -33,15 +34,33 @@ web_router = APIRouter(include_in_schema=False)
 
 
 @web_router.get("/locations", response_class=HTMLResponse, dependencies=[Depends(require_permission("locais.visualizar"))])
-def list_locations_view(request: Request, search: Optional[str] = None, db: Session = Depends(get_db)):
-    locations = LocationService.get_all(db, search=search)
+def list_locations_view(
+    request: Request,
+    search: Optional[str] = None,
+    page: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    # Feature 068: paginação server-side com total (FR-001/FR-004) — antes a
+    # rota carregava TODOS os locais em memória, sem indicador.
+    clean_search = (search or "").strip()
+    total = LocationService.count(db, search=clean_search)
+    locations = LocationService.get_all(
+        db, search=clean_search, skip=offset_for(page), limit=DEFAULT_PAGE_SIZE
+    )
+    meta = page_meta(total, page)
     for loc in locations:
         loc.assets_count = LocationService.count_assets(db, loc.id)
 
     return templates.TemplateResponse(
         request=request,
         name="locations/list.html",
-        context={"locations": locations, "search": (search or "").strip(), "active_tab": "locations"}
+        context={
+            "locations": locations,
+            "total": total,
+            "meta": meta,
+            "search": clean_search,
+            "active_tab": "locations",
+        }
     )
 
 

@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% from "macros/pagination.html" import pager %}
+
 {% block title %}Colaboradores & Custodiantes{% endblock %}
 
 {% block content %}
@@ -71,6 +73,9 @@
 
 <div class="card">
     {% if custodians %}
+    <div class="card-header-clean">
+        <span class="text-muted small">Mostrando <strong>{{ meta.start }}–{{ meta.end }}</strong> de <strong>{{ meta.total }}</strong> colaboradores</span>
+    </div>
     <div class="table-responsive">
         <table class="table align-middle cust-lista-table">
             <colgroup>
@@ -142,5 +147,6 @@
         {% endif %}
     </div>
     {% endif %}
+    {{ pager(meta.page, meta.pages, meta.total, meta.start, meta.end, request) }}
 </div>
 {% endblock %}

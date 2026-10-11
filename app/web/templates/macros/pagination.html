@@ -1,0 +1,47 @@
+{#- Controle de paginação compartilhado — feature 068
+    specs/068-paginacao-listas-e-relatorios-integros (FR-006/FR-007/FR-022)
+
+    Uso (em qualquer template de lista/relatório):
+        {% from 'macros/pagination.html' import pager %}
+        {{ pager(meta.page, meta.pages, meta.total, meta.start, meta.end, request) }}
+
+    `request` é passado explicitamente (a macro é chamada **fora** do contexto
+    do chamador — macros Jinja não herdam o contexto por padrão).
+
+    - Renderiza **nada** quando `pages <= 1` (FR-006) — inclusive listas vazias.
+    - Preserva os filtros da query string atual: o link troca **apenas** o
+      parâmetro `page` (FR-007/SC-005) — a URL é compartilhável.
+    - Markup responsivo no padrão Bootstrap (FR-022/AC15): empilhado em telas
+      estreitas (360 px), linha única no desktop.
+    - Marcador `data-testid="pager"` permite o teste de renderização (AC15).
+-#}
+{% macro pager(page, pages, total, start, end, request) %}
+{% if pages > 1 %}
+<nav aria-label="Paginação" data-testid="pager" class="py-2">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+        <span class="small text-muted text-center text-sm-start">Mostrando {{ start }}–{{ end }} de {{ total }} registro{{ 's' if total != 1 }}</span>
+        <ul class="pagination pagination-sm mb-0 justify-content-center">
+            {% set q_prev = dict(request.query_params) %}
+            {% set _ = q_prev.update({'page': page - 1}) %}
+            <li class="page-item{% if not page > 1 %} disabled{% endif %}">
+                {% if page > 1 %}
+                <a class="page-link" href="{{ request.url.path }}?{{ q_prev|urlencode }}" rel="prev">Anterior</a>
+                {% else %}
+                <span class="page-link">Anterior</span>
+                {% endif %}
+            </li>
+            <li class="page-item disabled"><span class="page-link">Página {{ page }} de {{ pages }}</span></li>
+            {% set q_next = dict(request.query_params) %}
+            {% set _ = q_next.update({'page': page + 1}) %}
+            <li class="page-item{% if not page < pages %} disabled{% endif %}">
+                {% if page < pages %}
+                <a class="page-link" href="{{ request.url.path }}?{{ q_next|urlencode }}" rel="next">Próxima</a>
+                {% else %}
+                <span class="page-link">Próxima</span>
+                {% endif %}
+            </li>
+        </ul>
+    </div>
+</nav>
+{% endif %}
+{% endmacro %}

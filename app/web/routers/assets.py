@@ -33,6 +33,7 @@ from app.services.audit_service import (
     write_audit,
     write_change_audit,
 )
+from app.utils.pagination import DEFAULT_PAGE_SIZE, offset_for, page_meta
 from app.web.routers.templates_env import templates
 from app.web.routers.shared import (
     _confirm_payload_rows,
@@ -79,6 +80,7 @@ def list_assets(
     maintenance_filter: Optional[str] = Query(None),
     purchase_date_from: Optional[str] = Query(None),
     purchase_date_to: Optional[str] = Query(None),
+    page: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ):
     # Converter parâmetros de string para int (ou None se vazio/inválido)
@@ -99,8 +101,11 @@ def list_assets(
         brand=brand_filter, model=model_filter,
         department=department_filter, maintenance_status=maintenance_filter,
         purchase_date_from=date_from, purchase_date_to=date_to,
-        limit=200
+        skip=offset_for(page), limit=DEFAULT_PAGE_SIZE
     )
+    # Feature 068: contexto de página (FR-001/FR-002/FR-004) — o total é o do
+    # filtro completo; o recorte acima acontece depois (invariante I3).
+    meta = page_meta(total, page)
     locations = LocationService.get_all(db)
     custodians = CustodianService.get_all(db, active_only=True)
 
@@ -114,6 +119,7 @@ def list_assets(
         context={
             "assets": assets,
             "total": total,
+            "meta": meta,
             "search": search or "",
             "selected_status": status_filter or "",
             "selected_category": category_filter or "",
