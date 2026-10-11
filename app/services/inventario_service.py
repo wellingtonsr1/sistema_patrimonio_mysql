@@ -135,14 +135,53 @@ class InventarioService:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def get_all(db: Session, search: Optional[str] = None, status: Optional[InventarioStatus] = None) -> List[Inventario]:
+    def get_all(db: Session, search: Optional[str] = None, status: Optional[InventarioStatus] = None, skip: int = 0, limit: int = 0) -> Tuple[List[Inventario], int]:
         query = db.query(Inventario).options(joinedload(Inventario.location))
         if search:
             term = f"%{search.strip()}%"
             query = query.filter((Inventario.name.ilike(term)) | (Inventario.code.ilike(term)))
         if status:
             query = query.filter(Inventario.status == status)
-        return query.order_by(Inventario.created_at.desc()).all()
+        query = query.order_by(Inventario.created_at.desc())
+        if skip:
+            query = query.offset(skip)
+        if limit:
+            query = query.limit(limit)
+        return query.all(), query.count()
+
+    @staticmethod
+    def get_items_for_conference(db: Session, inventario_id: int, asset_search: Optional[str] = None, status_filter: Optional[InventarioItemStatus] = None, skip: int = 0, limit: int = 0) -> Tuple[List[InventarioItem], int]:
+        """Itens da conferência com filtro/search e paginação em SQL (FR-001/FR-002).
+
+        Diferente da listagem em Python existente, este método aplica o filtro e o
+        recorte no banco e devolve (itens, total), preservando a distinção entre
+        esperados e não previstos no conjunto retornado (o template mantém essa
+        separação). `asset_search` busca por tag ou nome do bem; `status_filter`
+        filtra pelo resultado da conferência.
+        """
+        query = db.query(InventarioItem).options(
+            joinedload(InventarioItem.asset),
+        ).filter(InventarioItem.inventario_id == inventario_id)
+
+        if asset_search:
+            term = f"%{asset_search.strip()}%"
+            term_lower = asset_search.strip().lower()
+            query = query.join(Asset, Asset.id == InventarioItem.asset_id).filter(
+                Asset.tag.ilike(term) | (
+                    Asset.name.ilike(term)
+                )
+            )
+
+        if status_filter:
+            query = query.filter(InventarioItem.status == status_filter)
+
+        total = query.count()
+        query = query.order_by(InventarioItem.id)
+        if skip:
+            query = query.offset(skip)
+        if limit:
+            query = query.limit(limit)
+        return query.all(), total
 
     @staticmethod
     def get_by_id(db: Session, inventario_id: int) -> Optional[Inventario]:

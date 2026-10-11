@@ -25,6 +25,8 @@ from app.services.asset_service import AssetService
 from app.services.inventario_service import InventarioService
 from app.services.location_service import LocationService
 from app.services.audit_service import ACTION_INVENTARIO, RESULT_SUCCESS, write_audit
+from app.utils.pagination import DEFAULT_PAGE_SIZE, offset_for, page_meta
+
 from app.web.routers.templates_env import templates
 
 web_router = APIRouter(include_in_schema=False)
@@ -44,6 +46,7 @@ def list_inventarios(
     request: Request,
     search: Optional[str] = None,
     status_filter: Optional[str] = None,
+    page: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     status_enum = (
@@ -51,14 +54,17 @@ def list_inventarios(
         if status_filter and status_filter in [e.value for e in InventarioStatus]
         else None
     )
-    inventarios = InventarioService.get_all(db, search=search, status=status_enum)
+    inventarios, total = InventarioService.get_all(db, search=search, status=status_enum, skip=offset_for(page), limit=DEFAULT_PAGE_SIZE)
     summaries = {inv.id: InventarioService.summary(db, inv.id) for inv in inventarios}
+    meta = page_meta(total, page)
     return templates.TemplateResponse(
         request=request,
         name="inventarios/list.html",
         context={
             "inventarios": inventarios,
             "summaries": summaries,
+            "total": total,
+            "meta": meta,
             "search": search or "",
             "selected_status": status_filter or "",
             "statuses": InventarioStatus,
@@ -138,6 +144,7 @@ def view_inventario(
     inventario_id: int,
     search: Optional[str] = None,
     status_filter: Optional[str] = None,
+    page: Optional[str] = None,
     error: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
@@ -145,24 +152,25 @@ def view_inventario(
     if not inv:
         raise HTTPException(status_code=404, detail="Inventário não encontrado")
 
-    itens = list(inv.itens)
+    status_enum = (
+        InventarioItemStatus(status_filter)
+        if status_filter and status_filter in [e.value for e in InventarioItemStatus]
+        else None
+    )
+    itens, _items_total = InventarioService.get_items_for_conference(
+        db,
+        inventario_id=inventario_id,
+        asset_search=search,
+        status_filter=status_enum,
+        skip=offset_for(page),
+        limit=DEFAULT_PAGE_SIZE,
+    )
 
-    # Filtros da lista de conferência
-    if search:
-        term = f"%{search.strip()}%"
-        filtered = [
-            i for i in itens
-            if (i.asset and (i.asset.tag.lower().find(term.strip("%").lower()) >= 0
-                             or i.asset.name.lower().find(term.strip("%").lower()) >= 0))
-        ]
-        itens = filtered
-    if status_filter and status_filter in [e.value for e in InventarioItemStatus]:
-        status_enum = InventarioItemStatus(status_filter)
-        itens = [i for i in itens if i.status == status_enum]
-
-    # Consolidação e proveniência dos itens não previstos
+    # Consolidação e proveniência dos itens não previstos (mantida; total do filtro
+    # é o total do serviço, não o tamanho da página)
     unlisted = [i for i in itens if i.nao_previsto]
     expected_itens = [i for i in itens if not i.nao_previsto]
+    items_meta = page_meta(_items_total, page)
     can_conferir = user_has_permission_for(request, db, "inventario.conferir")
     can_encerrar = user_has_permission_for(request, db, "inventario.encerrar")
 
@@ -184,6 +192,8 @@ def view_inventario(
             "expected_itens": expected_itens,
             "unlisted_itens": unlisted,
             "summary": InventarioService.summary(db, inv.id),
+            "items_total": _items_total,
+            "items_meta": items_meta,
             "all_locations": LocationService.get_all(db),
             "search": search or "",
             "selected_status": status_filter or "",
