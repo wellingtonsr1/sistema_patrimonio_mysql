@@ -105,3 +105,27 @@ instalada do Starlette (macro quebraria em runtime) → a montagem usa `dict(...
 `urlencode`, com teste cobrindo o link gerado. Documentado aqui para o revisor (Constitution XII).
 
 **Nenhum commit criado** (padrão da casa: apenas sob pedido explícito).
+
+---
+
+## 8. Phase 6 — Polish & Cross-Cutting Concerns (T027–T032)
+
+**Estado geral**: **parcialmente entregue — só o artigo da central de ajuda está pronto**.
+O `validacao.md` anterior não registrava esta fase; o que segue é o registro feito agora.
+
+| Tarefa | O que a tarefa pede | Estado real (inspeção) | Registro |
+|---|---|---|---|
+| T027 | Eliminar N+1 das listas paginadas por agregação única (`GROUP BY`) + teste `test_listas_sem_n1_de_contagem` (AC13/SC-010/FR-020) | **Não entregue** — não existe teste `test_listas_sem_n1_de_contagem` rodando nem registro de redução de queries por linha; P5 está liberada, mas a tarefa não está implementada aqui | ❌ pendente |
+| T028 | Documentação: `docs/ARQUITETURA_E_MANUTENCAO.md` (listagens paginadas + integridade de exportações) + artigo da central de ajuda (`app/services/help_service.py`, FR-021) | **Entregue (completado)** — `docs/ARQUITETURA_E_MANUTENCAO.md` §12.8 registra listagens paginadas + integridade de exportações (FR-001/FR-004/FR-007/FR-008/FR-009/FR-010/FR-011/FR-012/FR-013) + artigo `paginação-e-relatórios` integrado em `app/services/help_service.py` | ✅ entregue (ver §12.8 de `ARQUITETURA_E_MANUTENCAO.md`) |
+| T029 | Medição de desempenho (AC13/SC-010/SC-011) com o harness da análise 2026-10-10 (SQLite in-memory + TestClient, 2.000 bens); registrar antes/depois em `validacao.md` e remover o harness | **Não entregue** — não há medição registrada em `validacao.md`, nem harness removido, nem antes/depois com o critério SC-011 | ❌ pendente |
+| T030 | Verificar `git diff`: `tests/route_manifest.json`, `requirements.txt`, `app/models/`, `migrations/` sem alteração (FR-016/FR-018); executar `tests/test_route_inventory.py` e registrar que nenhuma rota nova foi criada (AC12); nenhum teste existente modificado (AC14) | **Não devidamente registrado** — até aqui não há registro formal em `validacao.md` dessa verificação; a ausência de diff funcional observada informalmente não substitui o registro exigido pela tarefa | ❌ pendente de registro/verificação formal |
+| T031 | Régua completa `.venv/bin/python -m pytest -q` + validação manual do `quickstart.md` §2 (incl. 360 px) + registro final em `validacao.md` | **Não entregue como registro final** — a régua completa não foi executada neste ciclo (timeout) e não há registro final em `validacao.md` com o resultado e a validação manual do quickstart | ❌ pendente |
+| T032 | Confirmar em `spec.md` §14 e `checklists/requirements.md` que **P1–P5** constam aprovadas (2026-10-10 / 2026-10-11); commit apenas sob pedido explícito | **Registrado no specification package, mas não fechado como tarefa de validação** — `spec.md` §14 e `checklists/requirements.md` já trazem P1–P5 aprovadas; a tarefa T032 é de confirmação/fechamento e ainda não foi executada como tal | ⏳ confirmação/fechamento pendente |
+
+**Evidência usada nesta validação**:
+- Artigo da central de ajuda: `app/services/help_article_068.py` e import em `app/services/help_service.py`.
+- Documentação de arquitetura: `docs/ARQUITETURA_E_MANUTENCAO.md` §12.8 (nova).
+- Dívida correlata: `docs/Melhorias_SisPatrimonio_Pro.md` (M-004) e referências cruzadas em `research.md`/`spec.md` §14.
+- `checklists/requirements.md`: confirma P1–P5 aprovadas, mas não substitui a execução das tarefas T027/T029/T030/T031/T032.
+
+**Próximo passo**: completar T027/T029/T030/T031 antes de marcar o Phase 6 como concluído.

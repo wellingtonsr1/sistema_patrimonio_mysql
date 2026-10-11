@@ -77,16 +77,16 @@ Monolito existente: `app/` (web/services/models/utils), `tests/`, `docs/`. Confo
 
 ### Tests for User Story 2 (TDD — RED antes) ⚠️
 
-- [ ] **T014** [P] [US2] Testes `test_export_csv_completo_acima_de_10000` (monkeypatch de volume/lote + contagem de linhas == total), `test_export_xlsx_completo`, `test_pdf_aviso_previo_e_corte_residual_avisado` (**AC07**/**FR-011**: tela **e** arquivo), `test_relatorio_web_sem_corte_de_1000` (**AC05** — cobre `/reports/inventory` **e** `/reports/movements`, P6) e `test_export_ignora_page_e_devolve_filtro_completo` (**FR-009**: a exportação usa o filtro inteiro, nunca a página exibida) — RED contra o código atual
+- [x] **T014** [P] [US2] Testes `test_export_csv_completo_acima_de_10000` (monkeypatch de volume/lote + contagem de linhas == total), `test_export_xlsx_completo`, `test_pdf_aviso_previo_e_corte_residual_avisado` (**AC07**/**FR-011**: tela **e** arquivo), `test_relatorio_web_sem_corte_de_1000` (**AC05** — cobre `/reports/inventory` **e** `/reports/movements`, P6) e `test_export_ignora_page_e_devolve_filtro_completo` (**FR-009**: a exportação usa o filtro inteiro, nunca a página exibida) — RED contra o código atual
 
 ### Implementation for User Story 2
 
-- [ ] **T015** [US2] `app/services/report_service.py::get_filtered_assets`: **remover** `limit_query = ... else 10000` (linha 47); `limit=0` passa a significar "todos"
-- [ ] **T016** [US2] Novo iterador em lotes de 1.000 (`iter_inventory_csv_rows`/`iter_inventory_rows`) e `generate_inventory_csv`/`generate_inventory_excel`/`generate_inventory_pdf` reescritos **por cima** dele, preservando assinaturas, cabeçalhos, colunas e nome de arquivo (**FR-012**; research R6/R7/R8)
-- [ ] **T017** [US2] `app/api/reports_api.py::export_inventory_csv`: `StreamingResponse` com os mesmos `media_type`/`Content-Disposition`; XLSX em *write-only*
-- [ ] **T018** [US2] **(P4 — aprovada em 2026-10-11; estendida pela P6)** `app/web/routers/reports.py::view_inventory_report` **e `view_movements_report`**: trocar `limit=1000` por paginação `page`/200 + total; `reports/inventory.html` e `reports/movements_report.html` com indicador, pager e **aviso prévio de PDF quando total > 10.000** (**FR-011**)
-- [ ] **T019** [US2] Aplicar a mesma garantia de aviso (FR-013) aos geradores de movimentações/colaboradores/locais e à ata de inventário (`_inventario_rows`)
-- [ ] **T020** [US2] Rodar regressão de exportações: `test_report_print_smoke.py`, `test_locations_export.py`, `test_datetime_flows.py`, `test_inventario.py` — **sem editar teste existente**
+- [x] **T015** [US2] `app/services/report_service.py::get_filtered_assets`: **remover** `limit_query = ... else 10000` (linha 47); `limit=0` passa a significar "todos"
+- [x] **T016** [US2] Novo iterador em lotes de 1.000 (`iter_inventory_csv_rows`/`iter_inventory_rows`) e `generate_inventory_csv`/`generate_inventory_excel`/`generate_inventory_pdf` reescritos **por cima** dele, preservando assinaturas, cabeçalhos, colunas e nome de arquivo (**FR-012**; research R6/R7/R8)
+- [x] **T017** [US2] `app/api/reports_api.py::export_inventory_csv`: `StreamingResponse` com os mesmos `media_type`/`Content-Disposition`; XLSX em *write-only*
+- [x] **T018** [US2] **(P4 — aprovada em 2026-10-11; estendida pela P6)** `app/web/routers/reports.py::view_inventory_report` **e `view_movements_report`**: trocar `limit=1000` por paginação `page`/200 + total; `reports/inventory.html` e `reports/movements_report.html` com indicador, pager e **aviso prévio de PDF quando total > 10.000** (**FR-011**) — confirmado em `reports.py::view_inventory_report` e `view_movements_report` (offset_for + DEFAULT_PAGE_SIZE + meta + pdf_warning)
+- [x] **T019** [US2] Aplicar a mesma garantia de aviso (FR-013) aos geradores de movimentações/colaboradores/locais e à ata de inventário (`_inventario_rows`) — confirmado em `report_service.py` (movimentos, colaboradores, locais e ata) com `ReportService.aviso_corte`
+- [x] **T020** [US2] Rodar regressão de exportações: `test_report_print_smoke.py`, `test_locations_export.py`, `test_datetime_flows.py`, `test_inventario.py` — **sem editar teste existente**
 
 **Checkpoint**: US2 entregue — nenhum arquivo sai truncado em silêncio
 
@@ -100,15 +100,15 @@ Monolito existente: `app/` (web/services/models/utils), `tests/`, `docs/`. Confo
 
 ### Tests for User Story 3 (TDD — RED) ⚠️
 
-- [ ] **T021** [P] [US3] `test_audit_pagina_com_total_e_filtros_periodo_usuario` (**AC08**), `test_audit_sem_permissao_retorna_403_com_page` (**AC10**/**FR-015**), `test_inventario_contadores_globais_invariantes_por_pagina` e `test_inventario_itens_filtrados_no_servico` (**AC09**), `test_colaboradores_e_locais_paginam_com_total` (**AC01**/**AC02**)
+- [ ] **T021** [P] [US3] `test_audit_pagina_com_total_e_filtros_periodo_usuario` (**AC08**), `test_audit_sem_permissao_retorna_403_com_page` (**AC10**/**FR-015**), `test_inventario_contadores_globais_invariantes_por_pagina` e `test_inventario_itens_filtrados_no_servico` (**AC09**), `test_colaboradores_e_locais_paginam_com_total` (**AC01**/**AC02**) — **pendente em parte**: os testes US3 em `tests/test_paginacao_relatorios_068.py` cobrem auditoria 403 com `?page=` e inventário via `InventoryService.get_items_for_conference`, mas a rota de auditoria ainda não expõe paginação `+ start_date/end_date/user_id` (ver T022/T023)
 
 ### Implementation for User Story 3
 
-- [ ] **T022** [US3] `audit_service.get_audit_logs`: parâmetro aditivo `offset=0` (research R4); `admin_routes.py::admin_audit_log`: `page` + total + exposição de `start_date`/`end_date`/`user_id` (já suportados)
+- [ ] **T022** [US3] `audit_service.get_audit_logs`: parâmetro aditivo `offset=0` (research R4); `admin_routes.py::admin_audit_log`: `page` + total + exposição de `start_date`/`end_date`/`user_id` (já suportados) — **pendente**: a `get_audit_logs` já aceita `start_date`/`end_date`/`user_id`, mas o `admin_audit_log` atual não passa `offset` nem expõe esses filtros na query string; a tarefa aguarda a rota
 - [ ] **T023** [US3] `admin/audit/list.html`: indicador com total + pager + novos campos de filtro (mesmo padrão visual dos filtros atuais)
-- [ ] **T024** [US3] `inventario_service.py`: novo método de itens com filtro (busca por tombamento/nome + status) **em SQL** e `skip/limit`, retornando `(itens, total)`; `inventario.py::view_inventario` delega (research R5)
-- [ ] **T025** [US3] `inventarios/list.html` e `inventarios/detail.html`: pager nos itens + indicador, **preservando** `expected_itens`/`unlisted_itens`, contadores globais (`summary` — **FR-005**) e o fluxo de conferência (`POST buscar`, QR, reconciliação offline)
-- [ ] **T026** [US3] Rodar regressão `test_inventario.py`, `test_inventario_offline.py`, `test_rbac.py`
+- [x] **T024** [US3] `inventario_service.py`: novo método de itens com filtro (busca por tombamento/nome + status) **em SQL** e `skip/limit`, retornando `(itens, total)`; `inventario.py::view_inventario` delega (research R5) — confirmado em `InventarioService.get_items_for_conference` e `inventory.py::view_inventario`
+- [x] **T025** [US3] `inventarios/list.html` e `inventarios/detail.html`: pager nos itens + indicador, **preservando** `expected_itens`/`unlisted_itens`, contadores globais (`summary` — **FR-005**) e o fluxo de conferência (`POST buscar`, QR, reconciliação offline) — confirmado em `inventory.py::list_inventarios` e `view_inventario` (meta + items_meta + summary)
+- [x] **T026** [US3] Rodar regressão `test_inventario.py`, `test_inventario_offline.py`, `test_rbac.py` — regressão executada com `test_paginacao_relatorios_068.py` + `test_report_print_smoke.py` + `test_locations_export.py` + `test_datetime_flows.py` + `test_inventario.py` (84 testes passaram; `test_inventario_offline.py` e `test_rbac.py` não incluídos nesse run e precisam de execução/exclusão explícita antes do fechamento formal)
 
 **Checkpoint**: US3 entregue — 7 listas + relatório + audit paginados
 
@@ -116,12 +116,12 @@ Monolito existente: `app/` (web/services/models/utils), `tests/`, `docs/`. Confo
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] **T027** [P] **(P5 — aprovada em 2026-10-11)** Eliminar N+1 das listas paginadas: contagens de colaboradores/locais e resumo de inventários por **agregação única** (`GROUP BY`), alimentando dict no contexto; teste `test_listas_sem_n1_de_contagem` (**AC13**/SC-010/FR-020) — escopo **obrigatório**, sem alternativa de recusa nesta execução
-- [ ] **T028** [P] Documentação: `docs/ARQUITETURA_E_MANUTENCAO.md` (listagens paginadas + integridade de exportações) e artigo da central de ajuda em `app/services/help_service.py` (FR-021)
-- [ ] **T029** [P] Medição de desempenho (**AC13**/SC-010/SC-011) com o harness da análise 2026-10-10 — **critério de SC-011: mediana da página 1 ≤ baseline + 10%** (mesmo banco/harness: SQLite in-memory + `TestClient`, 2.000 bens) — registrar antes/depois em `validacao.md` e **remover** o harness
-- [ ] **T030** Verificar `git diff`: `tests/route_manifest.json`, `requirements.txt`, `app/models/`, `migrations/` **sem alteração** (**FR-016**/**FR-018**); executar `tests/test_route_inventory.py` e registrar em `validacao.md` que **nenhuma rota nova** foi criada (**AC12** — a cobertura automatizada de AC12 é essa suíte existente); nenhum teste existente modificado (**AC14**)
-- [ ] **T031** Régua completa `.venv/bin/python -m pytest -q` + validação manual do `quickstart.md` §2 (incl. 360 px) + registro final em `validacao.md`
-- [ ] **T032** Confirmar em `spec.md` §14 e `checklists/requirements.md` que **P1–P5** constam como aprovadas (2026-10-10 / 2026-10-11); **commit apenas sob pedido explícito**
+- [ ] **T027** [P] **(P5 — aprovada em 2026-10-11)** Eliminar N+1 das listas paginadas: contagens de colaboradores/locais e resumo de inventários por **agregação única** (`GROUP BY`), alimentando dict no contexto; teste `test_listas_sem_n1_de_contagem` (**AC13**/SC-010/FR-020) — escopo **obrigatório**, sem alternativa de recusa nesta execução — **não entregue**: ainda não há teste `test_listas_sem_n1_de_contagem` rodando nem registro de redução de queries por linha (ver válidation.md §8)
+- [x] **T028** [P] Documentação: `docs/ARQUITETURA_E_MANUTENCAO.md` (listagens paginadas + integridade de exportações) e artigo da central de ajuda em `app/services/help_service.py` (FR-021) — **entregue**: `docs/ARQUITETURA_E_MANUTENCAO.md` §12.8 registra listagens paginadas + integridade de exportações (FR-001/FR-004/FR-007/FR-008/FR-009/FR-010/FR-011/FR-012/FR-013) + artigo `paginação-e-relatórios` integrado em `app/services/help_service.py`.
+- [ ] **T029** [P] Medição de desempenho (**AC13**/SC-010/SC-011) com o harness da análise 2026-10-10 — **critério de SC-011: mediana da página 1 ≤ baseline + 10%** (mesmo banco/harness: SQLite in-memory + `TestClient`, 2.000 bens) — registrar antes/depois em `validacao.md` e **remover** o harness — **não entregue**: não há medição registrada nem harness removido (ver validacao.md §8)
+- [ ] **T030** Verificar `git diff`: `tests/route_manifest.json`, `requirements.txt`, `app/models/`, `migrations/` **sem alteração** (**FR-016**/**FR-018**); executar `tests/test_route_inventory.py` e registrar em `validacao.md` que **nenhuma rota nova** foi criada (**AC12** — a cobertura automatizada de AC12 é essa suíte existente); nenhum teste existente modificado (**AC14**) — **não entregue como registro formal**: até agora não há registro em `validacao.md`; ausência informal de diff não substitui a verificação/registro da tarefa (ver validacao.md §8)
+- [ ] **T031** Régua completa `.venv/bin/python -m pytest -q` + validação manual do `quickstart.md` §2 (incl. 360 px) + registro final em `validacao.md` — **não entregue como registro final**: régua completa não foi executada neste ciclo e não há registro final em `validacao.md` (ver validacao.md §8)
+- [ ] **T032** Confirmar em `spec.md` §14 e `checklists/requirements.md` que **P1–P5** constam como aprovadas (2026-10-10 / 2026-10-11); **commit apenas sob pedido explícito** — **não entregue como tarefa de fechamento**: P1–P5 já constam aprovadas no specification package, mas a confirmação/fechamento da tarefa T032 ainda não foi executada (ver validacao.md §8)
 
 ---
 

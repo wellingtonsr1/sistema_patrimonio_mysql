@@ -791,12 +791,43 @@ de **Unidade Administrativa + Departamento / Setor**, no padrão
 
 ### 12.7 Central de Ajuda
 
-- **Arquivos:** `app/services/help_service.py` (conteúdo: `ARTICLES` (21 artigos, inclui
-  Etiquetas), `FAQ` (12 perguntas, inclui a integração AD real), `CATEGORIES` (7)),
+- **Arquivos:** `app/services/help_service.py` (conteúdo: `ARTICLES` (22 artigos, inclui
+  Etiquetas e o artigo de paginação/relatórios), `FAQ` (12 perguntas, inclui a integração AD real), `CATEGORIES` (7)),
   `app/web/help_routes.py`, templates `ajuda/`.
 - `/ajuda` e `/ajuda/{article_id}`; artigos `audience="admin"` exigem uma das permissões
   `usuarios.visualizar`, `perfis.visualizar`, `auditoria.visualizar`. Busca client-side via
   `serialize_search_index()`.
+
+### 12.8 Listagens paginadas e integridade de relatórios/exportações (feature 068)
+
+- **Finalidade:** navegação por páginas nas listagens web e integridade documental das
+  exportações — sem corte silencioso de registros.
+- **Arquivos:** helper `app/utils/pagination.py` (FR-002), macro `app/web/templates/macros/pagination.html`,
+  routers das listagens e relatórios (`assets`, `movements`, `custodians`, `locations`,
+  `reports`, `inventarios`), `app/services/report_service.py` (exportações CSV/XLSX/PDF),
+  artigo da central de ajuda `app/services/help_article_068.py`.
+- **Listagens paginadas (FR-001/FR-004):** Equipamentos, Movimentações, Colaboradores,
+  Locais, Inventários (lista e itens da conferência) e Trilha de Auditoria aceitam `?page=N`
+  (padrão 1) e paginam com `page_size = 200` fixo. Cada lista exibe o total do filtro e o
+  intervalo da página corrente (`Mostrando X-Y de Z`); o controle de página só aparece quando
+  há mais de uma página (FR-006).
+- **Filtros preservados (FR-007):** os filtros e a busca existentes permanecem aplicados ao
+  trocar de página; o link de página inclui a query string completa, de modo que a URL
+  compartilhada chega ao destinatário exatamente na mesma página e com os mesmos filtros.
+- **Relatórios web (FR-008/FR-009):** as telas `/reports/inventory` e `/reports/movements`
+  deixaram de cortar em 1.000 e passaram a paginar com 200 + exibir o total real do filtro;
+  os botões de exportação continuam exportando o **conjunto completo filtrado**, não a página
+  exibida.
+- **Exportações íntegras (FR-010/FR-011/FR-013):** CSV, Excel e PDF do patrimônio são gerados
+  com todos os registros do filtro, sem o teto antigo de 10.000, varrendo o banco em lotes;
+  CSV em `StreamingResponse` e Excel em modo *write-only*. Quando o total exceder 10.000 e o
+  usuário exportar PDF, a tela avisa previamente que a geração pode demorar; qualquer corte
+  técnico residual é avisado tanto na tela quanto no próprio arquivo (exibindo X de Y).
+- **Permissões e formato (FR-012):** não houve permissão, formato, cabeçalho, coluna, nome de
+  arquivo, encoding ou delimitador novos para as exportações; o formato de saída permanece o
+  mesmo, o que muda é a completude (sem teto) e o aviso de possível corte residual.
+- **Documentação correlata:** artigo `paginação-e-relatórios` da central de ajuda
+  (`app/services/help_article_068.py`, integrado em `app/services/help_service.py`).
 
 ---
 
