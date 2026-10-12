@@ -185,8 +185,8 @@
             {% if can_conferir %}
             <form method="post" action="/inventarios/{{ inv.id }}/buscar" id="formBuscar" class="row g-2 align-items-end mb-2">
                 <div class="col-12 col-md">
-                    <label class="form-label fw-semibold">Tombamento / QR do bem</label>
-                    <input type="text" name="tag" class="form-control" placeholder="Escaneie ou digite o tombamento (ex.: TMB-2026-1141)" required autofocus>
+                    <label class="form-label fw-semibold" for="inv-tag-busca">Tombamento / QR do bem</label>
+                    <input type="text" name="tag" id="inv-tag-busca" class="form-control" placeholder="Escaneie ou digite o tombamento (ex.: TMB-2026-1141)" required autofocus>
                 </div>
                 <div class="col-12 col-md-auto">
                     <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i> Localizar</button>
@@ -211,14 +211,14 @@
             <div class="card-header-clean d-flex flex-wrap gap-2 justify-content-between align-items-center">
                 <span class="text-muted small">Bens esperados: <strong>{{ items_total }}</strong></span>
                 <form method="get" action="/inventarios/{{ inv.id }}" class="d-flex gap-2">
-                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Filtrar lista..." value="{{ search }}">
-                    <select name="status_filter" class="form-select form-select-sm">
+                    <input type="text" name="search" aria-label="Filtrar lista por tombamento ou nome" class="form-control form-control-sm" placeholder="Filtrar lista..." value="{{ search }}">
+                    <select name="status_filter" aria-label="Filtrar por resultado da conferência" class="form-select form-select-sm">
                         <option value="">Todos os resultados</option>
                         {% for st in item_statuses %}
                         <option value="{{ st.value }}" {% if selected_status == st.value %}selected{% endif %}>{{ st.label }}</option>
                         {% endfor %}
                     </select>
-                    <button type="submit" class="btn btn-ghost btn-sm"><i class="bi bi-funnel"></i></button>
+                    <button type="submit" class="btn btn-ghost btn-sm" aria-label="Aplicar filtros"><i class="bi bi-funnel"></i></button>
                 </form>
             </div>
             {% if expected_itens %}
@@ -362,11 +362,12 @@
             <hr>
             <form method="post" action="/inventarios/{{ inv.id }}/nao-previsto" class="row g-2">
                 <div class="col-12">
-                    <label class="form-label fw-semibold small">Registrar bem não previsto</label>
-                    <input type="text" name="tag" class="form-control form-control-sm" placeholder="Tombamento do bem encontrado" required>
+                    <label class="form-label fw-semibold small" for="np-tag">Registrar bem não previsto</label>
+                    <input type="text" name="tag" id="np-tag" class="form-control form-control-sm" placeholder="Tombamento do bem encontrado" required>
                 </div>
                 <div class="col-12">
-                    <select name="found_location_id" class="form-select form-select-sm">
+                    <label class="form-label visually-hidden" for="np-found-location">Local onde foi encontrado (opcional)</label>
+                    <select name="found_location_id" id="np-found-location" class="form-select form-select-sm">
                         <option value="">Local onde foi encontrado (opcional)</option>
                         {% for loc in all_locations %}
                         <option value="{{ loc.id }}">{{ loc.name }}</option>
@@ -374,7 +375,8 @@
                     </select>
                 </div>
                 <div class="col-12">
-                    <input type="text" name="observation" class="form-control form-control-sm" placeholder="Observação (opcional)">
+                    <label class="form-label visually-hidden" for="np-observation">Observação (opcional)</label>
+                    <input type="text" name="observation" id="np-observation" class="form-control form-control-sm" placeholder="Observação (opcional)">
                 </div>
                 <div class="col-12">
                     <button type="submit" class="btn btn-ghost btn-sm w-100"><i class="bi bi-plus-lg me-1"></i> Registrar ocorrência</button>
@@ -427,7 +429,9 @@
                         <i class="bi bi-geo-alt me-1"></i> Local cadastrado: {{ item.expected_location_name or 'Estoque Central' }}
                     </div>
                     <label class="form-label fw-semibold">Resultado da conferência <span class="text-danger">*</span></label>
-                    <div class="d-grid gap-2 mb-3">
+                    <label class="form-label fw-semibold">Resultado da conferência <span class="text-danger">*</span></label>
+                    <fieldset class="d-grid gap-2 mb-3" style="border:0;padding:0;margin:0;">
+                        <legend class="visually-hidden">Resultado da conferência</legend>
                         <label class="d-block border rounded p-2 result-option" style="cursor:pointer;">
                             <input class="form-check-input" type="radio" name="result" value="ENCONTRADO" required>
                             <span class="fw-semibold ms-2" style="color:var(--c-text);">🟢 Encontrado</span>
@@ -445,9 +449,10 @@
                             <span class="fw-semibold ms-2" style="color:var(--c-text);">⚠️ Sem identificação</span>
                         </label>
                     </div>
+                    </fieldset>
                     <div class="mb-2">
-                        <label class="form-label fw-semibold small">Local onde foi encontrado (para local diferente)</label>
-                        <select name="found_location_id" class="form-select form-select-sm">
+                        <label class="form-label fw-semibold small" for="modalloc-{{ item.id }}">Local onde foi encontrado (para local diferente)</label>
+                        <select name="found_location_id" id="modalloc-{{ item.id }}" class="form-select form-select-sm">
                             <option value="">—</option>
                             {% for loc in all_locations %}
                             <option value="{{ loc.id }}">{{ loc.name }}</option>
@@ -455,8 +460,8 @@
                         </select>
                     </div>
                     <div>
-                        <label class="form-label fw-semibold small">Observação</label>
-                        <textarea name="observation" class="form-control form-control-sm" rows="2" placeholder="Detalhes da conferência (opcional)"></textarea>
+                        <label class="form-label fw-semibold small" for="modalobs-{{ item.id }}">Observação</label>
+                        <textarea name="observation" id="modalobs-{{ item.id }}" class="form-control form-control-sm" rows="2" placeholder="Detalhes da conferência (opcional)"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -486,8 +491,8 @@
                         <strong>{{ summary.expected }}</strong> bens esperados estejam conferidos
                         (pendentes agora: <strong>{{ summary.pending }}</strong>).
                     </p>
-                    <label class="form-label fw-semibold small">Notas do encerramento</label>
-                    <textarea name="closure_notes" class="form-control form-control-sm" rows="3"
+                    <label class="form-label fw-semibold small" for="closure-notes">Notas do encerramento</label>
+                    <textarea name="closure_notes" id="closure-notes" class="form-control form-control-sm" rows="3"
                               placeholder="Parecer final, pendências acordadas, encaminhamentos..."></textarea>
                 </div>
                 <div class="modal-footer">

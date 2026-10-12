@@ -2,7 +2,7 @@
 
 **Feature**: `069-acessibilidade-login-inventario`
 **Estrita para a spec**: `specs/069-acessibilidade-login-inventario/spec.md`
-**Status do Spec**: Draft — baseado em `docs/ANALISE_SEG_PERF_UX_2026-10-10.md` (item 8, U3/U4)
+**Status do Spec**: Planejamento concluído (2026-10-12) — entregas em `research.md`(R1–R9), `data-model.md` (I1–I7) e `contracts/acessibilidade-login-inventario-contract.md` (RN-1–RN-8); implementação = Fase 5 do `tasks.md`, condicionada a P1/P2
 
 ---
 
@@ -52,7 +52,7 @@ Entregas:
 - Decisão por campo: se precisa de `label[for]`, se o atual está correto ou incorreto, se há
   exceções justificadas.
 - Decisão por mensagem dinâmica: se merece `aria-live`, `role="alert"`, `aria-describedby`,
-  ou nenhum destes, evitando anúncios duplicados.
+  `role="status"` (caso real: contadores dinâmicos da página offline), ou nenhum destes, evitando anúncios duplicados.
 - Decisão por botão só-ícone: se precisa de `aria-label` ou outro rótulo alternativo.
 - Decisão sobre contraste/legibilidade relevante apenas onde houver problema identificado.
 
@@ -106,5 +106,10 @@ O plano está pronto quando:
 
 ## 6. Próximo passo
 
-Gerar as tasks específicas a partir deste plano e da spec. Se desejar, a próxima etapa é
-executar a Fase 1 e F2 antes de qualquer decisão de implementação.
+Item 1–4 do plano entregues em `research.md` (R1–R9), `data-model.md` (invariantes I1–I7) e
+`contracts/acessibilidade-login-inventario-contract.md` (RN-1–RN-8 + matriz de validação).
+Com **P1/P2/P3 aprovadas**, a **Fase 5** do `tasks.md` (T018–T027, TDD estático)
+foi executada e verificada — evidência em `validacao.md`.
+
+> Nota de reconciliação: este §6 registrava a pendência original ("aguarda P1/P2");
+> mantido apenas como histórico — os status vivos estão em `spec.md` e `tasks.md`.

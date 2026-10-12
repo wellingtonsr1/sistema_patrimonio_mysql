@@ -517,6 +517,18 @@ border-info { border-color: var(--color-info) !important; }
    porque a própria utilitária é !important (style.css carrega depois dela). */
 .result-option { border: 1px solid var(--c-border) !important; }
 
+/* Feature 069 (P3): indicador de foco visível nos cards de opção da
+   conferência (único lugar onde o foco default não é perceptível — o radio
+   interno esconde o outline no card). Outline apenas no foco/teclado;
+   nenhum efeito em repouso — layout intocado (invariante I1 do data-model). */
+.result-option:has(input:focus-visible) { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+/* Feature 069 (P2): skip-link — visível apenas no foco (teclado), âncora para
+   o conteúdo principal em base.html. Posição absoluta no topo: sem efeito no
+   layout em repouso (invariante I1). */
+.skip-link { position: absolute; left: -9999px; top: 0; z-index: 1050; padding: .5rem 1rem; background: var(--color-primary); color: #fff; border-radius: 0 0 .25rem 0; }
+.skip-link:focus { left: 0; }
+
 /* ==========================================================================
    BUTTONS
    ========================================================================== */

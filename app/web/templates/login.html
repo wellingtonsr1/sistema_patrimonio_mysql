@@ -27,7 +27,7 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="/static/vendor/css/bootstrap-icons.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/style.css?v=20260905">
+    <link rel="stylesheet" href="/static/css/style.css?v=20261012">
 </head>
 <body>
     <div class="d-flex align-items-center justify-content-center" style="min-height:100vh;min-height:100dvh;padding:1.5rem;background-color: rgb(252, 246, 246);">
@@ -75,7 +75,7 @@
                             <div class="input-group">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-lock"></i></span>
                                 <input type="password" id="password" name="password" class="form-control border-start-0" placeholder="Sua senha" required autocomplete="current-password">
-                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility()">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility()" aria-label="Mostrar senha" aria-pressed="false">
                                     <i class="bi bi-eye-slash" id="toggleIcon"></i>
                                 </button>
                             </div>

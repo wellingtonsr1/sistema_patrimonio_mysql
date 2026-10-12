@@ -22,7 +22,7 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="/static/vendor/css/bootstrap-icons.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/style.css?v=20260905">
+    <link rel="stylesheet" href="/static/css/style.css?v=20261012">
 </head>
 <body>
     <div class="d-flex align-items-center justify-content-center" style="min-height:100vh;min-height:100dvh;padding:0.5rem;">
@@ -81,7 +81,7 @@
                             <div class="input-group">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-lock"></i></span>
                                 <input type="password" id="password" name="password" class="form-control border-start-0" placeholder="Crie uma senha" required autocomplete="new-password" minlength="8">
-                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility('password', 'toggleIcon')">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility('password', 'toggleIcon')" aria-label="Mostrar senha" aria-pressed="false">
                                     <i class="bi bi-eye-slash" id="toggleIcon"></i>
                                 </button>
                             </div>
@@ -92,7 +92,7 @@
                             <div class="input-group">
                                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-lock-fill"></i></span>
                                 <input type="password" id="confirm_password" name="confirm_password" class="form-control border-start-0" placeholder="Confirme sua senha" required autocomplete="new-password" minlength="8">
-                                <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword" onclick="togglePasswordVisibility('confirm_password', 'toggleConfirmIcon')">
+                                <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword" onclick="togglePasswordVisibility('confirm_password', 'toggleConfirmIcon')" aria-label="Mostrar senha" aria-pressed="false">
                                     <i class="bi bi-eye-slash" id="toggleConfirmIcon"></i>
                                 </button>
                             </div>

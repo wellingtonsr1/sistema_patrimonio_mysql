@@ -16,7 +16,7 @@
         </div>
 
         {% if error %}
-        <div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-4" role="alert">
             <i class="bi bi-exclamation-triangle-fill"></i>
             <span>{{ error }}</span>
         </div>
@@ -65,8 +65,9 @@
 
             {% if inv.status.value != 'ENCERRADO' %}
             <form method="post" action="/inventarios/{{ inv.id }}/conferir/{{ item.id }}">
-                <label class="form-label fw-semibold">Resultado da conferência <span class="text-danger">*</span></label>
-                <div class="d-grid gap-2 mb-3">
+                <fieldset class="mb-3" style="border:0;padding:0;margin:0;">
+                  <legend class="form-label fw-semibold mb-0" style="float:left;width:100%;font-size:inherit;">Resultado da conferência <span class="text-danger">*</span></legend>
+                <div class="d-grid gap-2 mb-3" style="clear:both;">
                     <label class="d-block border rounded p-2 result-option" style="cursor:pointer;">
                         <input class="form-check-input" type="radio" name="result" value="ENCONTRADO" required>
                         <span class="fw-semibold ms-2" style="color:var(--c-text);">🟢 Encontrado</span>
@@ -85,8 +86,8 @@
                     </label>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label fw-semibold small">Local onde foi encontrado (para local diferente)</label>
-                    <select name="found_location_id" class="form-select form-select-sm">
+                    <label class="form-label fw-semibold small" for="conf-found-location">Local onde foi encontrado (para local diferente)</label>
+                    <select name="found_location_id" id="conf-found-location" class="form-select form-select-sm">
                         <option value="">—</option>
                         {% for loc in all_locations %}
                         <option value="{{ loc.id }}">{{ loc.name }}</option>
@@ -94,10 +95,11 @@
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold small">Observação</label>
-                    <textarea name="observation" class="form-control form-control-sm" rows="2"
+                    <label class="form-label fw-semibold small" for="conf-observation">Observação</label>
+                    <textarea name="observation" id="conf-observation" class="form-control form-control-sm" rows="2"
                               placeholder="Detalhes da conferência (opcional)">{{ item.observation or '' }}</textarea>
                 </div>
+                </fieldset>
                 <div class="d-flex justify-content-end gap-2">
                     <a href="/assets/{{ asset.id }}" class="btn btn-ghost">Cancelar</a>
                     <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i> Registrar conferência</button>
@@ -114,8 +116,8 @@
             <form method="post" action="/inventarios/{{ inv.id }}/nao-previsto">
                 <input type="hidden" name="asset_id" value="{{ asset.id }}">
                 <div class="mb-2">
-                    <label class="form-label fw-semibold small">Local onde foi encontrado</label>
-                    <select name="found_location_id" class="form-select form-select-sm">
+                    <label class="form-label fw-semibold small" for="conf-np-found-location">Local onde foi encontrado</label>
+                    <select name="found_location_id" id="conf-np-found-location" class="form-select form-select-sm">
                         <option value="">—</option>
                         {% for loc in all_locations %}
                         <option value="{{ loc.id }}">{{ loc.name }}</option>
@@ -123,8 +125,8 @@
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold small">Observação</label>
-                    <textarea name="observation" class="form-control form-control-sm" rows="2" placeholder="Detalhes (opcional)"></textarea>
+                    <label class="form-label fw-semibold small" for="conf-np-observation">Observação</label>
+                    <textarea name="observation" id="conf-np-observation" class="form-control form-control-sm" rows="2" placeholder="Detalhes (opcional)"></textarea>
                 </div>
                 <div class="d-flex justify-content-end gap-2">
                     <a href="/assets/{{ asset.id }}" class="btn btn-ghost">Cancelar</a>

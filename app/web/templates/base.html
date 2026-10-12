@@ -25,7 +25,7 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="/static/vendor/css/bootstrap-icons.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/style.css?v=20260924">
+    <link rel="stylesheet" href="/static/css/style.css?v=20261012">
     <!-- Chart.js (versão fixada 4.4.1) -->
     <script src="/static/vendor/js/chart.umd.js"></script>
     <!-- QRCode.js -->
@@ -42,7 +42,7 @@
                 </span>
                 SisPatrimônio
             </div>
-            <button class="sidebar-close" onclick="closeSidebar()"><i class="bi bi-x-lg"></i></button>
+            <button class="sidebar-close" onclick="closeSidebar()" aria-label="Fechar menu"><i class="bi bi-x-lg"></i></button>
         </div>
         <nav class="sidebar-nav">
             <a class="sidebar-nav-item {% if active_tab == 'dashboard' %}active{% endif %}" href="/">
@@ -310,7 +310,10 @@
     </nav>
 
     <!-- Main Container -->
-    <main class="container-fluid py-4 px-lg-5 mx-auto" style="max-width:90%;">
+    <!-- Skip-link (feature 069, P2): invisível até receber foco; primeiro
+         tab do usuário de teclado pula direto para o conteúdo principal. -->
+    <a href="#conteudo-principal" class="skip-link">Pular para o conteúdo</a>
+    <main id="conteudo-principal" class="container-fluid py-4 px-lg-5 mx-auto" style="max-width:90%;">
         {% block flash_messages %}{% endblock %}
         {% block content %}{% endblock %}
     </main>

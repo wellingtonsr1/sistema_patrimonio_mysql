@@ -24,11 +24,11 @@
         <div class="col-12 col-lg-5">
             <div class="input-group">
                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Buscar por código ou nome do inventário..." value="{{ search }}">
+                <input type="text" name="search" aria-label="Buscar por código ou nome do inventário" class="form-control border-start-0 ps-0" placeholder="Buscar por código ou nome do inventário..." value="{{ search }}">
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <select name="status_filter" class="form-select">
+            <select name="status_filter" aria-label="Status do inventário" class="form-select">
                 <option value="">Status: Todos</option>
                 {% for s in statuses %}
                 <option value="{{ s.value }}" {% if selected_status == s.value %}selected{% endif %}>{{ s.label }}</option>
@@ -38,7 +38,7 @@
         <div class="col-6 col-lg-3 d-flex gap-2">
             <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filtrar</button>
             {% if search or selected_status %}
-            <a href="/inventarios" class="btn btn-ghost" title="Limpar Filtros"><i class="bi bi-x-lg"></i></a>
+            <a href="/inventarios" class="btn btn-ghost" title="Limpar Filtros" aria-label="Limpar filtros"><i class="bi bi-x-lg"></i></a>
             {% endif %}
         </div>
     </form>

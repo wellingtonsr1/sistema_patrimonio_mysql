@@ -114,6 +114,13 @@ def test_mobile_sidebar_dark_mode_contrast(client):
     assert '[data-theme="dark"] .mobile-sidebar .sidebar-nav-item { color: rgba(255,255,255,.8); }' not in css
     # item dark usa cor de texto do tema
     assert "[data-theme=\"dark\"] .mobile-sidebar .sidebar-nav-item { color: var(--dark-text-secondary" in css
-    # cache-buster atualizado no base.html (evita CSS antigo em cache)
+    # cache-buster presente no base.html (evita CSS antigo em cache).
+    # Feature 069: substituído o literal por regra funcional — o carimbo de
+    # versão deve existir sempre que o CSS linkado tiver uma versão; fixar
+    # a data quebrava a cada bump legítimo (ex.: 20261012 do skip-link).
+    import re as _re
     page = client.get("/login").text
-    assert "style.css?v=20260924" in page
+    assert _re.search(r"style\.css\?v=\d{8}", page), (
+        "base.html sem cache-buster do style.css — próximo bump de CSS voltaria "
+        "a servir folha antiga em cache (bug reportado na 069)"
+    )

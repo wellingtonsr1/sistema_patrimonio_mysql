@@ -4,7 +4,12 @@
 
 **Created**: 2026-10-11
 
-**Status**: Draft — baseada na análise `docs/ANALISE_SEG_PERF_UX_2026-10-10.md` (item 8, U3/U4).
+**Status**: **Implementação concluída** — planejamento (Fases 1–4) com evidência real em
+`research.md` (rev. 2), modelo em `data-model.md`, checklist em `checklists/requirements.md`
+e contrato em `contracts/acessibilidade-login-inventario-contract.md`; decisões **P1/P2/P3
+aprovadas** (2026-10-12) e **Fase 5 implementada e verificada** (T018–T027, evidência em
+`validacao.md`: suíte estática 17 passed, suíte completa 1051 passed / 3 skipped, guardas
+de escopo por git diff OK).
 
 **Input**: User description: criar a spec para implementar o item de acessibilidade da análise
 de 2026-10-10: “8. Acessibilidade: `label[for]`, `aria-live`, axe no fluxo de login e inventário
@@ -283,5 +288,12 @@ Implementações futuras devem preservar, no mínimo:
 
 ## 13. Próximo passo
 
-Com esta spec, o Spec Kit pode gerar o planejamento e as tasks necessárias para a análise e
-execução do escopo definido aqui, se e quando desejado.
+O planejamento está concluído — ver artefatos:
+
+| Artefato | Conteúdo |
+|---|---|
+| `research.md` | R1–R9: confirmação de U3/U4, inventário dos 7 templates, decisões campo a campo, delimitação do axe (estático, sem dependência nova) |
+| `data-model.md` | "modelo" de atributos de acessibilidade + invariantes I1–I7 e o que não entra |
+| `contracts/acessibilidade-login-inventario-contract.md` | regras RN-1–RN-8 e matriz de validação da suíte estática |
+| `checklists/requirements.md` | qualidade da spec + decisões pendentes P1/P2 |
+| `tasks.md` | Fases 1–4 ✅; Fase 5 (T018–T027) ✅ — implementação concluída e verificada |

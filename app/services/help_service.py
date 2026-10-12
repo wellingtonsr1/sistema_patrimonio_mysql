@@ -27,6 +27,7 @@ from app.services.help_article_032 import ARTIGO_CENTRAL_INTEGRACOES  # feature 
 from app.services.help_article_045 import ARTIGO_BACKUP_EXTERNO  # feature 045
 from app.services.help_article_rede import ARTIGO_CENARIOS_REDE  # feature 060
 from app.services.help_article_068 import ARTIGO_PAGINACAO_RELATORIOS  # feature 068
+from app.services.help_article_069 import ARTIGO_ACESSIBILIDADE  # feature 069
 
 # ============================================================================
 # ARTIGOS
@@ -1327,6 +1328,7 @@ ARTICLES: List[Dict] = [
     ARTIGO_CENTRAL_INTEGRACOES,  # feature 032 — central de integrações (administração)
     ARTIGO_BACKUP_EXTERNO,  # feature 045 — destino externo de backups (administração)
     ARTIGO_PAGINACAO_RELATORIOS,  # feature 068 — paginação de listas e integridade de relatórios/exportações
+    ARTIGO_ACESSIBILIDADE,        # feature 069 — acessibilidade no login e inventário
     {
         "id": "restauracao-de-backup",
         "title": "Restauração de backup (administração)",

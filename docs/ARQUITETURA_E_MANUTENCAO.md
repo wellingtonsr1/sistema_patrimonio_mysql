@@ -829,6 +829,30 @@ de **Unidade Administrativa + Departamento / Setor**, no padrão
 - **Documentação correlata:** artigo `paginação-e-relatórios` da central de ajuda
   (`app/services/help_article_068.py`, integrado em `app/services/help_service.py`).
 
+### 12.9 Acessibilidade dos fluxos de login e inventário (feature 069)
+
+- **Finalidade:** garantir rótulos acessíveis, grupos e mensagens anunciáveis nos fluxos de
+  login (e primeiro acesso) e inventário — sem alterar rotas, comportamento ou layout.
+- **Arquivos:** templates `login.html`, `setup.html`, `inventarios/{list,new,detail,conferir,offline}.html`,
+  `base.html` (skip-link + `aria-label` de fechar menu), `app/web/static/css/style.css`
+  (foco dos `.result-option` + `.skip-link`) e guarda estática `tests/test_acessibilidade_estatica_069.py`.
+- **Regras implementadas (contrato RN-1..RN-8 da spec):** todo controle visível de formulário
+  tem nome acessível (`label[for]`/`aria-label`); botões só-ícone têm `aria-label`
+  (toggle de senha com `aria-pressed` sincronizado pelo `main.js`); grupos de rádios
+  "Resultado da conferência" estão em `fieldset`/`legend` (reset visual inline — zero mudança
+  de layout); alertas de erro têm `role="alert"`; contadores dinâmicos da página offline têm
+  `role="status"`/`aria-live="polite"`; ids únicos por página (modais por item usam sufixo
+  `{{ item.id }}`); skip-link global para o `#conteudo-principal` (invisível até receber foco).
+- **Verificação (guarda estática):** a suíte `tests/test_acessibilidade_estatica_069.py`
+  valida o HTML servido (TestClient + parser `html.parser` da stdlib — **sem browser e sem
+  dependência nova**): zero controles sem nome acessível nas 7 páginas, zero botões só-ícone
+  sem nome, `fieldset` nos grupos de rádio, `role="alert"` nos alertas de erro e zero ids
+  duplicados. Limites declarados: não mede contraste nem executa JS/leitor de tela —
+  verificação manual continua no quickstart da spec; varredura axe com browser registrada
+  como evolução futura no backlog (`docs/Melhorias_SisPatrimonio_Pro.md`).
+- **Documentação correlata:** artigo `acessibilidade` da central de ajuda
+  (`app/services/help_article_069.py`, integrado em `app/services/help_service.py`).
+
 ---
 
 ## 13. Frontend

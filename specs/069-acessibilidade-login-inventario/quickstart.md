@@ -123,3 +123,34 @@ código funcional, templates, JavaScript, CSS, testes ou dependências**.
   quando houver evidência coletada e decisões documentadas.
 - Se houver necessidade de expansão para outros fluxos, ela deve ser resultado de análise, não de
   regra automática.
+
+---
+
+## 8. Resultado da coleta de evidência (2026-10-12) — conclusão do planejamento
+
+A coleta orientada nas §3.1–§3.5 foi executada (somente leitura) e registrada em `research.md`:
+
+- **U3/U4 confirmados com correções**: login e setup **já têm** `label[for]` correto (2/2 e 5/5) e
+  `autofocus` no username; o U4 já está parcialmente atendido (tombamento em
+detail também tem `autofocus`). Os gaps reais estão nos fluxos de
+  inventário: labels soltos sem `for` (`new.html`, "Local/Observação" em conferir/detail/offline),
+  controles de busca/filtro sem nome acessível, botões só-ícone sem `aria-label` (toggle de senha,
+  `bi-funnel`), rádios de resultado sem `fieldset`/`legend`. Os números "29 aria-*" de
+  `dashboard.html`/`login.html` com 0 ocorrências eram históricos/outdated — hoje são 33 ocorrências
+  e `role="alert"` já presente no login.
+- **Mensagens dinâmicas**: nenhuma é atualizada via JS nos fluxos-alvo — `aria-live` **não** entra;
+  `role="alert"` é completado onde falta (contrato RN-6).
+- **axe-core**: a suíte não tem player de browser (precedentes 013/035); critério automatizado é
+  **estático** (`test_acessibilidade_estatica_069.py`, `html.parser` da stdlib, zero dependência
+  nova) — matriz no `contract` §3; axe com browser fica no backlog.
+- **Verificações manuais §4 continuam valendo** para leitor de tela, foco visível e contraste
+  (não são provadas por automação — `research.md` R6/R9).
+- **Implementação**: ✅ concluída — Fase 5 do `tasks.md` (T018–T027) executada com P1/P2/P3
+  aprovadas; evidência em `validacao.md`.
+- **Rev. 2 do research (2026-10-12)** — correções da revisão crítica:
+  `base.html` **já tem** `<main>` (skip-link é só 1 `<a>`, risco baixo); botões
+  "Filtrar"/"Localizar"/"Exportar" têm texto visível (não são só-ícone); os verdadeiros
+  só-ícone são `togglePassword`, `bi-funnel` e o link limpar-filtros; o alerta de erro de
+  `conferir.html` **não tem** `role="alert"` (único dos fluxos-alvo); a página **offline**
+  tem atualização dinâmica real → `role="status"` nos contadores; única lacuna concreta de
+  foco: `.result-option` sem indicador próprio (nenhum `outline:none` no CSS da casa).
