@@ -286,14 +286,14 @@ IPMJP1258,Expansor/repetidor Wireless Contac WN9255 300Mb,Rede,,,,,,,,,,,IPMJP -
 IPMJP1257,Expansor/repetidor Wireless Contac WN9255 300Mb,Rede,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1256,Expansor/repetidor Wireless Contac WN9255 300Mb,Rede,,,,,,,,,,,IPMJP - Sede - Seção de Desenvolvimento
 IPMJP1259,Expansor/repetidor Wireless Contac WN9255 300Mb,Rede,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0138,Monitor LED E970WNL,Monitor,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0416,Monitor de 20 AOC 2036VA,Monitor,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0051,Monitor de 20 AOC 2036VA,Monitor,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0239,Monitor de 20 AOC 2036VA,Monitor,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0057,Monitor de 20 AOC 2036VA,Monitor,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1246,Monitor de 20 AOC 2036VA,Monitor,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP0857,Monitor de 20 AOC 2036VA,Monitor,,,,,, AOC,,,,,IPMJP - Sede - Digitalização
-IPMJP1243,Monitor de 20 AOC 2036VA,Monitor,,,,,, AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0138,Monitor LED E970WNL,Monitor,,,,,,AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0416,Monitor de 20 AOC 2036VA,Monitor,,,,,,AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0051,Monitor de 20 AOC 2036VA,Monitor,,,,,,AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0239,Monitor de 20 AOC 2036VA,Monitor,,,,,,AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0057,Monitor de 20 AOC 2036VA,Monitor,,,,,,AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1246,Monitor de 20 AOC 2036VA,Monitor,,,,,,AOC,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP0857,Monitor de 20 AOC 2036VA,Monitor,,,,,,AOC,,,,,IPMJP - Sede - Digitalização
+IPMJP1243,Monitor de 20 AOC 2036VA,Monitor,,,,,,AOC,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0909,Monitor Philips,Monitor,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0213,Scaners Fujitsu mod. 6140Z,Scanner,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0629,Scaners Fujitsu mod. 6140Z,Scanner,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
@@ -332,18 +332,18 @@ IPMJP1417,Nobreak,Energia,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1290,Rack piso 44X870 gab fec com capacidade para 1400 kg,Rede,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0877,Rack servidor,Rede,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1717,Relógio de ponto,Informática,,,,,,PRIMME,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP3911,SSD 2,Unidade de armazenamento,,,,960 GB SATA,,Informática ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP3912,SSD 2,Unidade de armazenamento,,,,960 GB SATA,,Informática ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP3911,SSD 2,Unidade de armazenamento,,,,960 GB SATA,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP3912,SSD 2,Unidade de armazenamento,,,,960 GB SATA,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
 IPMJP0885,Terminal inteligente,Informática,,,,,,,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP1299,UD Servidor System X3650 16 MB,Servidor,,,, RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP1297,UD Servidor System X3650 16 MB,Servidor,,,, RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
-IPMJP1295,UD Servidor System X3650 16 MB,Servidor,,,, RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte
-IPMJP1296,US Servidor System X3650,Servidor,,,, RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1299,UD Servidor System X3650 16 MB,Servidor,,,,RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP1297,UD Servidor System X3650 16 MB,Servidor,,,,RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte - Data Center
+IPMJP1295,UD Servidor System X3650 16 MB,Servidor,,,,RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte
+IPMJP1296,UD Servidor System X3650,Servidor,,,,RIG 300 1000RPM,,4 6HZ,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0876,Estabilizador,Energia,,,,,,,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP0946,Multifuncional,Impressora,,,LASER JET MFP M125A,,,HP,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP3960,Nobreak 10Kva 220V AC 50/60Hz,Energia,,,,,,,,,,,IPMJP - Sede - Setor de Contabilidade
 IPMJP3999,Desktop Integralizado i7 - 13700F,Desktop,,,,,,,,,,,IPMJP - Sede - Setor de Manutenção
-IPMJP3933,SSD 2,Unidade de armazenamento,,,,960 GB SATA,,Informática ,,,,,IPMJP - Sede - RECEPÇÃO
+IPMJP3933,SSD 2,Unidade de armazenamento,,,,960 GB SATA,,,,,,,IPMJP - Sede - RECEPÇÃO
 IPMJP0271,Impressora,Impressora,,,LASERJET P2015,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1282,Impressora,Impressora,,,HP M425 DN MULT. LASER MONO,,,HP ,,,,,IPMJP - Sede - Seção de Suporte
 IPMJP1172,Impressora,Impressora,,,MP4200TH,,,BEMATECH,,,,,IPMJP - Sede - Seção de Suporte
