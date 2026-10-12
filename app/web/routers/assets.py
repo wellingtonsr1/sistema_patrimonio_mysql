@@ -492,6 +492,16 @@ def view_asset_detail(request: Request, asset_id: int, db: Session = Depends(get
         raise HTTPException(status_code=404, detail="Equipamento não encontrado")
 
     timeline = MovementService.get_timeline_for_asset(db, asset_id)
+    # Feature 070 — resumo legível dos eventos de alteração cadastral na trilha
+    # (transformação de leitura no contexto do template; o service de timeline e
+    # o payload da API /timeline permanecem intocados — contratos C1/C2).
+    for _item in timeline:
+        if _item.get("type") == "audit":
+            _resumo = AssetService.get_audit_summary(
+                _item.get("prev_data"), _item.get("new_data")
+            )
+            if _resumo is not None:
+                _item["audit_summary"] = _resumo
     deprec = AssetService.calculate_depreciation(asset)
 
     # Inventário: inventários abertos (não encerrados) para conferência via QR

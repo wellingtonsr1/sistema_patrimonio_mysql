@@ -145,6 +145,45 @@ class AssetService:
         return {"eventos": items, "total": total, "truncado": total > len(items)}
 
     @staticmethod
+    def get_audit_summary(prev_data: Any, new_data: Any) -> Optional[Dict[str, Any]]:
+        """Resumo de APRESENTAÇÃO de um evento de alteração cadastral (feature 070).
+
+        Transformação de leitura para o cartão da trilha do detalhe do bem —
+        `MovementService.get_timeline_for_asset` e a API `/timeline` permanecem
+        intocados (contratos C1/C2). Reutiliza `changed_fields` e
+        `_ASSET_FIELD_LABELS` no lugar (fonte única — FR-003; PD-2 do clarify).
+
+        Regras (data-model §2; research R6/R7 — PD-4):
+        - exatamente um `dict` válido → resumo com diff, título e `detalhes=True`;
+        - dois dicts sem diferença   → `titulo=None`, `mudancas=[]` (fallback);
+        - nenhum dict (JSON inválido/ausente) → `None` (cartão fica como está);
+        - `None` (nulo OU ausente no snapshot) vira `—` na renderização —
+          a distinção real permanece no JSON original dos detalhes técnicos.
+        """
+        tem_antes = isinstance(prev_data, dict)
+        tem_depois = isinstance(new_data, dict)
+        if not tem_antes and not tem_depois:
+            return None
+
+        mudancas: List[Dict[str, Any]] = []
+        titulo: Optional[str] = None
+        if tem_antes and tem_depois:
+            for campo, valores in changed_fields(prev_data, new_data).items():
+                mudancas.append({
+                    "field": campo,
+                    "label": _ASSET_FIELD_LABELS.get(campo, campo),
+                    "before": valores.get("de"),
+                    "after": valores.get("para"),
+                })
+            mudancas.sort(key=lambda item: item["label"])
+            if len(mudancas) == 1:
+                titulo = f"Alteração cadastral — {mudancas[0]['label']}"
+            elif len(mudancas) > 1:
+                titulo = "Alteração cadastral — Dados do equipamento"
+
+        return {"titulo": titulo, "mudancas": mudancas, "detalhes": True}
+
+    @staticmethod
     def get_all(
         db: Session,
         search: Optional[str] = None,
