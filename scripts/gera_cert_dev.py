@@ -24,6 +24,7 @@ https://<ip>:8000 com APP_SSL_CERTFILE/APP_SSL_KEYFILE no .env (run.py cuida
 do resto). Ver docs/HTTPS_LOCAL.md (seção Windows nativo).
 """
 import argparse
+import shutil
 import socket
 import subprocess
 import sys
@@ -52,6 +53,30 @@ def ip_lan() -> str:
     return ip
 
 
+def acha_openssl() -> str:
+    """Localiza o openssl CLI no Windows: PATH primeiro, depois os locais
+    comuns (Git for Windows, instaladores OpenSSL). Sem isso o subprocess
+    falha com WinError 2 antes de qualquer comando rodar."""
+    exe = shutil.which("openssl")
+    if exe:
+        return exe
+    candidatos = [
+        Path(r"C:\Program Files\Git\usr\bin\openssl.exe"),
+        Path(r"C:\Program Files\Git\mingw64\bin\openssl.exe"),
+        Path(r"C:\Program Files\OpenSSL-Win64\bin\openssl.exe"),
+        Path(r"C:\OpenSSL-Win64\bin\openssl.exe"),
+        Path(r"C:\Program Files\Common Files\SSL\openssl.exe"),
+    ]
+    for c in candidatos:
+        if c.exists():
+            return str(c)
+    raise SystemExit(
+        "openssl CLI nao encontrado. Instale o Git for Windows "
+        "(ja inclui openssl em C:\\Program Files\\Git) ou coloque "
+        "openssl.exe no PATH e reexecute."
+    )
+
+
 def rodar(cmd: list, descricao: str) -> None:
     resultado = subprocess.run(cmd, capture_output=True, text=True)
     if resultado.returncode != 0:
@@ -66,7 +91,8 @@ def main() -> None:
     parser.add_argument("--force", action="store_true", help="regera mesmo se existir")
     args = parser.parse_args()
 
-    openssl = "openssl"
+    openssl = acha_openssl()
+    print(f"-> openssl: {openssl}")
     ip = args.ip or ip_lan()
     hostname = socket.gethostname()
     SSL_DIR.mkdir(parents=True, exist_ok=True)

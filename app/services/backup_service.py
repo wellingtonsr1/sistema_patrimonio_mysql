@@ -276,6 +276,14 @@ def _run_mysqldump(path: Path) -> None:
                     executable,
                     "--single-transaction",
                     "--no-tablespaces",
+                    # gtid_mode=ON (MySQL 8+): com o padrao AUTO o dump executaria
+                    # SET @@GLOBAL.GTID_PURGED e exigiria SUPER/SYSTEM_VARIABLES_ADMIN
+                    # (ERROR 1227 para usuario sem privilegios globais). Backup
+                    # logico restaurado na MESMA instancia nao precisa de GTID.
+                    # SOMENTE MySQL: o mariadb-dump (variante Docker, mariadb:11)
+                    # nao suporta a opcao e o dump do MariaDB nao emite esse FLUSH
+                    # - la o comportamento e o historico, sem a opcao.
+                    *(["--set-gtid-purged=OFF"] if not DATABASE_URL.startswith("mariadb") else []),
                     f"--host={host}",
                     f"--port={port}",
                     f"--user={user}",
