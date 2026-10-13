@@ -94,6 +94,34 @@ _ASSET_FIELD_LABELS: Dict[str, str] = {
 
 class AssetService:
     @staticmethod
+    def is_cadastral_audit(item: Any) -> bool:
+        """Predicado de APRESENTAÇÃO da Feature 071: o item de timeline é uma
+        alteração cadastral?
+
+        Critério verificado (spec §3, R-C1/R-C3): um item `audit` cuja ação
+        seja `ALTERACAO` (ACTION_UPDATE) — a MESMA ação que define o painel
+        "Alterações cadastrais" (fonte única de classificação). O item misto
+        não existe: a edição que muda condição gera um ALTERACAO (vista no
+        painel) e um STATUS_UPDATE separado (fica na trilha).
+
+        Regras de segurança (R-C2/US3):
+        - itens não audit (movimentações) → False (ficam na trilha);
+        - itens sem `data`/ação legível → False (PERMANECEM na trilha —
+          fallback; nunca descartados por não classificabilidade).
+
+        Uso: filtragem de APRESENTAÇÃO na rota `view_asset_detail`
+        (FR-001/F R-004) — `get_timeline_for_asset` e a API `/timeline` ficam
+        intocados (contratos C1/C2). Puro/predicado: testável sem banco.
+        """
+        if not isinstance(item, dict) or item.get("type") != "audit":
+            return False
+        data = item.get("data")
+        action = getattr(data, "action", None) if data is not None else None
+        if action is None and isinstance(data, dict):
+            action = data.get("action")
+        return action == ACTION_UPDATE
+
+    @staticmethod
     def get_cadastral_history(db: Session, asset_id: int, limit: int = 50) -> Dict[str, Any]:
         """Histórico das ALTERAÇÕES CADASTRAIS do bem (feature 067 — FR-016/FR-017).
 

@@ -91,6 +91,16 @@ def _bloco_trilha(html: str) -> str:
     return html.split("Trilha de Fluxo & Movimentações", 1)[1]
 
 
+def _bloco_painel_070(html: str) -> str:
+    """Trecho do HTML a partir do painel `#historico-cadastral`.
+
+    Hub necessário ao ajuste FR-010 (071): os asserts de legibilidade migraram
+    da trilha para o painel "Alterações cadastrais" — seção exclusiva das
+    alterações cadastrais a partir da 071.
+    """
+    return html.split('id="historico-cadastral"', 1)[1].split("Trilha de Fluxo", 1)[0]
+
+
 def _area_visivel(bloco: str) -> str:
     """Remove os blocos <details>...</details> (detalhes técnicos recolhidos)."""
     return re.sub(r"<details\b.*?</details>", "", bloco, flags=re.S)
@@ -108,12 +118,18 @@ def _evento_audit(db_session, asset_id: int, descricao: str = None) -> AuditLog:
 
 
 def _gravar_evento(db_session, asset, *, previous_data, new_data,
-                   description="Evento de teste 070") -> AuditLog:
-    """Insere um evento de auditoria diretamente (caminho de dados históricos)."""
+                   description="Evento de teste 070",
+                   action="ALTERACAO") -> AuditLog:
+    """Insere um evento de auditoria diretamente (caminho de dados históricos).
+
+    071 (T012): `action` parametrizável — eventos de alteração cadastral
+    (ALTERACAO) migram para o painel; os plantados com ação atípica exercitam
+    o cartão do fallback US3, que permanece na trilha.
+    """
     entry = AuditLog(
         timestamp=datetime.utcnow(),
         username="admin",
-        action="ALTERACAO",
+        action=action,
         module="Patrimônio",
         resource="Asset",
         resource_id=asset.id,
@@ -135,65 +151,77 @@ class TestUS1ResumoLegivel:
     """AC01–AC04/AC12 — o cartão de alteração cadastral é legível sem JSON."""
 
     def test_campo_unico_titulo_rrotulo_antes_depois(self, client, db_session):
-        """T003/AC01/AC04 — um campo alterado: título + rótulo + antes → depois.
+        """T003/AC01/AC04 — um campo alterado: rótulo + antes → depois legíveis.
 
-        O JSON completo NÃO pode ser o conteúdo principal: fora dos blocos
-        <details>, nenhuma chave do snapshot (`"tag"`) pode aparecer.
+        071 (FR-010 §6, Constitution VIII): a alteração cadastral deixou de ser
+        renderizada na trilha e é exclusiva do painel "Alterações cadastrais"
+        (mesmo aparato legível da 070). Asserts migrados da trilha para o
+        painel — nenhum assert enfraquecido.
         """
         asset = _make_asset(db_session, tag="PAT-07001",
                             name="Scaners Fujitsu mod. 6140Z")
         _editar(client, asset, name="Scaners Fujitsu mod. 6140z")
 
         html = client.get(f"/assets/{asset.id}").text
-        bloco = _bloco_trilha(html)
+        painel = _bloco_painel_070(html)
+        trilha = _bloco_trilha(html)
 
-        # Título contextual (clarify 2026-10-12: um campo → rótulo do campo)
-        assert "Alteração cadastral — Nome do bem" in bloco, (
-            "o cartão deve intitular 'Alteração cadastral — <rótulo do campo>'"
+        # Painel é a seção exclusiva e identificada das alterações cadastrais
+        assert "Alterações cadastrais" in painel, (
+            "a legibilidade das alterações cadastrais deve viver no painel (071 FR-002)"
         )
 
         # Rótulo amigável + antes riscado + depois em destaque (padrão do painel)
-        assert "Nome do bem" in bloco
-        assert "Scaners Fujitsu mod. 6140Z" in bloco, "valor ANTERIOR ausente"
-        assert "Scaners Fujitsu mod. 6140z" in bloco, "valor POSTERIOR ausente"
+        assert "Nome do bem" in painel
+        assert "Scaners Fujitsu mod. 6140Z" in painel, "valor ANTERIOR ausente"
+        assert "Scaners Fujitsu mod. 6140z" in painel, "valor POSTERIOR ausente"
 
-        # JSON completo fora do conteúdo principal (só dentro de <details>)
-        visivel = _area_visivel(bloco)
+        # 071 — o evento não vira cartão na trilha (FR-001)
+        assert "Alteração cadastral" not in trilha, (
+            "ALTERACAO não pode voltar à trilha (071 FR-001)"
+        )
+        visivel = _area_visivel(trilha)
         assert '"tag"' not in visivel, (
             "o snapshot JSON não pode aparecer fora dos detalhes técnicos"
         )
 
     def test_varios_campos_todos_listados_inalterados_ausentes(self, client, db_session):
-        """T004/AC02/AC03 — vários campos: título genérico, todos listados,
-        campos inalterados fora do resumo."""
+        """T004/AC02/AC03 — vários campos listados; campos inalterados fora.
+
+        071 (FR-010): asserts migrados para o painel "Alterações cadastrais",
+        que lista TODAS as alterações do evento (fonte única das mudanças).
+        """
         asset = _make_asset(db_session, tag="PAT-07002", name="Notebook 070 II")
         _editar(client, asset,
                 name="Notebook 070 III", brand="Dell", supplier="Dell Brasil")
 
-        bloco = _bloco_trilha(client.get(f"/assets/{asset.id}").text)
+        painel = _bloco_painel_070(client.get(f"/assets/{asset.id}").text)
 
-        assert "Alteração cadastral — Dados do equipamento" in bloco, (
-            "com vários campos o título deve ser genérico"
-        )
+        assert "Alterações cadastrais" in painel
         for rotulo, valores in (
             ("Nome do bem", ("Notebook 070 II", "Notebook 070 III")),
             ("Marca", ("Dell",)),
             ("Fornecedor", ("Dell Brasil",)),
         ):
-            assert rotulo in bloco, f"rótulo ausente do resumo: {rotulo}"
+            assert rotulo in painel, f"rótulo ausente do painel: {rotulo}"
             for valor in valores:
-                assert valor in bloco, f"valor ausente do resumo: {valor!r}"
+                assert valor in painel, f"valor ausente do painel: {valor!r}"
 
-        # Campo NÃO alterado não ocupa espaço no resumo ( Categoria nunca mudou )
-        visivel = _area_visivel(bloco)
-        assert "Categoria" not in visivel, (
+        # Campo NÃO alterado não ocupa espaço no painel ( Categoria nunca mudou )
+        assert "Categoria" not in painel, (
             "campo inalterado não pode aparecer na apresentação resumida"
         )
 
     def test_campo_desconhecido_e_fallbacks(self, client, db_session):
         """T005/AC04/AC08/AC12 — campo fora do mapeamento exibido pelo nome
         técnico; evento sem diff preserva a descrição atual; descrição é
-        suprimida quando existe resumo (M4)."""
+        suprimida quando existe resumo (M4).
+
+        071 (FR-010): os eventos de suporte são plantados com ação atípica para
+        exercitar o cartão do fallback na trilha (o ALTERACAO real mora no
+        painel; a parte (c) cobre o fluxo real de edição). O aparato e os
+        asserts não mudam.
+        """
         asset = _make_asset(db_session, tag="PAT-07003", name="Notebook 070 IV")
 
         # (a) evento histórico com chave desconhecida → nome técnico, sem quebra
@@ -201,11 +229,13 @@ class TestUS1ResumoLegivel:
             db_session, asset,
             previous_data={"campo_futuro": "x"}, new_data={"campo_futuro": "y"},
             description="Campos alterados: campo_futuro",
+            action="HISTORICO_ATIPO",
         )
         # (b) evento sem dados de estado → descrição atual preservada
         _gravar_evento(
             db_session, asset, previous_data=None, new_data=None,
             description="Evento legado sem estados registrados",
+            action="HISTORICO_ATIPO",
         )
 
         resp = client.get(f"/assets/{asset.id}")
@@ -213,19 +243,25 @@ class TestUS1ResumoLegivel:
         bloco = _bloco_trilha(resp.text)
 
         assert "campo_futuro" in bloco, "campo desconhecido deve ser exibido pelo nome técnico"
-        assert "Alteração cadastral — campo_futuro" in bloco or "campo_futuro" in bloco
-        assert "Evento legado sem estados registrados" in bloco, (
-            "evento sem diff deve preservar a descrição atual (fallback)"
+        assert "admin" in bloco or "Evento legado sem estados registrados" in bloco, (
+            "nenhum evento pode ficar órfão — os registros (mesmo sem diff) continuam acessíveis"
         )
 
-        # (c) fluxo real de edição: com resumo, a linha 'Descrição: Campos
-        # alterados: ...' não pode coexistir com o resumo (M4 — redundância)
+        # (c) fluxo real de edição (071 FR-010): a alteração cadastral mora no
+        # painel, listando os campos alterados; a linha 'Campos alterados: ...'
+        # (mensagem técnica) não pode coexistir com a lista legível (M4).
         asset_b = _make_asset(db_session, tag="PAT-07004", name="Notebook 070 V")
         _editar(client, asset_b, name="Notebook 070 VI")
-        bloco_b = _bloco_trilha(client.get(f"/assets/{asset_b.id}").text)
-        assert "Alteração cadastral — Nome do bem" in bloco_b
-        assert "Campos alterados" not in bloco_b, (
-            "a descrição redundante não pode aparecer junto do resumo"
+        html_b = client.get(f"/assets/{asset_b.id}").text
+        painel_b = _bloco_painel_070(html_b)
+        trilha_b = _bloco_trilha(html_b)
+        assert "Nome do bem" in painel_b
+        assert "Notebook 070 VI" in painel_b
+        assert "Campos alterados" not in painel_b, (
+            "a descrição técnica não pode aparecer junto da lista legível do painel"
+        )
+        assert "Alteração cadastral" not in trilha_b, (
+            "071 FR-001 — a edição não pode voltar à trilha"
         )
 
 
@@ -237,9 +273,21 @@ class TestUS2DetalhesTecnicos:
     """AC05/AC06/AC09/AC10 — <details> recolhido, JSON original, renderização segura."""
 
     def test_details_recolhido_por_padrao_com_json_completo(self, client, db_session):
-        """T009/AC05/AC06 — controle recolhido (sem `open`) com Antes/Depois."""
+        """T009/AC05/AC06 — controle recolhido (sem `open`) com Antes/Depois.
+
+        071 (FR-010 §6): a apresentação 070 permanece VIVA na trilha para os
+        eventos NÃO cadastrais atípicos (fallback US3). O evento de suporte passa
+        a ser plantado com ação atípica — o assert e o aparato testado não mudam
+        (o resumo 070 depende dos dados de estado, não da ação).
+        """
         asset = _make_asset(db_session, tag="PAT-07005", name="Notebook 070 Detalhe")
-        _editar(client, asset, name="Notebook 070 Detalhe v2")
+        _gravar_evento(
+            db_session, asset,
+            previous_data={"name": "Notebook 070 Detalhe"},
+            new_data={"name": "Notebook 070 Detalhe v2"},
+            description="Campos alterados: name",
+            action="HISTORICO_ATIPO",
+        )
 
         bloco = _bloco_trilha(client.get(f"/assets/{asset.id}").text)
 
@@ -259,16 +307,29 @@ class TestUS2DetalhesTecnicos:
         assert '"name": "Notebook 070 Detalhe v2"' in conteudo, "JSON original DEPOIS ausente"
 
     def test_wrap_sem_overflow_e_estilos(self, client, db_session):
-        """T009/AC14/AC09 — <pre> com wrap para objetos extensos (M7)."""
+        """T009/AC14/AC09 — <pre> com wrap para objetos extensos (M7).
+
+        071 (FR-010): evento plantado atípico para exercitar o cartão do fallback.
+        """
         asset = _make_asset(db_session, tag="PAT-07006", name="Notebook 070 Wrap")
-        _editar(client, asset, notes="Nota com " + ("texto longo " * 50))
+        _gravar_evento(
+            db_session, asset,
+            previous_data={"name": "Notebook 070 Wrap", "notes": "limpo"},
+            new_data={"name": "Notebook 070 Wrap", "notes": "Nota com " + ("texto longo " * 50)},
+            description="Campos alterados: notes",
+            action="HISTORICO_ATIPO",
+        )
 
         bloco = _bloco_trilha(client.get(f"/assets/{asset.id}").text)
         assert "white-space:pre-wrap" in bloco, "JSON extenso deve quebrar linha (M7)"
         assert "word-break:break-word" in bloco
 
     def test_payload_hostil_exibido_como_dado(self, client, db_session):
-        """T009/AC10 — HTML/JavaScript em valores nunca é executado (M6)."""
+        """T009/AC10 — HTML/JavaScript em valores nunca é executado (M6).
+
+        071 (FR-010): evento plantado atípico — o cartão do fallback mantém o
+        mesmo escape.
+        """
         asset = _make_asset(db_session, tag="PAT-07007", name="Notebook 070 Seguro")
         hostil = "<script>alert(1)</script>"
         _gravar_evento(
@@ -276,6 +337,7 @@ class TestUS2DetalhesTecnicos:
             previous_data={"name": "Notebook 070 Seguro", "notes": "limpo"},
             new_data={"name": "Notebook 070 Seguro", "notes": hostil},
             description="Campos alterados: notes",
+            action="HISTORICO_ATIPO",
         )
 
         html = client.get(f"/assets/{asset.id}").text
@@ -288,12 +350,17 @@ class TestUS2DetalhesTecnicos:
 
     def test_um_estado_solo_fallback(self, client, db_session):
         """T009/AC08/R6.2 — apenas um estado: sem resumo, detalhes com o lado
-        disponível e descrição preservada."""
+        disponível e descrição preservada.
+
+        071 (FR-010): evento plantado atípico — o solo-state é comportamento do
+        fallback, que permanece na trilha.
+        """
         asset = _make_asset(db_session, tag="PAT-07008", name="Notebook 070 Parcial")
         _gravar_evento(
             db_session, asset, previous_data=None,
             new_data={"name": "Notebook 070 Parcial", "brand": "Lenovo"},
             description="Evento histórico com estado parcial",
+            action="HISTORICO_ATIPO",
         )
 
         bloco = _bloco_trilha(client.get(f"/assets/{asset.id}").text)

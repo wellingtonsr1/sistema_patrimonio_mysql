@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        // Aplica o tema antes da renderização (evita flash e mantém Bootstrap sincronizado)
+        (function () {
+            try {
+                var t = localStorage.getItem('sispatrim-theme');
+                if (!t) { t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+                document.documentElement.setAttribute('data-theme', t);
+                document.documentElement.setAttribute('data-bs-theme', t);
+            } catch (e) {}
+        })();
+    </script>
+    <title>SisPatrimônio - PAT-07150 - Notebook 071 Smoke | SisPatrimônio Pro</title>
+    <link rel="manifest" href="/static/manifest.webmanifest">
+    <link rel="icon" type="image/x-icon" href="http://testserver/static/img/favicon.ico">
+    <!-- Fontes/Assets 100% locais (feature 059 — vendoring M6: zero dependência de CDN;
+         coleta offline consistente com o PWA 033 e imune a firewall institucional) -->
+    <link rel="stylesheet" href="/static/vendor/fonts/plus-jakarta-sans.css">
+    <!-- Bootstrap 5 CSS -->
+    <link href="/static/vendor/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="/static/vendor/css/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css?v=20261012">
+    <!-- Chart.js (versão fixada 4.4.1) -->
+    <script src="/static/vendor/js/chart.umd.js"></script>
+    <!-- QRCode.js -->
+    <script src="/static/vendor/js/qrcode.min.js"></script>
+</head>
+<body style="padding-top: 90px;">
+    <!-- ===== Mobile Sidebar ===== -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <aside class="mobile-sidebar" id="mobileSidebar" style="display:none;">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <span class="navbar-brand-icon" style="width:28px;height:28px;font-size:.85rem;">
+                    <i class="bi bi-box-seam"></i>
+                </span>
+                SisPatrimônio
+            </div>
+            <button class="sidebar-close" onclick="closeSidebar()" aria-label="Fechar menu"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <nav class="sidebar-nav">
+            <a class="sidebar-nav-item " href="/">
+                <i class="bi bi-grid-1x2"></i> Dashboard
+            </a>
+            
+            <a class="sidebar-nav-item active" href="/assets">
+                <i class="bi bi-laptop"></i> Equipamentos
+            </a>
+            <a class="sidebar-nav-item " href="/assets/labels">
+                <i class="bi bi-upc-scan"></i> Etiquetas
+            </a>
+            
+            
+            <a class="sidebar-nav-item " href="/movements">
+                <i class="bi bi-arrow-left-right"></i> Fluxo & Movimentação
+            </a>
+            
+            
+            <a class="sidebar-nav-item " href="/inventarios">
+                <i class="bi bi-clipboard-check"></i> Inventários
+            </a>
+            
+            
+            <a class="sidebar-nav-item " href="/custodians">
+                <i class="bi bi-people"></i> Colaboradores
+            </a>
+            
+            
+            <a class="sidebar-nav-item " href="/locations">
+                <i class="bi bi-geo-alt"></i> Locais
+            </a>
+            
+            
+            <a class="sidebar-nav-item " href="/maintenances">
+                <i class="bi bi-wrench"></i> Manutenções
+            </a>
+            
+            
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-section-label">Relatórios</div>
+            <a class="sidebar-nav-item " href="/reports/inventory">
+                <i class="bi bi-table"></i> Relatório Contábil-Físico
+            </a>
+            <a class="sidebar-nav-item" href="/reports/movements">
+                <i class="bi bi-clock-history"></i> Trilha de Auditoria
+            </a>
+            <a class="sidebar-nav-item" href="/reports/custodians">
+                <i class="bi bi-people"></i> Relação de Colaboradores
+            </a>
+            
+            
+            <div class="sidebar-divider"></div>
+            <div class="sidebar-section-label">Administração</div>
+            
+            <a class="sidebar-nav-item " href="/admin/users">
+                <i class="bi bi-person-gear"></i> Usuários
+            </a>
+            
+            
+            <a class="sidebar-nav-item" href="/admin/roles">
+                <i class="bi bi-shield-lock"></i> Perfis & Permissões
+            </a>
+            
+            
+            <a class="sidebar-nav-item" href="/admin/audit">
+                <i class="bi bi-journal-check"></i> Auditoria
+            </a>
+            
+            
+            <a class="sidebar-nav-item" href="/admin/backups">
+                <i class="bi bi-archive"></i> Backups
+            </a>
+            
+            
+            <a class="sidebar-nav-item " href="/admin/integracoes">
+                <i class="bi bi-diagram-3"></i> Central de Integrações
+            </a>
+            
+            
+            <div class="sidebar-divider"></div>
+            <a class="sidebar-nav-item" href="/ajuda">
+                <i class="bi bi-question-circle"></i> Ajuda e Manual
+            </a>
+            <a class="sidebar-nav-item" href="/docs" target="_blank">
+                <i class="bi bi-code-slash"></i> API Swagger
+            </a>
+        </nav>
+        <div class="sidebar-actions">
+                                <a href="/movements/new" class="btn btn-ghost btn-sm" style="color:var(--color-primary);border-color:var(--color-border);">
+                        <i class="bi bi-arrow-repeat"></i> Movimentar
+                    </a>
+                    
+                    
+                    <a href="/assets/new" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-lg"></i> Novo Bem
+                    </a>
+                    
+                </div>
+            </aside>
+
+    <!-- ===== Top Navbar ===== -->
+    <nav class="navbar navbar-expand-xl app-navbar fixed-top no-print">
+        <div class="container-fluid px-lg-1">
+            <!-- Hamburger (mobile) -->
+            <button class="sidebar-hamburger me-4" onclick="openSidebar()" aria-label="Abrir menu">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <img src="/static/img/Logo_IPMjp_2.png" alt="" class="navbar-brand-logo">
+                <span>SisPatrimônio <span class="badge badge-soft-primary fw-normal" style="font-size:.65rem;">PRO</span></span>
+            </a>
+
+            <!-- Desktop nav collapse -->
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav mb-2 mb-lg-0 gap-1">
+                    <li class="nav-item">
+                        <a class="nav-link " href="/">
+                            <i class="bi bi-grid-1x2 me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="/assets" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-laptop me-1"></i> Equipamentos
+                        </a>
+                        <ul class="dropdown-menu shadow-sm border-0 mt-2">
+                            <li><a class="dropdown-item py-2 active" href="/assets"><i class="bi bi-laptop me-1" style="color:var(--color-primary);"></i>Equipamentos &amp; Bens</a></li>
+                            <li><a class="dropdown-item py-2 " href="/assets/labels"><i class="bi bi-upc-scan me-1" style="color:var(--color-primary);"></i>Etiquetas</a></li>
+                        </ul>
+                    </li>
+                    
+                    
+                    <li class="nav-item">
+                        <a class="nav-link " href="/movements">
+                            <i class="bi bi-arrow-left-right me-1"></i> Fluxo & Movimentação
+                        </a>
+                    </li>
+                    
+                    
+                    <li class="nav-item">
+                        <a class="nav-link " href="/inventarios">
+                            <i class="bi bi-clipboard-check me-1"></i> Inventários
+                        </a>
+                    </li>
+                    
+                    
+                    <li class="nav-item">
+                        <a class="nav-link " href="/custodians">
+                            <i class="bi bi-people me-1"></i> Colaboradores
+                        </a>
+                    </li>
+                    
+                    
+                    <li class="nav-item">
+                        <a class="nav-link " href="/locations">
+                            <i class="bi bi-geo-alt me-1"></i> Locais
+                        </a>
+                    </li>
+                    
+                    
+                    <li class="nav-item">
+                        <a class="nav-link " href="/maintenances">
+                            <i class="bi bi-wrench me-1"></i> Manutenções
+                        </a>
+                    </li>
+                    
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle " href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-file-earmark-text me-1"></i> Relatórios
+                        </a>
+                        <ul class="dropdown-menu shadow-sm border-0 mt-2">                        <li><a class="dropdown-item py-2" href="/reports/inventory"><i class="bi bi-table me-1" style="color:var(--color-primary);"></i>Relatório Contábil-Físico</a></li>
+                            <li><a class="dropdown-item py-2" href="/reports/movements"><i class="bi bi-clock-history me-1" style="color:var(--color-primary);"></i>Trilha de Auditoria</a></li>
+                            <li><a class="dropdown-item py-2" href="/reports/custodians"><i class="bi bi-people me-1" style="color:var(--green);"></i>Relação de Colaboradores</a></li>
+                                    <li><hr class="dropdown-divider my-1"></li>
+                                    <li><a class="dropdown-item py-2" href="/docs" target="_blank"><i class="bi bi-code-slash me-1" style="color:var(--color-text-secondary);"></i>API Swagger</a></li>
+                        </ul>
+                    </li>
+                    
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle " href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear me-1"></i> Administração
+                        </a>
+                        <ul class="dropdown-menu shadow-sm border-0 mt-2">
+                            
+                            <li><a class="dropdown-item py-2" href="/admin/users"><i class="bi bi-person-gear me-1" style="color:var(--color-primary);"></i>Usuários</a></li>
+                            
+                            
+                            <li><a class="dropdown-item py-2" href="/admin/roles"><i class="bi bi-shield-lock me-1" style="color:var(--color-primary);"></i>Perfis & Permissões</a></li>
+                            
+                            
+                            <li><a class="dropdown-item py-2" href="/admin/audit"><i class="bi bi-journal-check me-1" style="color:var(--color-primary);"></i>Auditoria</a></li>
+                            
+                            
+                            <li><a class="dropdown-item py-2" href="/admin/backups"><i class="bi bi-archive me-1" style="color:var(--color-primary);"></i>Backups</a></li>
+                            
+                            
+                            <li><a class="dropdown-item py-2" href="/admin/integracoes"><i class="bi bi-diagram-3 me-1" style="color:var(--color-primary);"></i>Central de Integrações</a></li>
+                            
+                        </ul>
+                    </li>
+                    
+                </ul>
+
+            </div>
+
+            <!-- Right-side actions: Ajuda, usuário e alternador de tema -->
+            <div class="navbar-actions d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 navbar-quick-actions">
+                    <a href="/ajuda" class="btn btn-ghost btn-sm text-nowrap" title="Ajuda e Manual" data-bs-toggle="tooltip" data-bs-placement="bottom" aria-label="Ajuda e Manual">
+                        <i class="bi bi-question-circle" style="color:var(--color-primary);"></i>
+                        <span class="d-none d-lg-inline ms-1" style="color:var(--color-primary);">Ajuda</span>
+                    </a>
+                    
+                    <a href="/movements/new" class="btn btn-ghost btn-sm text-nowrap" style="color:var(--color-primary);border-color:var(--color-border);">
+                        <i class="bi bi-arrow-repeat"></i> Movimentar
+                    </a>
+                    
+                </div>
+                
+                <!-- User menu -->
+                <div class="dropdown">                    <button class="btn btn-ghost btn-sm dropdown-toggle d-flex align-items-center gap-2 text-nowrap" style="color:var(--color-primary);border-color:rgba(255,255,255,.15);" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle"></i>
+                    <span class="d-none d-md-inline">testuser</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                    <li><span class="dropdown-item-text small text-muted">
+                        Usuário de Teste<br>
+                        <strong>testuser</strong>
+                        <span class="badge badge-soft-primary ms-1" style="font-size:.65rem;">ADMIN</span>
+                        
+                    </span></li>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li>
+                        <a class="dropdown-item py-2" href="/profile/password">
+                            <i class="bi bi-key me-2" style="color:var(--color-primary);"></i>Alterar senha
+                        </a>
+                    </li>
+                    <li>
+                        <form method="post" action="/logout">
+                            <button type="submit" class="dropdown-item py-2" style="color:var(--color-danger);">
+                                <i class="bi bi-box-arrow-right me-2"></i>Sair
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+            
+
+                <!-- Dark mode toggle (always visible) -->
+                <button class="dark-toggle" id="darkToggle" onclick="toggleDarkMode()" title="Alternar modo escuro" aria-label="Alternar tema">
+                    <i class="bi bi-moon-stars" id="darkIcon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <!-- Skip-link (feature 069, P2): invisível até receber foco; primeiro
+         tab do usuário de teclado pula direto para o conteúdo principal. -->
+    <a href="#conteudo-principal" class="skip-link">Pular para o conteúdo</a>
+    <main id="conteudo-principal" class="container-fluid py-4 px-lg-5 mx-auto" style="max-width:90%;">
+        
+    
+    
+    
+    
+    
+    
+    
+
+        
+<!-- Hero Header -->
+<div class="detail-hero mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <span class="tag-badge" style="font-size:1rem;padding:.35rem .75rem;">PAT-07150</span>
+            <div>
+                <h4 class="fw-bold mb-1" style="letter-spacing:-.02em;">Notebook 071 Smoke</h4>
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+                    <span class="status-pill status-pill-DISPONIVEL">Disponível</span>
+                    <span class="badge badge-soft-gray small">Notebook</span>
+                    <span class="badge badge-soft-gray small">Condição: Excelente</span>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            
+            <a href="/assets/1/edit" class="btn btn-primary btn-sm">
+                <i class="bi bi-pencil-square"></i> Editar bem
+            </a>
+            
+            
+            
+            <a href="/movements/new?asset_id=1" class="btn btn-primary btn-sm">
+                <i class="bi bi-arrow-repeat"></i> Movimentar
+            </a>
+            
+            
+            <a href="/maintenances/new?asset_id=1" class="btn btn-ghost btn-sm">
+                <i class="bi bi-wrench"></i> Manutenção
+            </a>
+            
+            
+            
+            <a href="/assets" class="btn btn-ghost btn-sm">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column -->
+    <div class="col-12 col-lg-5">
+        <!-- Custody & Location -->
+        <div class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-geo-alt-fill"></i> Custódia & Localização Atual</div>
+
+            <div class="info-block">
+                <div class="info-block-label">Responsável / Colaborador</div>
+                
+                <div class="fw-semibold text-muted mt-1"><i class="bi bi-box me-1"></i>Disponível no Estoque / Sem Cautela</div>
+                
+            </div>
+
+            <div class="info-block">
+                <div class="info-block-label">Localização Física</div>
+                
+                <div class="info-block-value text-muted">Estoque Geral / Almoxarifado</div>
+                
+            </div>
+        </div>
+
+        <!-- Technical Specs -->
+        <div class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-cpu"></i> Ficha Técnica & Dados Fiscais</div>
+            <dl class="row mb-0 small">
+                <dt class="col-5 text-muted fw-normal">Marca / Modelo:</dt>
+                <dd class="col-7 fw-semibold" style="color:var(--c-text);">- / -</dd>
+                <dt class="col-5 text-muted fw-normal">Número de Série:</dt>
+                <dd class="col-7 font-monospace fw-bold">Não informado</dd>
+                <dt class="col-5 text-muted fw-normal">Data de Compra:</dt>
+                <dd class="col-7" style="color:var(--c-text);">13/10/2026</dd>
+                <dt class="col-5 text-muted fw-normal">Nota Fiscal (NF):</dt>
+                <dd class="col-7" style="color:var(--c-text);">-</dd>
+                <dt class="col-5 text-muted fw-normal">Fornecedor:</dt>
+                <dd class="col-7" style="color:var(--c-text);">-</dd>
+                <dt class="col-5 text-muted fw-normal">Garantia até:</dt>
+                <dd class="col-7" style="color:var(--c-text);">-</dd>
+            </dl>
+            
+            <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center text-muted" style="font-size:.74rem;">
+                <span><i class="bi bi-clock-history me-1"></i>Última atualização cadastral</span>
+                <span class="fw-semibold" style="color:var(--c-text);">13/10/2026 00:28</span>
+            </div>
+        </div>
+
+        
+
+        <!-- Depreciation -->
+        <div class="card p-4 mb-4">
+            <div class="section-divider mb-3"><i class="bi bi-cash-stack"></i> Contabilidade & Depreciação</div>
+            <div class="row g-2 text-center mb-3">
+                <div class="col-6 p-2 border-end">
+                    <div class="text-muted" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;">Valor de Aquisição</div>
+                    <div class="fw-bold fs-6 mt-1" style="color:var(--c-text);">R$ 0,00</div>
+                </div>
+                <div class="col-6 p-2">
+                    <div class="text-muted" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;">Valor Contábil Atual</div>
+                    <div class="fw-bold fs-6 mt-1" style="color:var(--green);">R$ 0,00</div>
+                </div>
+            </div>
+            <div class="small text-muted d-flex justify-content-between">
+                <span>Depreciação acumulada</span>
+                <span class="fw-bold">0.0% (0 meses)</span>
+            </div>
+            <div class="progress mt-2" style="height:5px;background:var(--c-border-light);">
+                <div class="progress-bar" role="progressbar" style="width:0.0%;background:var(--c-primary);"></div>
+            </div>
+        </div>
+
+        <!-- QR Code -->
+        <div class="card p-4 text-center">
+            <div class="section-divider mb-2 justify-content-center"><i class="bi bi-qr-code"></i> Etiqueta QR Code</div>
+            <div id="qrcode" class="d-flex justify-content-center my-2"></div>
+            <div class="font-monospace small fw-bold text-muted">PAT-07150</div>
+        </div>
+    </div>
+
+    <!-- Right Column: Timeline -->
+    <div class="col-12 col-lg-7">
+        
+        <div class="card p-4 mb-4" id="historico-cadastral">
+            <div class="section-divider mb-3"><i class="bi bi-journal-text"></i> Alterações cadastrais</div>
+            
+            
+            <ul class="list-unstyled mb-0">
+                
+                <li class="py-2 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <span class="small fw-semibold" style="color:var(--c-text);">
+                            <i class="bi bi-person-check me-1 text-muted"></i>testuser
+                        </span>
+                        <span class="text-muted" style="font-size:.74rem;">
+                            <i class="bi bi-calendar3 me-1"></i>13/10/2026 00:28
+                        </span>
+                    </div>
+                    <ul class="list-unstyled mb-0 mt-1 ps-1">
+                        
+                        <li class="small text-muted">
+                            Estado de Conservação:
+                            <span class="text-decoration-line-through">NOVO</span>
+                            <i class="bi bi-arrow-right mx-1"></i>
+                            <strong style="color:var(--c-text);">EXCELENTE</strong>
+                        </li>
+                        
+                        <li class="small text-muted">
+                            Nome do bem:
+                            <span class="text-decoration-line-through">Notebook 071 Smoke v2</span>
+                            <i class="bi bi-arrow-right mx-1"></i>
+                            <strong style="color:var(--c-text);">Notebook 071 Smoke</strong>
+                        </li>
+                        
+                    </ul>
+                </li>
+                
+                <li class="py-2 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <span class="small fw-semibold" style="color:var(--c-text);">
+                            <i class="bi bi-person-check me-1 text-muted"></i>testuser
+                        </span>
+                        <span class="text-muted" style="font-size:.74rem;">
+                            <i class="bi bi-calendar3 me-1"></i>13/10/2026 00:28
+                        </span>
+                    </div>
+                    <ul class="list-unstyled mb-0 mt-1 ps-1">
+                        
+                        <li class="small text-muted">
+                            Nome do bem:
+                            <span class="text-decoration-line-through">Notebook 071 Smoke</span>
+                            <i class="bi bi-arrow-right mx-1"></i>
+                            <strong style="color:var(--c-text);">Notebook 071 Smoke v2</strong>
+                        </li>
+                        
+                    </ul>
+                </li>
+                
+            </ul>
+            
+        </div>
+        <!-- fim do histórico cadastral -->
+
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+                <div>
+                    <h5 class="fw-bold mb-1" style="font-size:1rem;letter-spacing:-.01em;">
+                        <i class="bi bi-clock-history me-1" style="color:var(--c-primary-text);"></i>Trilha de Fluxo & Movimentações
+                    </h5>
+                    <span class="text-muted small">Histórico auditável e imutável — do evento mais recente (topo) para o mais antigo</span>
+                </div>
+                
+                <a href="/movements/new?asset_id=1" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg"></i> Nova Ação
+                </a>
+                
+            </div>
+
+            
+            <ul class="modern-timeline">
+                
+                <li class="modern-timeline-item">
+                    <div class="modern-timeline-dot">
+                        
+                        <i class="bi bi-shield-check"></i>
+                        
+                    </div>
+                    <div class="modern-timeline-card">
+                        
+                        <!-- Evento de Auditoria -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="badge badge-soft-info" style="font-size:.7rem;">Alteração</span>
+                                <span class="badge badge-soft-gray" style="font-size:.68rem;">Patrimônio</span>
+                                
+                                <span class="tag-badge" style="font-size:.68rem;">PAT-07150</span>
+                                
+                            </div>
+                            <span class="text-muted small" style="font-size:.74rem;">
+                                <i class="bi bi-calendar3 me-1"></i>13/10/2026 00:28
+                            </span>
+                        </div>
+                        
+                        
+                        
+                        <div class="fw-semibold small mb-1" style="color:var(--c-text);">Alteração cadastral — Dados do equipamento</div>
+                        
+                        
+                        <ul class="list-unstyled mb-0 small">
+                            
+                            <li class="text-muted">
+                                Estado de Conservação:
+                                <span class="text-decoration-line-through">NOVO</span>
+                                <i class="bi bi-arrow-right mx-1"></i>
+                                <strong style="color:var(--c-text);">EXCELENTE</strong>
+                            </li>
+                            
+                            <li class="text-muted">
+                                Nome do bem:
+                                <span class="text-decoration-line-through">Notebook 071 Smoke v2</span>
+                                <i class="bi bi-arrow-right mx-1"></i>
+                                <strong style="color:var(--c-text);">Notebook 071 Smoke</strong>
+                            </li>
+                            
+                        </ul>
+                        
+                        
+                        <details class="mt-1">
+                            <summary class="small text-muted">Ver detalhes técnicos</summary>
+                            
+                            <div class="small text-muted mt-1">Antes:</div>
+                            <pre class="small mb-2" style="white-space:pre-wrap;word-break:break-word;">{
+  "brand": null,
+  "category": "NOTEBOOK",
+  "condition": "NOVO",
+  "custodian_id": null,
+  "invoice_number": null,
+  "location_id": null,
+  "model": null,
+  "name": "Notebook 071 Smoke v2",
+  "notes": null,
+  "purchase_value": 0.0,
+  "serial_number": null,
+  "status": "DISPONIVEL",
+  "supplier": null,
+  "tag": "PAT-07150"
+}</pre>
+                            
+                            
+                            <div class="small text-muted mt-1">Depois:</div>
+                            <pre class="small mb-0" style="white-space:pre-wrap;word-break:break-word;">{
+  "brand": null,
+  "category": "NOTEBOOK",
+  "condition": "EXCELENTE",
+  "custodian_id": null,
+  "invoice_number": null,
+  "location_id": null,
+  "model": null,
+  "name": "Notebook 071 Smoke",
+  "notes": null,
+  "purchase_value": 0.0,
+  "serial_number": null,
+  "status": "DISPONIVEL",
+  "supplier": null,
+  "tag": "PAT-07150"
+}</pre>
+                            
+                        </details>
+                        
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top text-muted" style="font-size:.74rem;">
+                            <span>Registrado por: <strong style="color:var(--c-text);">testuser</strong></span>
+                        </div>
+                        
+                        
+                    </div>
+                </li>
+                
+                <li class="modern-timeline-item">
+                    <div class="modern-timeline-dot">
+                        
+                        <i class="bi bi-circle-fill"></i>
+                        
+                    </div>
+                    <div class="modern-timeline-card">
+                        
+                        <!-- Movimentação -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="badge badge-soft-primary" style="font-size:.7rem;">Atualização de Estado</span>
+                                
+                            </div>
+                            <span class="text-muted small" style="font-size:.74rem;">
+                                <i class="bi bi-calendar3 me-1"></i>13/10/2026 00:28
+                            </span>
+                        </div>
+
+                        <!-- Origin → Destination -->
+                        <div class="flow-card">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-12 col-md-5">
+                                    <div class="flow-label flow-label-origin">Origem</div>
+                                    
+                                    
+                                    <div class="flow-value"><i class="bi bi-geo-alt me-1 text-muted"></i>Estoque Geral</div>
+                                    
+                                    <div class="flow-sub">Nenhum</div>
+                                </div>
+                                <div class="col-12 col-md-2 text-center d-none d-md-block" style="color:var(--c-primary-text);font-size:1.2rem;">
+                                    <i class="bi bi-arrow-right"></i>
+                                </div>
+                                <div class="col-12 col-md-5">
+                                    <div class="flow-label flow-label-dest">Destino</div>
+                                    
+                                    
+                                    <div class="flow-value" style="color:var(--c-primary-text);font-weight:700;"><i class="bi bi-geo-alt-fill me-1"></i>Estoque Geral</div>
+                                    
+                                    <div class="flow-sub" style="color:var(--c-primary-text);">Almoxarifado / Estoque</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reason & Notes -->
+                        <div class="small mb-1" style="color:var(--c-text);">
+                            <strong>Motivo:</strong> Edição cadastral da ficha do bem (por Usuário de Teste)
+                        </div>
+                        
+                        <div class="small text-muted mb-1"><em>Estado de conservação alterado de Novo para Excelente.</em></div>
+                        
+
+                        <!-- Footer -->
+                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top text-muted" style="font-size:.74rem;">
+                            <span>Registrado por: <strong style="color:var(--c-text);">Usuário de Teste</strong></span>
+                            
+                        </div>
+                        
+                    </div>
+                </li>
+                
+                <li class="modern-timeline-item">
+                    <div class="modern-timeline-dot">
+                        
+                        <i class="bi bi-shield-check"></i>
+                        
+                    </div>
+                    <div class="modern-timeline-card">
+                        
+                        <!-- Evento de Auditoria -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="badge badge-soft-info" style="font-size:.7rem;">Alteração</span>
+                                <span class="badge badge-soft-gray" style="font-size:.68rem;">Patrimônio</span>
+                                
+                                <span class="tag-badge" style="font-size:.68rem;">PAT-07150</span>
+                                
+                            </div>
+                            <span class="text-muted small" style="font-size:.74rem;">
+                                <i class="bi bi-calendar3 me-1"></i>13/10/2026 00:28
+                            </span>
+                        </div>
+                        
+                        
+                        
+                        <div class="fw-semibold small mb-1" style="color:var(--c-text);">Alteração cadastral — Nome do bem</div>
+                        
+                        
+                        <ul class="list-unstyled mb-0 small">
+                            
+                            <li class="text-muted">
+                                Nome do bem:
+                                <span class="text-decoration-line-through">Notebook 071 Smoke</span>
+                                <i class="bi bi-arrow-right mx-1"></i>
+                                <strong style="color:var(--c-text);">Notebook 071 Smoke v2</strong>
+                            </li>
+                            
+                        </ul>
+                        
+                        
+                        <details class="mt-1">
+                            <summary class="small text-muted">Ver detalhes técnicos</summary>
+                            
+                            <div class="small text-muted mt-1">Antes:</div>
+                            <pre class="small mb-2" style="white-space:pre-wrap;word-break:break-word;">{
+  "brand": null,
+  "category": "NOTEBOOK",
+  "condition": "NOVO",
+  "custodian_id": null,
+  "invoice_number": null,
+  "location_id": null,
+  "model": null,
+  "name": "Notebook 071 Smoke",
+  "notes": null,
+  "purchase_value": 0.0,
+  "serial_number": null,
+  "status": "DISPONIVEL",
+  "supplier": null,
+  "tag": "PAT-07150"
+}</pre>
+                            
+                            
+                            <div class="small text-muted mt-1">Depois:</div>
+                            <pre class="small mb-0" style="white-space:pre-wrap;word-break:break-word;">{
+  "brand": null,
+  "category": "NOTEBOOK",
+  "condition": "NOVO",
+  "custodian_id": null,
+  "invoice_number": null,
+  "location_id": null,
+  "model": null,
+  "name": "Notebook 071 Smoke v2",
+  "notes": null,
+  "purchase_value": 0.0,
+  "serial_number": null,
+  "status": "DISPONIVEL",
+  "supplier": null,
+  "tag": "PAT-07150"
+}</pre>
+                            
+                        </details>
+                        
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top text-muted" style="font-size:.74rem;">
+                            <span>Registrado por: <strong style="color:var(--c-text);">testuser</strong></span>
+                        </div>
+                        
+                        
+                    </div>
+                </li>
+                
+                <li class="modern-timeline-item">
+                    <div class="modern-timeline-dot">
+                        
+                        <i class="bi bi-circle-fill"></i>
+                        
+                    </div>
+                    <div class="modern-timeline-card">
+                        
+                        <!-- Movimentação -->
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="badge badge-soft-primary" style="font-size:.7rem;">Entrada por Aquisição</span>
+                                
+                                <span class="tag-badge" style="font-size:.68rem;">TR-INIC-2026-0001</span>
+                                
+                            </div>
+                            <span class="text-muted small" style="font-size:.74rem;">
+                                <i class="bi bi-calendar3 me-1"></i>13/10/2026 00:28
+                            </span>
+                        </div>
+
+                        <!-- Origin → Destination -->
+                        <div class="flow-card">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-12 col-md-5">
+                                    <div class="flow-label flow-label-origin">Origem</div>
+                                    
+                                    
+                                    <div class="flow-value"><i class="bi bi-geo-alt me-1 text-muted"></i>Fornecedor / Entrada Inicial</div>
+                                    
+                                    <div class="flow-sub">Almoxarifado Geral</div>
+                                </div>
+                                <div class="col-12 col-md-2 text-center d-none d-md-block" style="color:var(--c-primary-text);font-size:1.2rem;">
+                                    <i class="bi bi-arrow-right"></i>
+                                </div>
+                                <div class="col-12 col-md-5">
+                                    <div class="flow-label flow-label-dest">Destino</div>
+                                    
+                                    
+                                    <div class="flow-value" style="color:var(--c-primary-text);font-weight:700;"><i class="bi bi-geo-alt-fill me-1"></i>Estoque Central</div>
+                                    
+                                    <div class="flow-sub" style="color:var(--c-primary-text);">Almoxarifado / Estoque</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reason & Notes -->
+                        <div class="small mb-1" style="color:var(--c-text);">
+                            <strong>Motivo:</strong> Tombamento inicial e incorporação ao patrimônio (NF: N/A)
+                        </div>
+                        
+                        <div class="small text-muted mb-1"><em>Registro automático de cadastro inicial do bem.</em></div>
+                        
+
+                        <!-- Footer -->
+                        <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top text-muted" style="font-size:.74rem;">
+                            <span>Registrado por: <strong style="color:var(--c-text);">Sistema</strong></span>
+                            
+                            <a href="/movements/1/term" class="btn btn-ghost btn-sm py-1 px-2" target="">
+                                <i class="bi bi-printer me-1"></i> Imprimir Termo
+                            </a>
+                            
+                        </div>
+                        
+                    </div>
+                </li>
+                
+            </ul>
+            
+        </div>
+    </div>
+</div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 text-muted border-top bg-white mt-5 no-print" style="background:var(--c-surface);">
+        <div class="small">
+            <span class="fw-semibold" style="color:var(--c-text);">SisPatrimônio Pro</span> v1.2.0 &bull; © Instituto de Previdência do Municipio de João Pessoa. &copy; 2026
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="/static/vendor/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    <!-- Inicializa tooltips (ajuda contextual: data-bs-toggle="tooltip") -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+                new bootstrap.Tooltip(el);
+            });
+        });
+    </script>
+    
+<script>
+    new QRCode(document.getElementById("qrcode"), {
+        text: window.location.origin + "/assets/1",
+        width: 100,
+        height: 100,
+        colorDark: "#111827",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+    });
+</script>
+
+    <!-- Feature 033/057: registro do SW em TODAS as páginas (incondicional).
+         Escopo "/" + manifest permitem instalar o PWA de qualquer tela; o SW é
+         network-only fora da allowlist (FR-036) — nada novo é cacheado. -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function () { /* SW é opcional */ });
+            });
+        }
+    </script>
+</body>
+</html>

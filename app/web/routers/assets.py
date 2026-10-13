@@ -502,6 +502,17 @@ def view_asset_detail(request: Request, asset_id: int, db: Session = Depends(get
             )
             if _resumo is not None:
                 _item["audit_summary"] = _resumo
+    # Feature 071 (FR-001/FR-002) — a trilha deixa de APRESENTAR eventos de
+    # alteração cadastral: o painel "Alterações cadastrais" (#historico-cadastral)
+    # é a seção exclusiva desse histórico (spec §3 R-C1/R-C3, US1). Classificação
+    # pela ação (mesmo campo do painel) no predicado do service; itens não
+    # classificáveis permanecem na trilha (fallback R-C2/US3). Filtragem só na
+    # camada de apresentação: `get_timeline_for_asset` e a API /timeline
+    # continuam intactos (contratos C1/C2 — Constitution II/IV/IX).
+    timeline = [
+        _item for _item in timeline
+        if not AssetService.is_cadastral_audit(_item)
+    ]
     deprec = AssetService.calculate_depreciation(asset)
 
     # Inventário: inventários abertos (não encerrados) para conferência via QR
