@@ -16,6 +16,7 @@ import math
 import os
 import subprocess
 import sys
+import tempfile
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -30,8 +31,17 @@ BLUE = (88, 166, 255)
 GRAY = (139, 148, 158)
 DIM = (48, 55, 62)
 
-MONO = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
-MONO_B = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
+def _fonte(cands):
+    return next((p for p in cands if os.path.exists(p)), cands[0])
+
+
+MONO = _fonte(["/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+               "C:/Windows/Fonts/DejaVuSansMono.ttf",
+               "C:/Windows/Fonts/consola.ttf"])
+MONO_B = _fonte(["/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
+                 "C:/Windows/Fonts/DejaVuSansMono-Bold.ttf",
+                 "C:/Windows/Fonts/consolab.ttf"])
+LOG = os.path.join(tempfile.gettempdir(), "sispat-intro-ffmpeg.log")
 
 PROMPT = "root@sispat-prod:~# "
 COMANDO = "bash install.sh"
@@ -141,7 +151,7 @@ def main():
          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20",
          "-preset", "medium", "-movflags", "+faststart", out],
         stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-        stderr=open("/tmp/intro-ffmpeg.log", "w"))
+        stderr=open(LOG, "w"))
 
     n_frames = int(DUR * FPS)
     for i in range(n_frames):

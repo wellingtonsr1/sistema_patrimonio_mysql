@@ -13,6 +13,7 @@ para costurar com o terminal PowerShell do vídeo Windows).
 import os
 import subprocess
 import sys
+import tempfile
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -35,9 +36,17 @@ BLUE = (88, 166, 255)
 GREEN = (63, 185, 80)
 BG = (13, 17, 23)
 
-F_TAB = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-F_TAB_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-F_MONO = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+def _fonte(cands):
+    return next((p for p in cands if os.path.exists(p)), cands[0])
+
+
+F_TAB = _fonte(["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "C:/Windows/Fonts/DejaVuSans.ttf"])
+F_TAB_B = _fonte(["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                  "C:/Windows/Fonts/DejaVuSans-Bold.ttf"])
+F_MONO = _fonte(["/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+                 "C:/Windows/Fonts/DejaVuSansMono.ttf"])
+LOG = os.path.join(tempfile.gettempdir(), "sispat-scene-ffmpeg.log")
 
 DEFAULT_HOST = "10.20.30.10:8000"
 
@@ -141,7 +150,7 @@ def main():
          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20",
          "-preset", "medium", "-movflags", "+faststart", out],
         stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-        stderr=open("/tmp/scene-ffmpeg.log", "w"))
+        stderr=open(LOG, "w"))
 
     for fi in range(int(DUR * FPS)):
         t = fi / FPS
@@ -273,7 +282,7 @@ def main():
     proc.stdin.close()
     proc.wait()
     if proc.returncode != 0:
-        print(open("/tmp/scene-ffmpeg.log").read()[-2000:], file=sys.stderr)
+        print(open(LOG).read()[-2000:], file=sys.stderr)
         sys.exit(1)
     print(f"cena do navegador: {out} | {int(DUR * FPS)} frames | "
           f"{W}x{H} | {DUR}s @ {FPS}fps")

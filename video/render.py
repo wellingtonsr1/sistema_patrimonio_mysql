@@ -7,14 +7,26 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 
 import pyte
 from PIL import Image, ImageDraw, ImageFont
 
-FONTS = {
-    False: "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
-    True: "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
-}
+def _fontes():
+    """DejaVu Mono (Linux); fallback DejaVu/Consolas já presentes no Windows."""
+    comuns = ["/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+              "C:/Windows/Fonts/DejaVuSansMono.ttf",
+              "C:/Windows/Fonts/consola.ttf"]
+    negrito = ["/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf",
+               "C:/Windows/Fonts/DejaVuSansMono-Bold.ttf",
+               "C:/Windows/Fonts/consolab.ttf"]
+    f = next((p for p in comuns if os.path.exists(p)), comuns[0])
+    b = next((p for p in negrito if os.path.exists(p)), negrito[0])
+    return {False: f, True: b}
+
+
+FONTS = _fontes()
+LOG = os.path.join(tempfile.gettempdir(), "sispat-render-ffmpeg.log")
 FONT_SIZE = 18
 LINE_H = 22
 PAD = 14
@@ -142,7 +154,7 @@ def main():
          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20",
          "-preset", "medium", "-movflags", "+faststart", out],
         stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-        stderr=open("/tmp/sispat-demo/ffmpeg.log", "w"))
+        stderr=open(LOG, "w"))
 
     def render_frame():
         img = Image.new("RGB", (W, H), BG)
@@ -211,14 +223,12 @@ def main():
         try:
             proc.stdin.write(render_frame())
         except BrokenPipeError:
-            print(open("/tmp/sispat-demo/ffmpeg.log").read()[-3000:],
-                  file=sys.stderr)
+            print(open(LOG).read()[-3000:], file=sys.stderr)
             sys.exit(1)
     proc.stdin.close()
     proc.wait()
     if proc.returncode != 0:
-        print(open("/tmp/sispat-demo/ffmpeg.log").read()[-3000:],
-              file=sys.stderr)
+        print(open(LOG).read()[-3000:], file=sys.stderr)
         sys.exit(1)
     print(f"ok: {out} | {n_frames} frames | {W}x{H} | {duration:.1f}s | fps={fps}")
 

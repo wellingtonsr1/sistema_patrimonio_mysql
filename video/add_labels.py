@@ -16,9 +16,11 @@ ele é dobrado no 16º para a sequência terminar em 16/16.
 Uso: python3 add_labels.py <video_entrada.mp4> <video_saida.mp4>
 """
 import json
+import os
 import re
 import subprocess
 import sys
+import tempfile
 
 import imageio_ffmpeg as iff
 from PIL import Image, ImageDraw, ImageFont
@@ -34,7 +36,14 @@ AZUL = (88, 166, 255)
 CHIP_BG = (16, 20, 26, 225)
 TEXTO = (240, 246, 252, 255)
 
-F_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+def _fonte(cands):
+    return next((p for p in cands if os.path.exists(p)), cands[0])
+
+
+F_BOLD = _fonte(["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                 "C:/Windows/Fonts/DejaVuSans-Bold.ttf",
+                 "C:/Windows/Fonts/consolab.ttf"])
+LOG = os.path.join(tempfile.gettempdir(), "sispat-labels-ffmpeg.log")
 FADE = 0.28           # fade máximo (reduzido em chips curtos)
 MIN_DUR = 0.18        # duração mínima de um chip de etapa
 NOME_COMPLETO = 0.9   # abaixo disso, chip mostra só "Etapa N/16"
@@ -52,13 +61,14 @@ def marcos_do_cast(cast):
     passos, buf, vistos = [], "", set()
     for tt, s in ev:
         buf += s
-        if t_senha is None and re.search(r"Senha do banco \(m[íi]n\. 12 caracteres", buf):
-            t_senha = tt
-        if t_verif is None and re.search(
-                r"(systemctl is-active sispatrimoniopro|Get-ScheduledTask -TaskName)", buf):
-            t_verif = tt
+        if t_senha is None:
+            t_senha = tt if re.search(r"Senha do banco \(m[íi]n\. 12 caracteres", buf) else None
+        if t_verif is None:
+            t_verif = (tt if re.search(
+                r"(systemctl is-active \S+|Get-ScheduledTask -TaskName)",
+                buf) else None)
         # cada cabeçalho tem texto único: guarda o PRIMEIRO instante em que aparece
-        for m in re.finditer(r"(?:──|--) \[\d+/16\] [^\r\n\x1b]+", buf):
+        for m in re.finditer(r"(?:──|--) \[\d+/\d+\] [^\r\n\x1b]+", buf):
             txt = m.group(0)
             if txt not in vistos:
                 vistos.add(txt)
@@ -66,20 +76,21 @@ def marcos_do_cast(cast):
     return t_senha, t_verif, ev[-1][0], passos
 
 
-def monta_legendas(cast, offset, scene_start=None, url_navegador=URL_LINUX):
+def monta_legendas(cast, offset, scene_start=None, url_navegador=URL_LINUX,
+                   total=TOTAL_ETAPAS, basicos=True, txt_resumo=None):
     t_senha, t_verif, t_end, bruto = marcos_do_cast(cast)
     t_senha = t_senha if t_senha is not None else 5.42
     t_verif = t_verif if t_verif is not None else 54.06
 
     passos = []
     for i, (txt, tt) in enumerate(bruto):
-        m = re.match(r"(?:──|--) \[(\d+)/16\] (.*)", txt)
-        num, nome = int(m.group(1)), m.group(2).strip()
+        m = re.match(r"(?:──|--) \[(\d+)/(\d+)\] (.*)", txt)
+        num, nome = int(m.group(1)), m.group(3).strip()
         fim = bruto[i + 1][1] if i + 1 < len(bruto) else t_verif
         passos.append([num, nome, tt, fim])
 
     # dobra cabeçalhos acima de 16 no anterior (sequência termina em 16/16)
-    while passos and passos[-1][0] > TOTAL_ETAPAS:
+    while passos and passos[-1][0] > total:
         ultimo = passos.pop()
         if passos:
             prev = passos[-1]
@@ -95,21 +106,24 @@ def monta_legendas(cast, offset, scene_start=None, url_navegador=URL_LINUX):
         chips.append((inicio, fim, num, nome))
         fim_anterior = fim
 
-    rotulos = [
-        (1.0 + offset, t_senha + offset,
-         "Pré-requisitos · root, Ubuntu, systemd, apt"
-         if "linux" in cast else "Pré-requisitos · Administrador, Python, Git, winget",
-         VERDE),
-        (t_senha + offset, passos[0][2] + offset,
-         "Credenciais · senha digitada sem eco", VERDE),
-    ]
+    rotulos = []
+    if basicos:
+        rotulos += [
+            (1.0 + offset, t_senha + offset,
+             "Pré-requisitos · root, Ubuntu, systemd, apt"
+             if "linux" in cast else "Pré-requisitos · Administrador, Python, Git, winget",
+             VERDE),
+            (t_senha + offset, passos[0][2] + offset,
+             "Credenciais · senha digitada sem eco", VERDE),
+        ]
     for inicio, fim, num, nome in chips:
-        titulo = (f"Etapa {num}/{TOTAL_ETAPAS}" if fim - inicio < NOME_COMPLETO
-                  else f"Etapa {num}/{TOTAL_ETAPAS} · {nome}")
+        titulo = (f"Etapa {num}/{total}" if fim - inicio < NOME_COMPLETO
+                  else f"Etapa {num}/{total} · {nome}")
         rotulos.append((inicio + offset, fim + offset, titulo, VERDE))
 
     rotulos.append((max(t_verif, fim_anterior) + offset, t_end + offset,
-                    "Resumo final e verificação · health + tarefa/serviço", VERDE))
+                    txt_resumo or "Resumo final e verificação · health + tarefa/serviço",
+                    VERDE))
 
     # cena do navegador (deslocamentos relativos ao início da cena)
     if scene_start is not None:
@@ -163,6 +177,7 @@ def main():
 
     cast, offset = CAST_PADRAO, OFFSET_PADRAO
     scene_start, url_nav = SCENE_LINUX, URL_LINUX
+    total, basicos, txt_resumo = TOTAL_ETAPAS, True, None
     args = sys.argv[3:]
     i = 0
     while i < len(args):
@@ -176,10 +191,17 @@ def main():
             url_nav = args[i + 1]; i += 2
         elif args[i] == "--sem-navegador":
             scene_start = None; i += 1
+        elif args[i] == "--total":
+            total = int(args[i + 1]); i += 2
+        elif args[i] == "--sem-basicos":
+            basicos = False; i += 1
+        elif args[i] == "--rotulo-resumo":
+            txt_resumo = args[i + 1]; i += 2
         else:
             i += 1
 
-    rotulos = monta_legendas(cast, offset, scene_start, url_nav)
+    rotulos = monta_legendas(cast, offset, scene_start, url_nav,
+                             total=total, basicos=basicos, txt_resumo=txt_resumo)
     for r in rotulos:
         print(f"  {r[0]:6.2f} → {r[1]:6.2f}  {r[2]}")
 
@@ -195,7 +217,7 @@ def main():
          "-map", "[o]","-c:v", "libx264", "-crf", "20", "-preset", "medium",
          "-movflags", "+faststart", saida],
         stdin=subprocess.PIPE, stdout=subprocess.DEVNULL,
-        stderr=open("/tmp/labels-ffmpeg.log", "w"))
+        stderr=open(LOG, "w"))
 
     vazio = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     bytes_vazios = vazio.tobytes()
@@ -227,7 +249,7 @@ def main():
         proc.wait()
 
     if proc.returncode != 0:
-        print(open("/tmp/labels-ffmpeg.log").read()[-2500:], file=sys.stderr)
+        print(open(LOG).read()[-2500:], file=sys.stderr)
         sys.exit(1)
     print(f"legendas aplicadas: {saida} | {escritos} frames | "
           f"{len(rotulos)} rótulos")
