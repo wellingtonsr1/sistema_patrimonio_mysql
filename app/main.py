@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.exc import OperationalError
 
 from app.config import APP_NAME, APP_DESCRIPTION, APP_VERSION
 from app.database import init_db, SessionLocal
@@ -148,6 +149,43 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             status_code=404,
         )
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+# =====================================================================
+# COR-05 (`specs/072-pentest-auditoria-adversarial` — SEC-004/EV-027):
+# colisão otimista/lock (MariaDB 1020/1213) NÃO
+# sobe como 500 cru — mapeada para 409 com `Retry-After` e corpo
+# genérico (sem DSN/senha/SQL do driver, alinhado ao que TC-45 provou
+# ser seguro). Outros OperationalErrors SEMPRE RELANÇADOS para o
+# comportamento default/COR-06 — nada é silenciado.
+# =====================================================================
+_LOCK_CODES_CONCORRENCIA = frozenset({1020, 1213})
+
+
+@app.exception_handler(OperationalError)
+async def operational_error_handler(request: Request, exc: OperationalError):
+    """Mapeia lock de concorrência (1020/1213) → 409; relança o restante."""
+    orig = getattr(exc, "orig", None)
+    codigo = None
+    if orig is not None and orig.args:
+        primeiro = orig.args[0]
+        if isinstance(primeiro, int):
+            codigo = primeiro
+    if codigo not in _LOCK_CODES_CONCORRENCIA:
+        # Não é lockância: relança — nenhum erro do driver é engolido aqui.
+        raise exc
+    logger.warning(
+        "Concorrência detectada (MariaDB %s) em %s — resposta 409",
+        codigo, request.url.path,
+    )
+    return JSONResponse(
+        status_code=409,
+        content={
+            "detail": "Conflito de escrita sob concorrência (registro foi "
+                      "atualizado por outra operação). Tente novamente."
+        },
+        headers={"Retry-After": "1"},
+    )
 
 
 @app.get("/health", tags=["Sistema"])
