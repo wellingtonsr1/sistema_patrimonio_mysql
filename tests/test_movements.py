@@ -814,3 +814,136 @@ def test_feature_065_term_generation_preserves_authenticated_operator(client, db
     term_data = term_resp.json()
     assert term_data["operator"] == mv.operator_name
     assert term_data["operator"] != "Nome Ignorado"
+
+
+# ============================================================================
+# COR-01 / SEC-005 — baixa definitiva exige permissão dedicada
+# (`movimentacao.baixar`), embutida como teste da ficha (FR-038).
+# Precondições dos cenários: o perfil Almoxarifado (padrão) tem
+# `movimentacao.criar` e NÃO tem `movimentacao.baixar`.
+# ============================================================================
+# Corrige imports finais localmente sem afetar os do topo
+def _cor01_setup(db_session):
+    """Perfis padrão + bem disponível + usuário do perfil Almoxarifado."""
+    from app.models.role import Role
+    from app.models.user_role import UserRole
+    from app.services.auth_service import create_user
+    from app.services.permission_service import ensure_default_roles
+
+    ensure_default_roles(db_session)
+
+    loc = LocationService.create(db_session, LocationCreate(
+        name="Almox COR-01", branch="Matriz", department="Estoque"
+    ))
+    asset = AssetService.create(db_session, AssetCreate(
+        tag="PAT-99077",
+        name="Impressora do Estoque",
+        category=AssetCategory.EQUIPMENT,
+        initial_location_id=loc.id,
+    ))
+
+    user = create_user(
+        db_session,
+        username="almox_cor01",
+        password="Alm#ox2026pass",
+        full_name="Almoxarifado COR-01",
+    )
+    role = db_session.query(Role).filter_by(name="Almoxarifado").first()
+    db_session.add(UserRole(user_id=user.id, role_id=role.id))
+    db_session.commit()
+    return asset, user
+
+
+def _cor01_login(client, db_session):
+    """Re-loga o `client` como o usuário do perfil Almoxarifado (sessão nova).
+    O cookie `session` é sobrescrito ao chamar o login, encerrando a sessão
+    do usuário admin do fixture."""
+    resp = client.post(
+        "/api/v1/auth/login",
+        data={"username": "almox_cor01", "password": "Alm#ox2026pass"},
+    )
+    assert resp.status_code == 200, resp.text
+
+
+def test_write_off_requires_dedicated_permission_api(db_session, client):
+    """Perfil Almoxarifado SEM `movimentacao.baixar` recebe 403 na baixa
+    definitiva via API; o bem permanece DISPONÍVEL; a trilha registra
+    ACESSO_NEGADO (mesmo padrão do `require_permission`)."""
+    asset, _user = _cor01_setup(db_session)
+    _cor01_login(client, db_session)
+
+    resp = client.post("/api/v1/movements", json={
+        "asset_id": asset.id,
+        "movement_type": "BAIXA_DESCARTE",
+        "reason": "COR-01: perfil de estoque tentando baixa definitiva",
+    })
+    assert resp.status_code == 403, resp.text
+
+    db_session.refresh(asset)
+    assert asset.status != AssetStatus.WRITTEN_OFF
+
+    from app.models.audit_log import AuditLog
+    negado = (db_session.query(AuditLog)
+              .filter(AuditLog.action == "ACESSO_NEGADO",
+                      AuditLog.resource == "movimentacao.baixar")
+              .first())
+    assert negado is not None
+
+    # Nenhuma baixa gravada (nem movimento residual)
+    assert (db_session.query(Movement)
+            .filter(Movement.asset_id == asset.id,
+                    Movement.movement_type == MovementType.WRITE_OFF)
+            .first()) is None
+
+
+def test_write_off_via_form_web_requires_dedicated_permission(db_session, client):
+    """Mesma guarda na rota WEB do formulário (403 idêntico à API)."""
+    asset, _user = _cor01_setup(db_session)
+    _cor01_login(client, db_session)
+
+    resp = client.post(f"/movements/new", data={
+        "asset_id": str(asset.id),
+        "movement_type": "BAIXA_DESCARTE",
+        "reason": "COR-01: tentativa de baixa pelo formulário web",
+    })
+    assert resp.status_code == 403, resp.text
+
+    db_session.refresh(asset)
+    assert asset.status != AssetStatus.WRITTEN_OFF
+
+
+def test_write_off_allowed_with_dedicated_permission(db_session, client):
+    """Usuário com perfil que POSSUI `movimentacao.baixar` (Administrador,
+    sem bypass `is_admin`) executa a baixa → 201 e bem BAIXADO."""
+    from app.services.auth_service import create_user
+    from app.models.role import Role
+    from app.models.user_role import UserRole
+
+    asset, _almox = _cor01_setup(db_session)
+
+    admin_user = create_user(
+        db_session,
+        username="gestor_baixa_cor01",
+        password="Adm#in2026pass",
+        full_name="Administrador COR-01",
+        is_admin=False,
+    )
+    role = db_session.query(Role).filter_by(name="Administrador").first()
+    db_session.add(UserRole(user_id=admin_user.id, role_id=role.id))
+    db_session.commit()
+
+    resp = client.post(
+        "/api/v1/auth/login",
+        data={"username": "gestor_baixa_cor01", "password": "Adm#in2026pass"},
+    )
+    assert resp.status_code == 200, resp.text
+
+    resp = client.post("/api/v1/movements", json={
+        "asset_id": asset.id,
+        "movement_type": "BAIXA_DESCARTE",
+        "reason": "COR-01: baixa legítima por portador da permissão dedicada",
+    })
+    assert resp.status_code == 201, resp.text
+
+    db_session.refresh(asset)
+    assert asset.status == AssetStatus.WRITTEN_OFF

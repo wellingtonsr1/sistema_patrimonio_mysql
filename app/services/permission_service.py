@@ -36,7 +36,8 @@ PERMISSION_CATALOG: List[dict] = [
 
     # --- Movimentação ---
     {"name": "movimentacao.visualizar", "module": "Movimentação", "label": "Visualizar movimentações", "description": "Consultar histórico, trilha de auditoria de fluxo e termos."},
-    {"name": "movimentacao.criar", "module": "Movimentação", "label": "Registrar movimentação", "description": "Alocar, transferir, devolver, enviar/retornar de manutenção e dar baixa."},
+    {"name": "movimentacao.criar", "module": "Movimentação", "label": "Registrar movimentação", "description": "Alocar, transferir, devolver e enviar/retornar de manutenção."},
+    {"name": "movimentacao.baixar", "module": "Movimentação", "label": "Registrar baixa de patrimônio", "description": "Executar baixa definitiva de bens (descarte) — operação de efeito permanente."},
     {"name": "movimentacao.editar", "module": "Movimentação", "label": "Editar movimentação", "description": "Corrigir dados de movimentações registradas."},
     {"name": "movimentacao.cancelar", "module": "Movimentação", "label": "Cancelar movimentação", "description": "Cancelar movimentação ou termo gerado (reservado)."},
 

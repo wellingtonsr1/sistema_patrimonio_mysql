@@ -14,6 +14,21 @@ import json as json_lib
 from app.schemas.movement import MovementCreate, MovementFilter
 from app.config import COMPANY_NAME, COMPANY_CNPJ, COMPANY_ADDRESS
 
+# ============================================================================
+# SEC-005 / COR-01 — baixa definitiva (WRITE_OFF) é operação de efeito
+# permanente sobre o acervo e tem permissão DEDICADA (`movimentacao.baixar`).
+# Esta é a fonte central do conjunto de tipos e do nome da permissão: quem
+# expõe WRITE_OFF por HTTP (app/api/movements_api.py e
+# app/web/routers/movements.py) é OBRIGADO a verificar a permissão antes de
+# chamar create_movement. Caminhos internos NUNCA produzem baixa:
+# resolve_movement_type (pura) só decide ALLOCATION/TRANSFER (invariante do
+# Feature 029 — CSV/lote); manutenção gera ENVIO/RETORNO; o CLI é operação
+# local do operador do sistema (mesmo nível de confiança do acesso direto
+# ao banco, documentado no registro da spec de correção).
+# ============================================================================
+WRITE_OFF_TYPES = frozenset({MovementType.WRITE_OFF})
+WRITE_OFF_PERMISSION = "movimentacao.baixar"
+
 
 def _onedoc_notifiable_types():
     """Tipos elegíveis para o 1Doc (Q1) — carregado preguiçosamente para
@@ -66,6 +81,11 @@ class MovementService:
             return None
         # custódia preservada: só resta mudança de local → transferência
         return MovementType.TRANSFER
+
+        # Note acima: nenhuma posição da matriz de decisão emite baixa —
+        # invariante COR-01 (WRITE_OFF_TYPES nunca se materializa por carga
+        # CSV; a única entrada de baixa é create_movement, com a permissão
+        # verificada na rota HTTP que atende o usuário final).
 
     @staticmethod
     def create_movement(

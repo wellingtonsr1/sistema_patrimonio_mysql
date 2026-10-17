@@ -44,14 +44,28 @@ def test_infra_migrations_dir_completo():
     assert len(revisoes) >= 2, "esperado baseline + primeira revisão real"
 
 
+def _revisoes_arquivo():
+    """Revisões presentes no disco (arquivos de revisão, sem __pycache__)."""
+    return sorted(
+        p.name for p in (MIGRATIONS_DIR / "versions").glob("*.py")
+        if not p.name.startswith("__")
+    )
+
+
 def test_infra_cadeia_revisoes_encadeada_e_unica():
     sd = _script_directory()
     heads = tuple(sd.get_heads())
-    assert heads == ("0002",), f"head inesperado: {heads}"
+    # Cadeia ÚNICA — a cabeça deve ser exatamente a última revisão numerada
+    # no disco (COR-01 adicionou 0003; a estrutura sistematiza a regra para
+    # que novas revisões não precisem editar este teste).
+    esperado_head = sorted(p.split("_")[0] for p in _revisoes_arquivo())[-1]
+    assert heads == (esperado_head,), f"head inesperado: {heads}"
     base = sd.get_base()  # retorna str na API atual
     assert base == "0001"
     todas = list(sd.walk_revisions())
-    assert len(todas) == 2, f"esperadas exatamente 2 revisões, há {len(todas)}"
+    assert len(todas) == len(_revisoes_arquivo()), (
+        f"esperadas {len(_revisoes_arquivo())} revisões (1 por arquivo), há {len(todas)}"
+    )
 
 
 def test_infra_revisoes_definem_upgrade_e_downgrade():
@@ -165,13 +179,14 @@ def test_condicional_upgrade_head_em_banco_mariadb():
     engine = create_engine(url)
     with engine.connect() as conn:
         versao = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-    assert versao == "0002"
+    # COR-01: a cadeia atual termina em 0003 (permissão movimentacao.baixar)
+    assert versao == "0003", f"head esperado 0003, obtido {versao}"
 
     # Idempotência: segunda execução é no-op
     command.upgrade(cfg, "head")
     with engine.connect() as conn:
         versao2 = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
-    assert versao2 == "0002"
+    assert versao2 == "0003", f"segunda passada deve ser no-op, obtido {versao2}"
 
     # downgrade -1 → upgrade +1 (cadeia saudável)
     command.downgrade(cfg, "-1")

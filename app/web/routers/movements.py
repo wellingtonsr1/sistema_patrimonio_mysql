@@ -18,8 +18,9 @@ from app.schemas.movement import MovementCreate, MovementFilter
 from app.services.asset_service import AssetService
 from app.services.custodian_service import CustodianService
 from app.services.location_service import LocationService
-from app.services.movement_service import MovementService
-from app.services.audit_service import ACTION_MOVEMENT, write_change_audit
+from app.services.movement_service import MovementService, WRITE_OFF_TYPES, WRITE_OFF_PERMISSION
+from app.services.permission_service import user_has_permission
+from app.services.audit_service import ACTION_MOVEMENT, write_change_audit, write_audit, ACTION_ACCESS_DENIED, RESULT_DENIED
 from app.utils.pagination import DEFAULT_PAGE_SIZE, offset_for, page_meta
 from app.web.routers.templates_env import templates
 
@@ -119,6 +120,36 @@ def create_movement_form(
     db: Session = Depends(get_db)
 ):
     cond_enum = AssetCondition(new_condition) if new_condition and new_condition in [e.value for e in AssetCondition] else None
+
+    # ==================================================================
+    # COR-01 / SEC-005 — guarda por tipo: baixa definitiva (WRITE_OFF)
+    # exige a permissão dedicada `movimentacao.baixar`, além da
+    # `movimentacao.criar` já exigida pelo dependency da rota. Negação
+    # registrada na trilha na mesma forma do `require_permission`.
+    # ==================================================================
+    m_type_form = MovementType(movement_type)
+    if m_type_form in WRITE_OFF_TYPES:
+        user = getattr(request.state, "user", None)
+        if not user_has_permission(db, user, WRITE_OFF_PERMISSION):
+            write_audit(
+                db,
+                user=user,
+                action=ACTION_ACCESS_DENIED,
+                module=WRITE_OFF_PERMISSION.split(".")[0],
+                resource=WRITE_OFF_PERMISSION,
+                resource_ref=request.url.path,
+                ip_address=_client_ip(request),
+                result=RESULT_DENIED,
+                description="Tentativa de baixa (WRITE_OFF) de patrimônio sem a permissão 'movimentacao.baixar'",
+            )
+            try:
+                db.refresh(user)
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permissão insuficiente: baixa definitiva de patrimônio exige 'movimentacao.baixar'.",
+            )
 
     # Feature 065 — o operador das movimentações é obrigatoriamente o usuário autenticado no servidor
     auth_user = getattr(request.state, "user", None)

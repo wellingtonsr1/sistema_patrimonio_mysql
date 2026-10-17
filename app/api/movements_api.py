@@ -5,9 +5,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.movement import MovementCreate, MovementRead, MovementFilter
 from app.models.enums import MovementType
-from app.services.movement_service import MovementService
+from app.services.movement_service import MovementService, WRITE_OFF_TYPES, WRITE_OFF_PERMISSION
 from app.api.deps import _client_ip, require_permission
-from app.services.audit_service import ACTION_MOVEMENT, write_change_audit
+from app.services.permission_service import user_has_permission
+from app.services.audit_service import ACTION_MOVEMENT, write_change_audit, write_audit, ACTION_ACCESS_DENIED, RESULT_DENIED
 
 router = APIRouter(prefix="/movements", tags=["Fluxo de Movimentação"])
 
@@ -69,6 +70,36 @@ def record_movement(data: MovementCreate, request: Request, db: Session = Depend
     auth_user = getattr(request.state, "user", None)
     if auth_user:
         data.operator_name = ((auth_user.full_name or auth_user.username)[:100])
+
+    # ========================================================================
+    # COR-01 / SEC-005 — guarda por tipo: baixa definitiva (WRITE_OFF) exige
+    # a permissão dedicada `movimentacao.baixar`, além de `movimentacao.criar`
+    # já exigida pelo dependency da rota. Negação registrada na trilha da
+    # mesma forma que `require_permission` registra (ACESSO_NEGADO/DENIED).
+    # ========================================================================
+    if data.movement_type in WRITE_OFF_TYPES:
+        user = request.state.user
+        if not user_has_permission(db, user, WRITE_OFF_PERMISSION):
+            write_audit(
+                db,
+                user=user,
+                action=ACTION_ACCESS_DENIED,
+                module=WRITE_OFF_PERMISSION.split(".")[0],
+                resource=WRITE_OFF_PERMISSION,
+                resource_ref=request.url.path,
+                ip_address=_client_ip(request),
+                result=RESULT_DENIED,
+                description="Tentativa de baixa (WRITE_OFF) de patrimônio sem a permissão 'movimentacao.baixar'",
+            )
+            # Recarrega os atributos do usuário (o commit da auditoria os expira)
+            try:
+                db.refresh(user)
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permissão insuficiente: baixa definitiva de patrimônio exige 'movimentacao.baixar'.",
+            )
 
     try:
         movement = MovementService.create_movement(db, data)
