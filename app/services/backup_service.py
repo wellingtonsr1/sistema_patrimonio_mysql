@@ -270,7 +270,13 @@ def _run_mysqldump(path: Path) -> None:
     env = _dump_env(password)
 
     try:
-        with open(path, "wb") as out:
+        # COR-02/SEC-007 — o fd nasce JÁ restritivo (O_CREAT com modo 0600):
+        # o subprocesso escreve desde o primeiro byte em arquivo legível
+        # apenas pelo dono (nenhuma janela 0664 durante o dump). O modo 0600
+        # já absorve qualquer umask — open() nunca concede bits além do modo
+        # pedido — e o rename atômico final herda o resultado.
+        fd_dump = os.open(path, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
+        with os.fdopen(fd_dump, "wb") as out:
             subprocess.run(
                 [
                     executable,
@@ -744,9 +750,10 @@ class BackupService:
             #    filename="" evita embutir o nome do temporário no cabeçalho
             #    gzip (FNAME) — a extração externa produz `backup_....sql`,
             #    não `backup_....part`.
-            with open(part_path, "rb") as src, open(
-                part_gz_path, "wb"
-            ) as raw_dst, gzip.GzipFile(
+            # COR-02/SEC-007 — mesmo padrão restritivo na compressão: o .part.gz
+            # nasce 0600 e o rename atômico final herda o modo (§27).
+            fd_gz = os.open(part_gz_path, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
+            with open(part_path, "rb") as src, os.fdopen(fd_gz, "wb") as raw_dst, gzip.GzipFile(
                 fileobj=raw_dst, mode="wb", filename=""
             ) as dst:
                 while True:

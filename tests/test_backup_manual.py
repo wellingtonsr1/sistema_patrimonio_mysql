@@ -1326,3 +1326,30 @@ def test_us3_apos_ciclo_tela_volta_ao_normal(client, db_session, monkeypatch):
     assert resp.status_code == 200
     assert name in resp.text
     assert "listagem indisponível" not in resp.text
+
+
+# ============================================================================
+# COR-02 / SEC-007 — arquivos de backup nascem restritivos (0600).
+# Precondição: dump/validação/compressão executados com executor FAKE
+# (_fake_dump); a compressão e o rename são código REAL do service.
+# ============================================================================
+
+def test_geracao_ok_backup_nasce_modo_0600(db_session):
+    """COR-02/SEC-007: o .gz final e o .part transbordam ZERO bits de grupo/
+    outros (mode & 0o077 == 0) — nenhum usuário do SO além do dono lê o dump
+    (que contém todos os password_hash)."""
+    import os as os_mod
+    import stat as stat_mod
+    from app.config import BACKUP_DIR
+
+    user = _make_user(db_session, "bkpmode", role_names=["Administrador"])
+    result = BackupService.generate_backup(
+        db_session, user, "127.0.0.1", dump_executor=_fake_dump
+    )
+
+    final = BACKUP_DIR / result["filename"]
+    assert final.is_file()
+    modo_final = stat_mod.S_IMODE(os_mod.stat(final).st_mode)
+    assert (modo_final & 0o077) == 0, f"modo final: {oct(modo_final)}"
+    # Exigência da ficha: dono lê/escreve, mais nada
+    assert modo_final == 0o600
