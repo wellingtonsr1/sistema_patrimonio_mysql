@@ -1,5 +1,6 @@
 import io
 import csv
+import re
 from datetime import datetime
 from typing import Iterator, List, Optional, Tuple
 from sqlalchemy import func
@@ -15,6 +16,52 @@ from app.models.location import Location
 from app.models.enums import AssetStatus, AssetCategory, InventarioStatus, InventarioItemStatus
 from app.models.inventario import Inventario, InventarioItem
 from app.utils.time_utils import format_local
+
+
+# ======================================================================
+# Neutralização de fórmula no CSV exportado (CWE-1236) — COR-03/SEC-003
+# Ponto único de defesa: TODAS as linhas emitidas pelo serviço passam
+# pelo mesmo guarda (inventário, colaboradores, locais, movimentações e
+# ata de inventário), sem alterar dados legítimos.
+#
+# Regra da ficha COR-03 (`achados/plano-correcao.md` §3): prefixar com
+# apóstrofo (marcador de texto em Excel/LibreOffice, não exibido) quando
+# o valor começar por `=`, `+` ou `@`, ou por `-` NÃO-numérico simples
+# (regex abaixo falha) — números negativos legítimos do relatório
+# (ex.: `-150`) permanecem intatos. Variantes com espaço/tab/CRLF
+# iniciais entram na regra.
+# ======================================================================
+_NUM_NEGATIVO_SIMPLES = re.compile(r"^-?\d+([.,]\d+)?$")
+
+
+def _neutralizar_formula_csv(valor):
+    """Prefixa apóstrofo quando a célula avaliaria como fórmula na planilha.
+
+    Valores não-texto (ints/floats) passam intactos. Não muta o valor de
+    entrada — a neutralização é só da emissão.
+    """
+    if not isinstance(valor, str):
+        return valor
+    inicio = valor.lstrip(" \t\r\n")
+    if inicio.startswith(("=", "+", "@")) or (
+        inicio.startswith("-") and not _NUM_NEGATIVO_SIMPLES.match(inicio)
+    ):
+        return "'" + valor
+    return valor
+
+
+class _CsvWriterNeutralizado:
+    """`csv.writer` do formato canônico da casa (`;`, QUOTE_MINIMAL) com a
+    neutralização de fórmula aplicada em cada linha (`csv.writer` nativo não
+    é subclassificável — wrapper mínimo, só `writerow`)."""
+
+    __slots__ = ("_writer",)
+
+    def __init__(self, buffer):
+        self._writer = csv.writer(buffer, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+
+    def writerow(self, values):
+        self._writer.writerow(_neutralizar_formula_csv(v) for v in values)
 
 
 class ReportService:
@@ -152,9 +199,10 @@ class ReportService:
 
     @staticmethod
     def _csv_line(values) -> str:
-        """Uma linha CSV no formato canônico da casa (`;`, QUOTE_MINIMAL)."""
+        """Uma linha CSV no formato canônico da casa (`;`, QUOTE_MINIMAL), com
+        neutralização de fórmula por célula (COR-03/SEC-003)."""
         buf = io.StringIO()
-        csv.writer(buf, delimiter=";", quoting=csv.QUOTE_MINIMAL).writerow(values)
+        _CsvWriterNeutralizado(buf).writerow(values)
         return buf.getvalue()
 
     @staticmethod
@@ -534,7 +582,7 @@ class ReportService:
             custodians = CustodianService.get_all(db)
 
         output = io.StringIO()
-        writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+        writer = _CsvWriterNeutralizado(output)
 
         writer.writerow([
             "matricula",
@@ -580,7 +628,7 @@ class ReportService:
             locations = LocationService.get_all(db)
 
         output = io.StringIO()
-        writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+        writer = _CsvWriterNeutralizado(output)
 
         # Feature 050: cabeçalhos oficiais (round-trip com o importador de locais)
         writer.writerow([
@@ -643,7 +691,7 @@ class ReportService:
         if movements is None:
             total = ReportService.count_movements(db)
             output = io.StringIO()
-            writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+            writer = _CsvWriterNeutralizado(output)
 
             writer.writerow([
                 "Código Movimentação",
@@ -689,7 +737,7 @@ class ReportService:
             return output.getvalue()
 
         output = io.StringIO()
-        writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+        writer = _CsvWriterNeutralizado(output)
 
         writer.writerow([
             "Código Movimentação",
@@ -771,7 +819,7 @@ class ReportService:
         total = len(rows)
 
         output = io.StringIO()
-        writer = csv.writer(output, delimiter=";", quoting=csv.QUOTE_MINIMAL)
+        writer = _CsvWriterNeutralizado(output)
 
         # Bloco de comprovação (cabeçalho formal)
         writer.writerow(["ATA DE INVENTÁRIO PATRIMONIAL"])
