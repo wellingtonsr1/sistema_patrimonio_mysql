@@ -408,7 +408,7 @@
 {% for item in expected_itens %}
 {% if inv.status.value != 'ENCERRADO' and can_conferir %}
 <div class="modal fade" id="modalConferir{{ item.id }}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <form method="post" action="/inventarios/{{ inv.id }}/conferir/{{ item.id }}"
                   {% if item.status.value != 'PENDENTE' %}onsubmit="return confirm('Este item já foi conferido. Registrar um novo resultado vai substituir o anterior. Continuar?')"{% endif %}>
@@ -429,7 +429,6 @@
                         <i class="bi bi-geo-alt me-1"></i> Local cadastrado: {{ item.expected_location_name or 'Estoque Central' }}
                     </div>
                     <label class="form-label fw-semibold">Resultado da conferência <span class="text-danger">*</span></label>
-                    <label class="form-label fw-semibold">Resultado da conferência <span class="text-danger">*</span></label>
                     <fieldset class="d-grid gap-2 mb-3" style="border:0;padding:0;margin:0;">
                         <legend class="visually-hidden">Resultado da conferência</legend>
                         <label class="d-block border rounded p-2 result-option" style="cursor:pointer;">
@@ -448,7 +447,6 @@
                             <input class="form-check-input" type="radio" name="result" value="SEM_IDENTIFICACAO">
                             <span class="fw-semibold ms-2" style="color:var(--c-text);">⚠️ Sem identificação</span>
                         </label>
-                    </div>
                     </fieldset>
                     <div class="mb-2">
                         <label class="form-label fw-semibold small" for="modalloc-{{ item.id }}">Local onde foi encontrado (para local diferente)</label>
