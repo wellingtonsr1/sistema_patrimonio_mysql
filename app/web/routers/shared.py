@@ -99,6 +99,22 @@ def _read_csv_upload(request: Request, file: UploadFile, template_name: str, act
     """Feature 048 (R6/FR-021): leitura guardada do upload — extensão, encoding
     e decodificação controladas. Retorna (content, error_response).
     Nenhuma exceção cruza para o usuário."""
+    if file is None:
+        # COR-04 (`specs/072-pentest-auditoria-adversarial` — SEC-001/EV-015):
+        # corpo sem campo `file` (e sem `csv_content`) NÃO dereferencia
+        # `file.filename` — antes vira AttributeError → 500 cru (TC-18).
+        # Resposta 400 com a página amigável do próprio passo de importação
+        # (padrão do `http_exception_handler`), cobrindo os chamadores de
+        # assets/custodians/locations num único ponto.
+        return None, templates.TemplateResponse(
+            request=request,
+            name=template_name,
+            status_code=400,
+            context={
+                "active_tab": active_tab,
+                "error": "Nenhum arquivo enviado. Selecione um arquivo .csv e tente novamente.",
+            },
+        )
     if not file.filename or not file.filename.endswith(".csv"):
         return None, templates.TemplateResponse(
             request=request,

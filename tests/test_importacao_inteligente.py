@@ -1161,3 +1161,30 @@ def test_importacao_bloqueada_sem_permissao(db_session, unauth_client):
     assert unauth_client.post(
         "/locations/import/confirm", data={"csv_data": "[]"}
     ).status_code == 403
+
+
+# ============================================================================
+# COR-072 ficha COR-04 (SEC-001) — POST/import sem campo `file` nunca mais 500
+# ============================================================================
+
+def test_import_sem_arquivo_responde_4xx_amigavel_e_nunca_500(client, db_session):
+    """COR-04 (`specs/072-pentest-auditoria-adversarial`): corpo vazio (sem
+    `file` e sem `csv_content`) nas 3 rotas de importação → 400 com página
+    amigável (nunca 500 cru —    reproduz o TC-18/EV-015 invertido)."""
+    from app.models.asset import Asset
+
+    antes = db_from_client(client).query(Asset).count()
+
+    for rota, ativo in (
+        ("/assets/import", "assets"),
+        ("/custodians/import", "custodians"),
+        ("/locations/import", "locations"),
+    ):
+        resp = client.post(rota, data={"skip_duplicates": "true"},
+                           follow_redirects=False)
+        assert resp.status_code == 400, rota
+        assert "Nenhum arquivo enviado" in resp.text, rota
+        assert f"data-active-tab='{ativo}'" in resp.text or ativo in resp.text, rota
+
+    depois = db_from_client(client).query(Asset).count()
+    assert depois == antes  # nenhuma gravação lateral
