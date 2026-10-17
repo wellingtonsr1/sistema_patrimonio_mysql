@@ -188,6 +188,38 @@ async def operational_error_handler(request: Request, exc: OperationalError):
     )
 
 
+# =====================================================================
+# COR-06 (`specs/072-pentest-auditoria-adversarial` — SEC-006/EV-039):
+# exceção NÃO-HTTP não expõe mais o 500 cru ao usuário — página web
+# recebe a página amigável de indisponibilidade (mesmo layout de
+# 403/404) e /api/* recebe JSON genérico. Nenhuma senha/DSN/SQL no
+# corpo; TODA ocorrência é logada com trace (nada silenciado - FR-039).
+# Propriedades provadas por TC-45 preservadas: sem vazamento e sem
+# escrita parcial.
+# =====================================================================
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Exceções não-HTTP → 500 amigável (web) / JSON genérico (API)."""
+    logger.exception("Exceção não tratada em %s: %r", request.url.path, exc)
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Erro interno do servidor. Tente novamente."},
+        )
+    try:
+        return templates.TemplateResponse(
+            request=request,
+            name="500.html",
+            context={},
+            status_code=500,
+        )
+    except Exception:  # noqa: BLE001 - a página de erro não pode quebrar
+        logger.exception("Falha ao renderizar a página 500 amigável")
+        return JSONResponse(status_code=500, content={"detail": "Erro interno do servidor."})
+
+
 @app.get("/health", tags=["Sistema"])
 def health_check():
     """Health check aprimorado: verifica aplicação, banco de dados e AD (se habilitado)."""
