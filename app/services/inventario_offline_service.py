@@ -137,6 +137,19 @@ class InventarioOfflineService:
                 }
             )
 
+        # Feature 074 (RF03/FR-002): catálogo de locais reutiliza o MESMO ciclo de
+        # armazenamento local do inventário (o pacote é persistido na store
+        # `packages` do IndexedDB por `savePackage`). Extensão ADITIVA do contrato
+        # §2 — mesma fonte/ordem exibida pela Conferência Online (`LocationService.get_all`),
+        # projeção mínima `id`+`name` (o `id` é a chave do dropdown; `name` é único no
+        # cadastro, logo sem homônimos). Nenhum write no cadastro (FR-005).
+        from app.services.location_service import LocationService
+
+        locations = [
+            {"id": loc.id, "name": loc.name}
+            for loc in LocationService.get_all(db)
+        ]
+
         return {
             "inventory_id": inv.id,
             "inventory_code": inv.code,
@@ -147,6 +160,7 @@ class InventarioOfflineService:
             "generated_at": now_utc().isoformat(),
             "expires_when": "inventory_closed_or_reprepared",  # P-2
             "items": package_items,
+            "locations": locations,  # feature 074 — catálogo p/ dropdown offline
         }
 
     # ------------------------------------------------------------------

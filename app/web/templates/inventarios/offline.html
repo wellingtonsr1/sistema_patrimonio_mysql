@@ -325,9 +325,12 @@
                             </label>
                         </fieldset>
                         <div class="mb-2" id="mLocalWrap">
-                            <label class="form-label fw-semibold small" for="mFoundLocationName">Local onde foi encontrado (para local diferente)</label>
-                            <input type="text" id="mFoundLocationName" class="form-control form-control-sm"
-                                   placeholder="Digite o nome do local — o servidor valida na sincronização">
+                            <label class="form-label fw-semibold small" for="mFoundLocationId">Local onde foi encontrado (para local diferente)</label>
+                            {# Feature 074: dropdown com o catálogo de locais vindo NO PACOTE offline
+                               (mesmo armazenamento local do inventário). O value é o Location.id
+                               estável; o nome é só apresentação. #}
+                            <select id="mFoundLocationId" class="form-select form-select-sm"></select>
+                            <div class="form-text text-warning" id="mLocalStatus" style="display:none;"></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold small" for="mObservacao">Observação</label>
@@ -487,12 +490,47 @@
         var itemAlvo = null;
         var modalColeta = null;
 
+        // 074 — Preenche o dropdown de locais a partir do PACOTE offline (T007).
+        // Estados (T008 / D7): pacote antigo sem `locations` → lista indisponível
+        // (orienta re-preparar); `locations` vazio → nenhum local cadastrado; em
+        // ambos o registro LOCAL_DIFERENTE fica bloqueado. Nunca inventa opções.
+        function preencherLocais() {
+            var sel = document.getElementById("mFoundLocationId");
+            var status = document.getElementById("mLocalStatus");
+            if (!sel) return;
+            sel.innerHTML = "";
+            var locs = (pkg && Array.isArray(pkg.locations)) ? pkg.locations : null;
+            var indisponivel = !locs;
+            var vazio = locs && locs.length === 0;
+            var placeholder = document.createElement("option");
+            placeholder.value = "";
+            if (indisponivel) {
+                placeholder.textContent = "Lista de locais indisponível — reconecte e prepare a coleta offline";
+                status.textContent = "Os locais ainda não foram disponibilizados neste dispositivo. Reconecte e prepare a coleta offline para atualizar os dados.";
+            } else if (vazio) {
+                placeholder.textContent = "Nenhum local cadastrado";
+                status.textContent = "Nenhum local cadastrado no sistema — não há opções para selecionar.";
+            } else {
+                placeholder.textContent = "Selecione o local…";
+                locs.forEach(function (l) {
+                    var o = document.createElement("option");
+                    o.value = l.id;
+                    o.textContent = l.name;   // nome único no cadastro (sem homônimos)
+                    sel.appendChild(o);
+                });
+            }
+            sel.insertBefore(placeholder, sel.firstChild);
+            sel.value = "";
+            sel.disabled = !!indisponivel || !!vazio;
+            status.style.display = (indisponivel || vazio) ? "" : "none";
+        }
+
         function coletarItem(item) {
             itemAlvo = item;
             setText("mTag", item.tag || "?");
             setText("mLocalEsperado", item.expected_location_name || "Estoque Central");
             document.getElementById("mLocalWrap").style.display = "none";
-            document.getElementById("mFoundLocationName").value = "";
+            document.getElementById("mFoundLocationId").value = "";
             document.getElementById("mObservacao").value = "";
             var radios = document.querySelectorAll("input[name='m_result']");
             radios.forEach(function (r) { r.checked = false; });
@@ -548,6 +586,7 @@
                     aviso.textContent = "Pacote não encontrado neste dispositivo. Reconecte e prepare a coleta offline na tela do inventário.";
                     return;
                 }
+                preencherLocais();   // feature 074 — catálogo do pacote vira opções do dropdown
                 atualizarPainel();
                 renderItens(document.getElementById("buscaItem").value);
                 // Expiração por estado do inventário: coleta bloqueada com
@@ -586,14 +625,20 @@
                 if (!itemAlvo || !pkg) return;
                 var result = (document.querySelector("input[name='m_result']:checked") || {}).value;
                 if (!result) { window.alert("Selecione o resultado da conferência."); return; }
+                var foundId = null;
                 var foundName = null;
                 var obs = document.getElementById("mObservacao").value.trim();
                 if (result === "LOCAL_DIFERENTE") {
-                    foundName = document.getElementById("mFoundLocationName").value.trim();
-                    if (!foundName) {
-                        window.alert("Informe o local onde o bem foi encontrado (como no fluxo online).\nNa sincronização, o servidor valida o nome contra o cadastro de locais.");
+                    var sel = document.getElementById("mFoundLocationId");
+                    foundId = parseInt(sel.value, 10);
+                    if (!foundId) {
+                        // T013: sem seleção válida NÃO registra — o servidor é a
+                        // autoridade; nada de texto livre nem local arbitrário.
+                        window.alert("Selecione o local onde o bem foi encontrado na lista de locais cadastrados.");
                         return;
                     }
+                    var opt = sel.options[sel.selectedIndex];
+                    foundName = opt ? opt.textContent : null;   // snapshot de apresentação
                 }
                 var opId = (window.crypto && window.crypto.randomUUID)
                     ? window.crypto.randomUUID() : InventarioOffline.getDeviceId() + "-" + Date.now();
@@ -605,8 +650,8 @@
                     asset_id: itemAlvo.asset_id,
                     operation: "CHECK",
                     result: result,                      // vocabulário do fluxo online (C-3)
-                    found_location_id: null,
-                    found_location_name: foundName,
+                    found_location_id: foundId,          // 074: id estável do dropdown
+                    found_location_name: foundName,      // 074: snapshot de apresentação
                     observation: obs || null,
                     collected_at: new Date().toISOString(),
                     username: null,

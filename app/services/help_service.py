@@ -706,7 +706,7 @@ ARTICLES: List[Dict] = [
                 "steps": [
                     "Abra a conferência pelo item (ou pela ficha do bem, via QR Code/busca).",
                     "Escolha o Resultado da conferência: Encontrado, Local diferente, Não encontrado ou Sem identificação.",
-                    "Se for local diferente, informe o Local onde foi encontrado.",
+                    "Se for local diferente, selecione o Local onde foi encontrado na lista de locais cadastrados.",
                     "Escreva uma Observação, se necessário (opcional).",
                     "Clique em Registrar conferência.",
                 ],
@@ -751,7 +751,7 @@ ARTICLES: List[Dict] = [
                 "heading": "Preparar a coleta offline",
                 "steps": [
                     "Na tela do inventário (Planejado ou Em Andamento), clique em Preparar coleta offline.",
-                    "O dispositivo guarda um pacote com apenas os dados de conferência (tombamento, descrição, número de série, local esperado e o QR).",
+                    "O dispositivo guarda um pacote com apenas os dados de conferência (tombamento, descrição, número de série, local esperado, QR e a lista de locais para o dropdown).",
                     "Nada de usuários, permissões ou credenciais é armazenado no dispositivo.",
                 ],
             },
@@ -760,7 +760,7 @@ ARTICLES: List[Dict] = [
                 "steps": [
                     "Abra /inventarios/{id}/offline no tablet — a página funciona sem internet (fica guardada no próprio navegador).",
                     "Use o botão flutuante Ler QR (câmera, no Chrome/Edge) ou o campo de pesquisa por tombamento/descrição para identificar o bem; se a câmera não estiver disponível, o leitor aceita digitar a URL do QR ou o tombamento.",
-                    "Escolha o resultado: Encontrado, Local diferente (informando o local onde foi encontrado), Não encontrado ou Sem identificação — as mesmas regras do fluxo online.",
+                    "Escolha o resultado: Encontrado, Local diferente (selecionando o local na lista vinda com o pacote), Não encontrado ou Sem identificação — as mesmas regras do fluxo online.",
                     "Cada coleta fica guardada no próprio dispositivo, mesmo fechando o navegador ou reiniciando o aparelho.",
                 ],
             },
