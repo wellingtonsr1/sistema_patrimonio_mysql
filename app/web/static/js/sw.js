@@ -10,12 +10,12 @@
  */
 "use strict";
 
-var CACHE_VERSION = "inventario-offline-v35"; // v35: dropdown de locais na conferência offline (074 — catálogo no pacote + select) · v34: dica do localhost na página offline (060 — acesso direto na máquina do servidor sem rede) · v33: vendoring M6 (059) — Chart.js 4.4.1, QRCode 1.0.0 e fonte Plus Jakarta Sans locais entram no precache (app 100% funcional sem internet; CDN eliminado) · v32: corrige respondWith duplo na navegação offline (053 — InvalidStateError por spec Fetch) e força limpeza dos caches v31 possivelmente corrompidos · v31: contador de conflitos sincroniza com reconciliações do servidor (C-8) · v30: fallback offline do atalho · v29: tombamento no fallback manual · v28: Ler QR vira FAB · v27: .dark-toggle padrão · v26: sticky do header · v25: layout 035 · ↔ DB_VERSION=1 do IndexedDB (D3/D4)
+var CACHE_VERSION = "inventario-offline-v36"; // v36: contraste do texto no dark (style.css — secundário neutro em vez de vermelho) + tabela da listagem offline sem quebra de palavras · v35: dropdown de locais na conferência offline (074 — catálogo no pacote + select) · v34: dica do localhost na página offline (060 — acesso direto na máquina do servidor sem rede) · v33: vendoring M6 (059) — Chart.js 4.4.1, QRCode 1.0.0 e fonte Plus Jakarta Sans locais entram no precache (app 100% funcional sem internet; CDN eliminado) · v32: corrige respondWith duplo na navegação offline (053 — InvalidStateError por spec Fetch) e força limpeza dos caches v31 possivelmente corrompidos · v31: contador de conflitos sincroniza com reconciliações do servidor (C-8) · v30: fallback offline do atalho · v29: tombamento no fallback manual · v28: Ler QR vira FAB · v27: .dark-toggle padrão · v26: sticky do header · v25: layout 035 · ↔ DB_VERSION=1 do IndexedDB (D3/D4)
 var OFFLINE_NAV_RE = /^\/inventarios\/\d+\/offline$/;
 
 // Allowlist explícita (FR-035) — nada além disso entra em cache
 var PRECACHE_URLS = [
-  "/static/css/style.css?v=20260924",
+  "/static/css/style.css?v=20261020",
   "/static/vendor/css/bootstrap.min.css",
   "/static/vendor/css/bootstrap-icons.css",
   "/static/vendor/css/fonts/bootstrap-icons.woff2",

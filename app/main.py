@@ -105,6 +105,36 @@ async def maintenance_mode_middleware(request: Request, call_next):
 STATIC_DIR = Path(__file__).parent / "web" / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+
+@app.middleware("http")
+async def cache_control_middleware(request: Request, call_next):
+    """Controle de cache explícito para o ciclo de vida do PWA (033) e dos assets.
+
+    Nenhuma resposta do app definia Cache-Control: o navegador usava a heurística
+    de frescor (fração da idade desde Last-Modified), que pode guardar `/sw.js`
+    e CSS por DIAS. Efeito observado em produção: o Ctrl+F5 (ignora cache)
+    mostrava o CSS novo, mas a navegação normal voltava ao tema antigo — o SW
+    antigo seguia ativo (nunca notava o CACHE_VERSION novo) e continuava
+    servindo shell/CSS antigos cache-first.
+
+    - `/sw.js`: `no-cache` = revalida a cada visita → o navegador detecta a nova
+      versão do SW na primeira navegação pós-deploy (a ativação remove os caches
+      antigos pelo mecanismo FR-037 e passa a servir os assets novos).
+    - `/static/*` e HTML dinâmico: `no-cache` (revalidação barata — 304). Os
+      assets NÃO são content-hashados: o buste é o `?v=` dos templates, que só
+      funciona se a resposta antiga não ficar \"fresca\" sem revalidação.
+    """
+    response = await call_next(request)
+    path = request.url.path
+    content_type = response.headers.get("content-type", "")
+    if (
+        path == "/sw.js"
+        or path.startswith("/static/")
+        or "text/html" in content_type
+    ) and "cache-control" not in response.headers:
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
 # Inclui rotas da API REST
 app.include_router(api_v1_router)
 

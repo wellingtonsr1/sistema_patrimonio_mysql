@@ -21,7 +21,7 @@
        Mesmas versões do base.html (Bootstrap 5.3.3 / Icons 1.11.3). #}
     <link href="/static/vendor/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/vendor/css/bootstrap-icons.css">
-    <link rel="stylesheet" href="/static/css/style.css?v=20261012">
+    <link rel="stylesheet" href="/static/css/style.css?v=20261020">
     {# Cabeçalho PRÓPRIO da shell (feature 033): não usa .app-navbar/.navbar-brand
        do style.css global. Layout empilhado: logo | (título / nome do inventário /
        status) | ↻ verificar conexão + tema — conforme mockup aprovado. #}
@@ -144,10 +144,17 @@
             body { overflow-x: clip; }
         }
 
-        /* Quebra controlada de conteúdo longo nas células (D3/US3): textos
-           longos quebram dentro da célula, sem empurrar colunas nem
-           transbordar o card */
-        #itensBody td { overflow-wrap: anywhere; }
+        /* Quebra controlada de conteúdo longo nas células (D3/US3) — SEM
+           `anywhere`: essa instrução entra no cálculo de largura MÍNIMA da
+           coluna e as 5 colunas da tabela se achatavam no celular, partindo
+           palavras no meio ("Computad-or", botão "Co-nfe-rir"). `break-word`
+           só quebra quando o texto não cabe; quando as colunas não couberem,
+           o .table-responsive dá scroll horizontal em vez de espreitar. */
+        #itensBody td { overflow-wrap: break-word; word-break: break-word; }
+        /* Tombamento e ação são indivisíveis: nunca quebram linha (leitura de
+           tag e alvo do toque dependem da palavra inteira) */
+        #itensBody td:nth-child(1) .tag-badge,
+        #itensBody td:nth-child(5) .btn { white-space: nowrap; }
 
         /* Desktop: 4 contadores em linha ÚNICA a partir de 992px (tablet
            horizontal e tela grande); 2×2 abaixo disso (tablet vertical/celular) */

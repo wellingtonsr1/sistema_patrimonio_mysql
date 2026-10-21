@@ -85,15 +85,18 @@ def test_cache_version_minima_v32():
     v31 dos dispositivos são removidos na ativação do SW atualizado.
     v33 (059): vendoring M6 — allowlist nova propagada aos dispositivos.
     v34 (060): dica do localhost na página offline propagada.
-    v35 (074): dropdown de locais na conferência offline propagada."""
+    v35 (074): dropdown de locais na conferência offline propagada.
+    v36: contraste do texto no dark + tabela da listagem offline (CSS
+    propagado aos dispositivos e precache realinhado ao cache-buster)."""
     source = _sw_source()
     for versao in (
         "inventario-offline-v32", "inventario-offline-v33",
         "inventario-offline-v34", "inventario-offline-v35",
+        "inventario-offline-v36",
     ):
         if versao in source:
             return
-    pytest.fail("CACHE_VERSION não é v32, v33, v34 nem v35 (regressão de bump?)")
+    pytest.fail("CACHE_VERSION não é v32–v36 (regressão de bump?)")
 
 
 def test_allowlist_precache_intacta():
@@ -101,7 +104,7 @@ def test_allowlist_precache_intacta():
     css e woff2 da fonte) = 18 entradas."""
     source = _sw_source()
     allowlist = [
-        "/static/css/style.css?v=20260924",
+        "/static/css/style.css?v=20261020",
         "/static/vendor/css/bootstrap.min.css",
         "/static/vendor/css/bootstrap-icons.css",
         "/static/vendor/css/fonts/bootstrap-icons.woff2",

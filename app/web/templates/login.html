@@ -27,10 +27,12 @@
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="/static/vendor/css/bootstrap-icons.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/static/css/style.css?v=20261012">
+    <link rel="stylesheet" href="/static/css/style.css?v=20261020">
 </head>
 <body>
-    <div class="d-flex align-items-center justify-content-center" style="min-height:100vh;min-height:100dvh;padding:1.5rem;background-color: rgb(252, 246, 246);">
+    {# Fundo do backdrop segue o tema (antes: rgb(252,246,246) fixo — a página
+       de login ficava clara mesmo com tema escuro ativo) #}
+    <div class="d-flex align-items-center justify-content-center" style="min-height:100vh;min-height:100dvh;padding:1.5rem;background-color: var(--c-bg);">
         <div class="w-100" style="max-width:420px;;">
             <!-- Brand -->
             <div class="text-center mb-4">
@@ -38,7 +40,9 @@
                     <i class="bi bi-box-seam"></i>
                 </span>-->
                 <img src="/static/img/Logo_IPMjp_1.png" alt="" class="navbar-brand-logo" style="width:230px;height:150px;">
-                <h4 class="fw-bold mt-0 text-dark" style="letter-spacing:-.02em;">
+                {# Sem text-dark: o título herda a cor do tema (no dark, #212529
+                   sobre fundo escuro seria invisível) #}
+                <h4 class="fw-bold mt-0" style="letter-spacing:-.02em;">
                     <span class="navbar-brand-icon d-inline-flex" style="width:20px;height:20px;font-size:1.4rem;">
                         <i class="bi bi-box-seam"></i>
                     </span>

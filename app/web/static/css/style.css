@@ -1060,9 +1060,18 @@ a, button { transition: all .12s var(--ease); }
   --dark-surface-raised: #30292A;
 
   --dark-text: #F5F1F2;
-  --dark-text-secondary: #f1504a;
-  --dark-text-muted: #9E9497;
-  --dark-text-faint: #847A7D;
+  /* Texto secundário NEUTRO (espelho do --color-text-secondary do tema claro,
+     #686363). Esta variável colora texto de células de tabela, botões ghost e
+     itens de sidebar no dark — nunca usar o vermelho institucional aqui:
+     #f1504a sobre #181516 dá só ~4.5:1 e o texto pequeno lê como "apagado".
+     #D6CFD1 resolve ~11.7:1 mantendo hierarquia abaixo do texto primário. */
+  --dark-text-secondary: #D6CFD1;
+  /* Muted/faint mais claros que no tema claro: no fundo escuro, #9E9497/#847A7D
+     (paleta herdada do tema quente) caem para ~5.6:1/~3.7:1 e leem como
+     "apagados" — principalmente em cabeçalho de tabela e placeholder de input.
+     #B5ABAE ≈ 7.4:1 e #9B9194 ≈ 5.3:1 mantêm a hierarquia com legibilidade. */
+  --dark-text-muted: #B5ABAE;
+  --dark-text-faint: #9B9194;
 
   --dark-border: #3A3335;
   --dark-border-light: #302A2C;
@@ -1209,7 +1218,10 @@ a, button { transition: all .12s var(--ease); }
   border-color: var(--c-border);
 }
 
-[data-theme="dark"] .btn-ghost { border-color: var(--dark-border); color: var(--dark-text-secondary); }
+/* Fundo OBRIGATÓRIO no dark: a regra base (.btn-ghost) fixa
+   background: var(--color-surface) = BRANCO e sem este override o botão
+   fica caixa branca com texto claro no tema escuro (ilegível). */
+[data-theme="dark"] .btn-ghost { background: var(--c-surface); border-color: var(--dark-border); color: var(--dark-text-secondary); }
 [data-theme="dark"] .btn-ghost:hover { background: var(--dark-primary-light); border-color: var(--dark-primary); color: var(--dark-primary); }
 
 [data-theme="dark"] .modern-timeline-card,
@@ -1220,10 +1232,20 @@ a, button { transition: all .12s var(--ease); }
 
 [data-theme="dark"] .tag-badge { background: var(--dark-surface-secondary); border-color: var(--dark-border); color: var(--dark-text); }
 [data-theme="dark"] .section-divider { border-color: var(--dark-border-light); }
+[data-theme="dark"] .card-header-clean { border-color: var(--dark-border); }
 
 /* Código e blocos pré-formatados no tema escuro */
 [data-theme="dark"] code { color: var(--c-text-secondary); }
 [data-theme="dark"] .bg-light { background-color: var(--c-surface-alt) !important; }
+/* .bg-white genérico (badges de preview de import usam bg-white): o override
+   anterior cobria só .input-group-text.bg-white — badges ficavam brancas no dark */
+[data-theme="dark"] .bg-white { background-color: var(--c-surface-alt) !important; }
+/* `text-dark` (#212529 !important do Bootstrap) PAREADO aos fundos clareados
+   acima: sem este flip o texto fica escuro sobre superfície escura (invisível).
+   Badges sobre fundos COLORIDOS (bg-warning/bg-info + text-dark) não são afetados
+   — o fundo deles continua claro e o texto escuro segue legível. */
+[data-theme="dark"] .bg-light.text-dark,
+[data-theme="dark"] .bg-white.text-dark { color: var(--c-text) !important; }
 [data-theme="dark"] .table-light {
   --bs-table-bg: var(--c-surface-alt);
   --bs-table-color: var(--c-text);
